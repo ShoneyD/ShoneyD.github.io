@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="img-src * data: blob:;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Timeline of American History</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #f5f0e8;
+            --parchment-dark: #e8dfc8;
+            --ink: #2c1f0e;
+            --ink-light: #5a4232;
+            --accent-gold: #b8860b;
+            --accent-red: #8b1a1a;
+            --timeline-line: #8b7355;
+
+            /* Era colors */
+            --era-founding: #4a6741;
+            --era-expansion: #8b6914;
+            --era-civil: #7a2020;
+            --era-industrial: #3d5a8a;
+            --era-world: #5a3d7a;
+            --era-modern: #1a6b6b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Lora', Georgia, serif;
+            background-color: var(--parchment);
+            color: var(--ink);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(ellipse at 20% 50%, rgba(184,134,11,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(139,26,26,0.05) 0%, transparent 50%);
+        }
+
+        /* ── HEADER ── */
+        .site-header {
+            text-align: center;
+            padding: 3rem 2rem 1.5rem;
+            border-bottom: 2px solid var(--parchment-dark);
+            position: relative;
+        }
+        .site-header::after {
+            content: '';
+            display: block;
+            width: 120px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+            margin: 0.75rem auto 0;
+        }
+        h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+        }
+        .subtitle {
+            font-size: 1rem;
+            color: var(--ink-light);
+            font-style: italic;
+            margin-top: 0.5rem;
+        }
+
+        /* ── ERA LEGEND ── */
+        .era-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem 1.2rem;
+            padding: 1rem 2rem;
+            background: var(--parchment-dark);
+            border-bottom: 1px solid #c8b99a;
+        }
+        .era-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: var(--ink-light);
+            font-family: 'Lora', serif;
+        }
+        .era-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.2);
+        }
+
+        /* ── TIMELINE SCROLL WRAPPER ── */
+        .timeline-scroll {
+            overflow-x: auto;
+            padding: 3rem 4rem 2rem;
+            cursor: grab;
+            user-select: none;
+        }
+        .timeline-scroll:active { cursor: grabbing; }
+        .timeline-scroll::-webkit-scrollbar { height: 10px; }
+        .timeline-scroll::-webkit-scrollbar-track {
+            background: var(--parchment-dark);
+            border-radius: 10px;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb {
+            background: var(--timeline-line);
+            border-radius: 10px;
+        }
+
+        /* ── TIMELINE INNER ── */
+        .timeline-inner {
+            position: relative;
+            min-width: 5200px;
+            height: 420px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* The rope/line */
+        .timeline-inner::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                var(--timeline-line) 3%,
+                var(--timeline-line) 97%,
+                transparent 100%);
+            transform: translateY(-50%);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* ── TIMELINE ITEMS ── */
+        .tl-items {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            position: relative;
+        }
+
+        .tl-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        /* Title above the line */
+        .tl-title {
+            position: absolute;
+            bottom: calc(50% + 32px);
+            width: 130px;
+            text-align: center;
+            font-family: 'Lora', serif;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--ink-light);
+            line-height: 1.3;
+            transition: color 0.2s;
+        }
+        .tl-item:hover .tl-title,
+        .tl-item.active .tl-title { color: var(--accent-gold); }
+
+        /* Dot */
+        .tl-dot {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 3px solid var(--parchment);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .tl-item:hover .tl-dot,
+        .tl-item.active .tl-dot {
+            transform: translateY(-50%) scale(1.15);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+        }
+
+        /* ── CARD (modal-style) ── */
+        .card-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(20,12,4,0.55);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            backdrop-filter: blur(2px);
+        }
+        .card-overlay.open { display: flex; }
+
+        .card {
+            background: var(--parchment);
+            border: 1px solid #c8b99a;
+            border-radius: 4px;
+            max-width: 640px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow:
+                0 20px 60px rgba(0,0,0,0.4),
+                inset 0 0 0 1px rgba(255,255,255,0.4);
+            position: relative;
+            animation: cardIn 0.25s ease;
+        }
+        @keyframes cardIn {
+            from { transform: scale(0.92) translateY(12px); opacity: 0; }
+            to   { transform: scale(1) translateY(0);     opacity: 1; }
+        }
+
+        .card-img-wrap {
+            width: 100%;
+            background: #2c1f0e;
+            border-bottom: 3px solid var(--accent-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 220px;
+            max-height: 320px;
+            overflow: hidden;
+        }
+        .card-img {
+            width: 100%;
+            max-height: 320px;
+            object-fit: contain;
+            display: block;
+            background: #2c1f0e;
+        }
+        .card-img-placeholder,
+        .card-img-loading {
+            width: 100%;
+            height: 220px;
+            background: var(--parchment-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            border-bottom: 3px solid var(--accent-gold);
+        }
+        .card-img-caption {
+            font-size: 0.65rem;
+            color: #888;
+            font-style: italic;
+            padding: 0.3rem 1.2rem;
+            background: var(--parchment-dark);
+            border-bottom: 1px solid #d0c4a8;
+        }
+
+        .card-body { padding: 1.5rem 1.75rem 2rem; }
+
+        .card-era-badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.2rem 0.7rem;
+            border-radius: 2px;
+            color: white;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 0.6rem;
+            line-height: 1.2;
+        }
+
+        .card-event {
+            font-size: 0.92rem;
+            color: var(--ink-light);
+            line-height: 1.6;
+            margin-bottom: 1.25rem;
+        }
+
+        /* Vocabulary highlights */
+        .vocab {
+            border-bottom: 2px dotted var(--accent-gold);
+            cursor: help;
+            position: relative;
+            display: inline;
+        }
+        .vocab:hover::after {
+            content: attr(data-def);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ink);
+            color: var(--parchment);
+            font-size: 0.75rem;
+            padding: 0.4rem 0.7rem;
+            border-radius: 3px;
+            white-space: normal;
+            width: 200px;
+            line-height: 1.4;
+            z-index: 200;
+            pointer-events: none;
+            font-style: normal;
+            font-weight: normal;
+        }
+
+        .card-divider {
+            border: none;
+            border-top: 1px solid #c8b99a;
+            margin: 1rem 0;
+        }
+        .card-divider-label {
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 0.8rem;
+            font-style: italic;
+            color: var(--accent-gold);
+            margin: -0.1rem 0 0.9rem;
+        }
+
+        /* Perspectives */
+        .perspective {
+            background: rgba(255,255,255,0.5);
+            border-left: 3px solid var(--accent-gold);
+            border-radius: 0 3px 3px 0;
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.9rem;
+        }
+        .perspective.p2 { border-left-color: var(--accent-red); }
+
+        .persp-source {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 0.35rem;
+            font-family: 'Lora', serif;
+        }
+        .persp-source .persp-tag {
+            display: inline-block;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.1rem 0.45rem;
+            border-radius: 2px;
+            margin-right: 0.4rem;
+            color: white;
+            background: var(--accent-gold);
+        }
+        .perspective.p2 .persp-tag { background: var(--accent-red); }
+
+        .persp-quote {
+            font-style: italic;
+            font-size: 0.9rem;
+            color: var(--ink-light);
+            line-height: 1.65;
+        }
+
+        /* Discussion question */
+        .discussion-box {
+            margin-top: 1.2rem;
+            background: rgba(184,134,11,0.08);
+            border: 1px dashed var(--accent-gold);
+            border-radius: 3px;
+            padding: 0.8rem 1rem;
+        }
+        .discussion-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent-gold);
+            margin-bottom: 0.3rem;
+        }
+        .discussion-q {
+            font-size: 0.9rem;
+            color: var(--ink);
+            line-height: 1.5;
+        }
+
+        .card-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            width: 32px;
+            height: 32px;
+            background: rgba(44,31,14,0.75);
+            border: none;
+            border-radius: 50%;
+            color: var(--parchment);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: background 0.15s;
+        }
+        .card-close:hover { background: var(--accent-red); }
+
+        /* Nav arrows */
+        .card-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.75rem;
+            background: var(--parchment-dark);
+            border-top: 1px solid #c8b99a;
+        }
+        .card-nav-btn {
+            background: none;
+            border: 1px solid var(--timeline-line);
+            border-radius: 3px;
+            padding: 0.35rem 0.9rem;
+            font-family: 'Lora', serif;
+            font-size: 0.8rem;
+            color: var(--ink-light);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .card-nav-btn:hover { background: var(--ink); color: var(--parchment); }
+        .card-nav-btn:disabled { opacity: 0.3; cursor: default; }
+        .card-nav-counter {
+            font-size: 0.78rem;
+            color: var(--ink-light);
+            font-style: italic;
+        }
+
+        /* Instruction bar */
+        .instruction-bar {
+            text-align: center;
+            padding: 0.6rem;
+            font-size: 0.82rem;
+            font-style: italic;
+            color: var(--ink-light);
+            border-top: 1px solid var(--parchment-dark);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="site-header">
+        <h1>A Timeline of American History</h1>
+        <p class="subtitle">Click any event to explore contrasting perspectives — then discuss.</p>
+    </header>
+
+    <!-- Era Legend -->
+    <div class="era-legend">
+        <div class="era-legend-item"><div class="era-dot" style="background:var(--era-founding)"></div> Founding Era</div>
+        <div class="era-legend-item"><div class="era-dot" style="background:var(--era-expansion)"></div> Expansion & Reform</div>
+        <div class="era-legend-item"><div class="era-dot" style="background:var(--era-civil)"></div> Civil War & Reconstruction</div>
+        <div class="era-legend-item"><div class="era-dot" style="background:var(--era-industrial)"></div> Industrial Age</div>
+        <div class="era-legend-item"><div class="era-dot" style="background:var(--era-world)"></div> World Wars</div>
+        <div class="era-legend-item"><div class="era-dot" style="background:var(--era-modern)"></div> Modern Era</div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline-scroll" id="timelineScroll">
+        <div class="timeline-inner">
+            <div class="tl-items" id="tlItems"></div>
+        </div>
+    </div>
+
+    <p class="instruction-bar">← Scroll to explore all 24 events &nbsp;·&nbsp; Click a dot to open details →</p>
+
+    <!-- Card Modal -->
+    <div class="card-overlay" id="cardOverlay">
+        <div class="card" id="card">
+            <button class="card-close" id="cardClose">✕</button>
+            <div id="cardImgWrap"></div>
+            <div class="card-body" id="cardBody"></div>
+            <div class="card-nav">
+                <button class="card-nav-btn" id="navPrev">← Previous</button>
+                <span class="card-nav-counter" id="navCounter"></span>
+                <button class="card-nav-btn" id="navNext">Next →</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ──────────────────────────────────────────────────────────────
+//  Era definitions
+// ──────────────────────────────────────────────────────────────
+const ERAS = {
+    founding:    { label: 'Founding Era',            color: 'var(--era-founding)'   },
+    expansion:   { label: 'Expansion & Reform',      color: 'var(--era-expansion)'  },
+    civil:       { label: 'Civil War & Reconstruction', color: 'var(--era-civil)'   },
+    industrial:  { label: 'Industrial Age',           color: 'var(--era-industrial)' },
+    world:       { label: 'World Wars',               color: 'var(--era-world)'      },
+    modern:      { label: 'Modern Era',               color: 'var(--era-modern)'     },
+};
+
+// ──────────────────────────────────────────────────────────────
+//  Timeline data
+// ──────────────────────────────────────────────────────────────
+const timelineData = [
+    {
+        id: 1,
+        title: "The Revolutionary War (1776)",
+        emoji: "📜",
+        era: 'founding',
+        event: `The <span class="vocab" data-def="A formal statement declaring that a group of people intend to form an independent nation">Declaration of Independence</span> is signed, formally declaring the 13 colonies independent from Great Britain. It <span class="vocab" data-def="Expressed in clear, direct language — to 'articulate' something means to say it clearly">articulates</span> the philosophy of <span class="vocab" data-def="Rights that every person is born with and that no government can take away, like life and freedom">natural rights</span>.`,
+        p1_source: "Thomas Jefferson — Declaration of Independence (1776):",
+        p1_tag: "Patriot",
+        p1_quote: "We hold these truths to be self-evident, that all men are created equal, that they are endowed by their Creator with certain unalienable Rights, that among these are Life, Liberty and the pursuit of Happiness.",
+        p2_source: "Joseph Galloway — Loyalist politician (c. 1775–1776):",
+        p2_tag: "Loyalist",
+        p2_quote: "The leaders of the rebellion have drawn the unwary people into acts which their cooler reason must condemn, and which nothing but absolute intoxication with false liberty could have justified.",
+        discussion: "Jefferson says 'all men are created equal.' But in 1776, many people — including enslaved people and women — had no equal rights. What do you think Jefferson meant? What do you think he *should* have meant?",
+        wikiArticle: "United States Declaration of Independence",
+        imgCaption: "The original Declaration of Independence (1776) — National Archives, Washington D.C."
+    },
+    {
+        id: 2,
+        title: "The Constitutional Convention (1787)",
+        emoji: "🖋️",
+        era: 'founding',
+        event: `Delegates gather to address the failures of the <span class="vocab" data-def="The first constitution of the United States — it gave too little power to the central government and was replaced">Articles of Confederation</span>, creating the U.S. Constitution and a new <span class="vocab" data-def="A system where power is divided between a national government and individual states">federal government</span>.`,
+        p1_source: "Alexander Hamilton — Federalist No. 70 (1788):",
+        p1_tag: "Federalist",
+        p1_quote: "Energy in the Executive is a leading character in the definition of good government. It is essential to the protection of the community against foreign attacks; it is not less essential to the steady administration of the laws.",
+        p2_source: '"Brutus" (Robert Yates) — Anti-Federalist Papers (1787):',
+        p2_tag: "Anti-Federalist",
+        p2_quote: "The powers, rights, and authority, granted to the general government by this constitution, are as complete, with respect to every object to which they extend, as that of any state government.",
+        discussion: "The Federalists wanted a strong central government. The Anti-Federalists feared it would take away people's freedom. Which side would you agree with more? Is a strong government a good or bad thing?",
+        wikiArticle: "Constitutional Convention (United States)",
+        imgCaption: "Howard Chandler Christy's 'Scene at the Signing of the Constitution' (1940)"
+    },
+    {
+        id: 3,
+        title: "The Louisiana Purchase (1803)",
+        emoji: "🗺️",
+        era: 'expansion',
+        event: `The Louisiana Purchase doubles the size of the United States, acquiring vast territory from France and fueling the vision of <span class="vocab" data-def="The 19th-century belief that the United States was destined by God to expand across North America">"Manifest Destiny."</span>`,
+        p1_source: "Thomas Jefferson — Letter to John C. Breckinridge (August 12, 1803):",
+        p1_tag: "Pro-Expansion",
+        p1_quote: "This little event, of France's possessing herself of Louisiana...is the embryo of a tornado which will burst on the countries on both shores of the Atlantic, and involve in its effects their highest destinies.",
+        p2_source: "Senator Samuel White — Senate debate on the Louisiana Purchase (1803):",
+        p2_tag: "Opponent",
+        p2_quote: "I object to this vast, wilderness tract of country, inhabited only by savages and wild beasts... We are to give money of which we have too little, for land of which we already have too much.",
+        discussion: "The United States bought a huge piece of land from France — but many Native American peoples already lived there. Do you think a country can 'buy' land that people are already living on? Why or why not?",
+        wikiArticle: "Louisiana Purchase",
+        imgCaption: "Map of U.S. territorial acquisitions — the Louisiana Purchase (1803) nearly doubled the nation's size"
+    },
+    {
+        id: 4,
+        title: "The Rise of Abolitionism (1831)",
+        emoji: "⛓️",
+        era: 'expansion',
+        event: `The founding of William Lloyd Garrison's <em>The Liberator</em> marks a new, <span class="vocab" data-def="Extreme or drastic in approach; demanding complete, immediate change">militant</span> phase of the <span class="vocab" data-def="A movement that campaigned for the complete ending of slavery">abolitionist movement</span>, which demanded the immediate and <span class="vocab" data-def="Without payment or financial compensation to slave owners">uncompensated</span> end to slavery.`,
+        p1_source: "William Lloyd Garrison — The Liberator, first edition (January 1, 1831):",
+        p1_tag: "Abolitionist",
+        p1_quote: "I will be as harsh as truth, and as uncompromising as justice. On this subject, I do not wish to think, or speak, or write, with moderation. No! No! I will not equivocate — I will not excuse — I will not retreat a single inch — AND I WILL BE HEARD.",
+        p2_source: "John C. Calhoun — Speech in the U.S. Senate (February 6, 1837):",
+        p2_tag: "Pro-Slavery",
+        p2_quote: "I hold that in the present state of civilization, where two races of different origin, and distinguished by color, and other physical differences, as well as intellectual, are brought together, the relation now existing in the slaveholding States between the two, is, instead of an evil, a good — a positive good.",
+        discussion: "Garrison uses very strong, emotional language in his writing. Why do you think he chose this style? Do you think strong language helps or hurts a political cause?",
+        wikiArticle: "William Lloyd Garrison",
+        imgCaption: "William Lloyd Garrison, abolitionist and founder of The Liberator (portrait by Nathaniel Jocelyn, 1833)"
+    },
+    {
+        id: 4.5,
+        title: "The Trail of Tears (1838)",
+        emoji: "🌧️",
+        era: 'expansion',
+        event: `President Andrew Jackson's <span class="vocab" data-def="A law passed in 1830 that gave the U.S. government the power to force Native American tribes off their ancestral lands in the Southeast">Indian Removal Act</span> forces the <span class="vocab" data-def="One of the five major Native American nations of the southeastern United States">Cherokee Nation</span> and other tribes to march over 1,000 miles westward to <span class="vocab" data-def="Land west of the Mississippi that the U.S. government designated for relocated Native Americans — present-day Oklahoma">'Indian Territory.'</span> Thousands die from cold, hunger, and disease on the forced march.`,
+        p1_source: "Andrew Jackson — Message to Congress on Indian Removal (December 6, 1830):",
+        p1_tag: "Pro-Removal",
+        p1_quote: "What good man would prefer a country covered with forests and ranged by a few thousand savages to our extensive Republic, studded with cities, towns, and prosperous farms?",
+        p2_source: "John Ross — Principal Chief of the Cherokee Nation, memorial to Congress (1836):",
+        p2_tag: "Cherokee",
+        p2_quote: "We are stripped of every attribute of freedom and eligibility for legal self-defence. Our property may be plundered before our eyes; violence may be committed on our persons; even our lives may be taken away, and there is none to regard our complaints.",
+        discussion: "Jackson claimed removal would protect Native Americans. Chief John Ross said it destroyed them. Whose account do you find more credible — and why is it important to consider who is telling a historical story?",
+        wikiArticle: "Trail of Tears",
+        imgCaption: "NPS map showing the routes of the Trail of Tears — the forced removal of Native Americans westward"
+    },
+    {
+        id: 5,
+        title: "The Civil War & Emancipation (1863)",
+        emoji: "⚔️",
+        era: 'civil',
+        event: `President Lincoln issues the <span class="vocab" data-def="A presidential order issued during wartime that declared enslaved people in Confederate states to be free">Emancipation Proclamation</span>, shifting the war's purpose from solely preserving the Union to also ending slavery in the <span class="vocab" data-def="The group of southern states that broke away from the United States in 1861 to form their own government">Confederate states</span>.`,
+        p1_source: "Abraham Lincoln — Emancipation Proclamation (January 1, 1863):",
+        p1_tag: "Union/Abolition",
+        p1_quote: "That on the 1st day of January, A.D. 1863, all persons held as slaves within any State or designated part of a State the people whereof shall then be in rebellion against the United States shall be then, thenceforward, and forever free.",
+        p2_source: "Alexander Stephens — Vice President of the Confederacy, 'Cornerstone Speech' (March 21, 1861):",
+        p2_tag: "Confederate",
+        p2_quote: "Our new government is founded upon exactly the opposite idea; its foundations are laid, its cornerstone rests, upon the great truth that the negro is not equal to the white man; that slavery...is his natural and normal condition.",
+        discussion: "The Emancipation Proclamation only freed enslaved people in Confederate states — not in states that had stayed in the Union. Why do you think Lincoln did it this way? What does this tell us about how political decisions are made?",
+        wikiArticle: "Emancipation Proclamation",
+        imgCaption: "Francis Carpenter's 'First Reading of the Emancipation Proclamation of President Lincoln' (1864)"
+    },
+    {
+        id: 6,
+        title: "Reconstruction & The 14th Amendment (1868)",
+        emoji: "🏛️",
+        era: 'civil',
+        event: `The <span class="vocab" data-def="The 14th Amendment to the U.S. Constitution, ratified in 1868, which granted citizenship and equal legal protection to all people born or naturalised in the U.S.">14th Amendment</span> is <span class="vocab" data-def="Officially approved and confirmed — when a law or amendment is formally accepted by enough states">ratified</span>, granting citizenship to all persons born or naturalised in the U.S. and guaranteeing "equal protection of the laws." <span class="vocab" data-def="The period after the Civil War (1865–1877) when the federal government tried to rebuild and reintegrate the former Confederate states">Reconstruction</span> attempts to reshape Southern society.`,
+        p1_source: "Thaddeus Stevens — Speech arguing for Reconstruction measures (1867):",
+        p1_tag: "Radical Republican",
+        p1_quote: "We have turned, or are about to turn, loose four million slaves without a hut to shelter them or a cent in their pockets. The infernal laws of slavery have prevented them from acquiring an education, understanding the commonest laws of contract, or of managing the ordinary business of life.",
+        p2_source: "President Andrew Johnson — Veto message on the Freedmen's Bureau Bill (February 19, 1866):",
+        p2_tag: "White Southern Resistance",
+        p2_quote: "The bill proposes to establish, by the authority of Congress, military jurisdiction over all parts of the United States containing refugees and freedmen... A system for the support of indigent persons was never contemplated by the authors of the Constitution.",
+        discussion: "After the Civil War ended, formerly enslaved people were technically free but had no money, land, or education. Thaddeus Stevens wanted the government to help them. Do you think governments have a responsibility to help people who were victims of unjust systems?",
+        wikiArticle: "Reconstruction era",
+        imgCaption: "A Freedman's Bureau office in the South during Reconstruction — helping formerly enslaved people (c. 1868)"
+    },
+    {
+        id: 7,
+        title: "Industrialization & The Gilded Age (1880s)",
+        emoji: "🚂",
+        era: 'industrial',
+        event: `The rise of industrial <span class="vocab" data-def="An economic system where private individuals own businesses and compete to make profit">capitalism</span>, <span class="vocab" data-def="A company or group that has complete control over an entire industry, with no competition">monopolies</span>, and vast fortunes creates unprecedented wealth alongside significant social and economic <span class="vocab" data-def="An unfair situation where wealth and opportunity are not shared fairly between people">inequality</span>.`,
+        p1_source: "William Graham Sumner — 'What Social Classes Owe to Each Other' (1883):",
+        p1_tag: "Social Darwinism",
+        p1_quote: "The millionaires are a product of natural selection, acting on the whole body of men to pick out those who can meet the requirement of certain work to be done... It is because of what they do that they are rich.",
+        p2_source: "The Populist Party Platform (July 4, 1892):",
+        p2_tag: "Populist/Reformer",
+        p2_quote: "The fruits of the toil of millions are boldly stolen to build up colossal fortunes for a few, unprecedented in the history of mankind; and the possessors of these, in turn, despise the Republic and endanger liberty.",
+        discussion: "Sumner believed that rich people were simply more talented and hard-working — a view called 'Social Darwinism.' The Populists said wealth was being stolen from workers. Which argument do you find more persuasive, and why?",
+        wikiArticle: "Gilded Age",
+        imgCaption: "John D. Rockefeller, the wealthiest man of the Gilded Age and founder of Standard Oil (1885)"
+    },
+    {
+        id: 9,
+        title: "World War I (1917)",
+        emoji: "🎖️",
+        era: 'world',
+        event: `The United States enters <span class="vocab" data-def="A policy of not getting involved in other countries' conflicts or disputes">World War I, breaking its policy of neutrality</span> and joining the Allied Powers against the Central Powers after years of pressure and the sinking of American ships.`,
+        p1_source: "Woodrow Wilson — War Message to Congress (April 2, 1917):",
+        p1_tag: "Interventionist",
+        p1_quote: "The world must be made safe for democracy. Its peace must be planted upon the tested foundations of political liberty. We have no selfish ends to serve. We desire no conquest, no dominion.",
+        p2_source: "Jeannette Rankin — First woman elected to Congress, voting against the war declaration (April 6, 1917):",
+        p2_tag: "Pacifist",
+        p2_quote: "I want to stand by my country, but I cannot vote for war. I vote No.",
+        discussion: "Wilson said the war would 'make the world safe for democracy.' Rankin refused to vote for it. Which position seems more admirable to you? Is it ever right to refuse an order from your government?",
+        wikiArticle: "World War I",
+        imgCaption: "Soldiers in the trenches during World War I — the U.S. entered the war in April 1917"
+    },
+    {
+        id: 8,
+        title: "Women's Suffrage (1920)",
+        emoji: "🗳️",
+        era: 'industrial',
+        event: `The <span class="vocab" data-def="The 19th Amendment to the U.S. Constitution, which gave women the right to vote">19th Amendment</span> is ratified, granting women the right to vote after a decades-long struggle by <span class="vocab" data-def="People who campaigned for women's right to vote — 'suffrage' means the right to vote">suffragists</span>. It completes a major goal of the early women's rights movement.`,
+        p1_source: "Susan B. Anthony — Speech after her arrest for voting illegally (1873):",
+        p1_tag: "Suffragist",
+        p1_quote: "It is a downright mockery to talk to women of their enjoyment of the blessings of liberty while they are denied the use of the only means of securing them — the ballot — the only form of government existing in this country.",
+        p2_source: "Elihu Root — Senator and statesman, opposing suffrage (1894 Constitutional Convention speech):",
+        p2_tag: "Anti-Suffragist",
+        p2_quote: "I believe that the rapid extension of suffrage to women would be the imposition upon women of a burden which the great majority of women do not want, and I believe that they are right in not wanting it.",
+        discussion: "Elihu Root claimed most women didn't want the right to vote. Do you think it's acceptable to deny a right to people by claiming they 'don't want it'? Who should decide what rights people have?",
+        wikiArticle: "Women's suffrage in the United States",
+        imgCaption: "Women's suffrage parade on Fifth Avenue, New York City (May 4, 1912)"
+    },
+
+    {
+        id: 10,
+        title: "Prohibition (1920–1933)",
+        emoji: "🚫",
+        era: 'industrial',
+        event: `The <span class="vocab" data-def="The 18th Amendment to the U.S. Constitution, which banned the production and sale of alcohol in the United States from 1920 to 1933">18th Amendment</span> bans alcohol nationwide. Rather than eliminating drinking, <span class="vocab" data-def="The era from 1920–1933 when alcohol was illegal in the United States">Prohibition</span> fuels <span class="vocab" data-def="Illegal bars where people could secretly drink alcohol during Prohibition">speakeasies</span> and the rise of <span class="vocab" data-def="Criminal organisations, often involved in illegal activities for profit">organised crime</span>.`,
+        p1_source: "Billy Sunday — Evangelist and Prohibition supporter (speech, c. 1915):",
+        p1_tag: '"Dry"',
+        p1_quote: "The reign of tears is over. The slums will soon be a memory. We will turn our prisons into factories and our jails into storehouses and corncribs. Men will walk upright now, women will smile and children will laugh.",
+        p2_source: "Fiorello LaGuardia — U.S. Congressman and future NYC Mayor (testimony before Congress, April 1926):",
+        p2_tag: '"Wet"',
+        p2_quote: "This law has made hypocrites of our politicians, criminals of our citizens, and has undermined the morals of the people. It cannot be enforced, and it creates disrespect for the law.",
+        discussion: "Prohibition was meant to make society better, but many people say it made things worse by creating organised crime. Can you think of any modern examples where trying to ban something has had unexpected negative consequences?",
+        wikiArticle: "Prohibition in the United States",
+        imgCaption: "U.S. agents destroying illegal alcohol during a Prohibition raid in Chicago (c. 1920s)"
+    },
+    {
+        id: 10.5,
+        title: "The Harlem Renaissance (1920s)",
+        emoji: "🎷",
+        era: 'industrial',
+        event: `Following the <span class="vocab" data-def="The mass migration of Black Americans from the rural South to cities in the North between 1910 and 1970, seeking jobs and escape from racial violence">Great Migration</span>, the Harlem neighbourhood of New York City becomes the centre of an extraordinary <span class="vocab" data-def="A flourishing of art, literature, music, and intellectual life within a community or society">cultural renaissance</span>. Poets, novelists, jazz musicians, and artists create a new, confident Black American identity.`,
+        p1_source: "Langston Hughes — 'The Negro Speaks of Rivers' (1921):",
+        p1_tag: "Harlem Renaissance",
+        p1_quote: "I've known rivers ancient as the world and older than the flow of human blood in human veins. My soul has grown deep like the rivers.",
+        p2_source: "Zora Neale Hurston — 'How It Feels to Be Colored Me' (1928):",
+        p2_tag: "Black Identity",
+        p2_quote: "I am not tragically colored. There is no great sorrow dammed up in my soul, nor lurking behind my eyes. I do not mind at all. I do not belong to the sobbing school of Negrohood.",
+        discussion: "Both Hughes and Hurston celebrate Black identity, but in very different tones. Hughes is solemn and deep; Hurston is defiant and joyful. Which voice speaks to you more? Why might both tones be important?",
+        wikiArticle: "Harlem Renaissance",
+        imgCaption: "125th Street in Harlem, New York — the heart of the Harlem Renaissance in the 1920s"
+    },
+    {
+        id: 11,
+        title: "The Great Depression & The New Deal (1933)",
+        emoji: "📉",
+        era: 'world',
+        event: `Franklin D. Roosevelt launches the <span class="vocab" data-def="A series of government programmes introduced by FDR in the 1930s to help America recover from the Great Depression through public works, financial reform, and relief">New Deal</span>, a set of federal programmes designed to provide <span class="vocab" data-def="Help given to people in need">relief</span>, recovery, and reform from the <span class="vocab" data-def="The severe economic crisis of the 1930s when unemployment was extremely high and many businesses failed">Great Depression</span>.`,
+        p1_source: "Franklin D. Roosevelt — First Inaugural Address (March 4, 1933):",
+        p1_tag: "Pro-New Deal",
+        p1_quote: "The only thing we have to fear is fear itself — nameless, unreasoning, unjustified terror which paralyzes needed efforts to convert retreat into advance.",
+        p2_source: "The American Liberty League — Statement opposing the New Deal (1934):",
+        p2_tag: "Anti-New Deal",
+        p2_quote: "The New Deal violates the very spirit of the American way of life. It is paternalistic, it undermines individual responsibility, and it places the hand of government into the private business of every American citizen.",
+        discussion: "Roosevelt said that government should step in to help people during economic crises. His opponents said this gave the government too much power over people's lives. Where do you think the right balance is?",
+        wikiArticle: "New Deal",
+        imgCaption: "'Migrant Mother' by Dorothea Lange — the defining photograph of the Great Depression (1936)"
+    },
+    {
+        id: 12,
+        title: "World War II & Pearl Harbor (1941)",
+        emoji: "💣",
+        era: 'world',
+        event: `The Imperial Japanese Navy attacks <span class="vocab" data-def="A U.S. naval base in Hawaii that was attacked by Japan on December 7, 1941, bringing the U.S. into World War II">Pearl Harbor</span>, leading the United States to formally enter World War II. The attack killed over 2,400 Americans and destroyed much of the Pacific Fleet.`,
+        p1_source: "Franklin D. Roosevelt — 'Day of Infamy' Speech to Congress (December 8, 1941):",
+        p1_tag: "Interventionist",
+        p1_quote: "Yesterday, December 7th, 1941 — a date which will live in infamy — the United States of America was suddenly and deliberately attacked by naval and air forces of the Empire of Japan.",
+        p2_source: "Charles Lindbergh — America First Committee speech (before Pearl Harbor, April 23, 1941):",
+        p2_tag: "Pre-War Isolationist",
+        p2_quote: "I ask you to look at the map of Europe today and to ask yourselves whether, if it is possible under any circumstances that we could win this war if we entered it. Suppose we had a large army adequate to invade Europe. Where would we use it?",
+        discussion: "Before Pearl Harbor, many Americans didn't want to enter the war. After the attack, public opinion changed almost overnight. How does a single event change how people think about a major political issue?",
+        wikiArticle: "Attack on Pearl Harbor",
+        imgCaption: "Battleship Row burning during the Japanese surprise attack on Pearl Harbor, December 7, 1941"
+    },
+    {
+        id: 13,
+        title: "The Cold War Begins (1947)",
+        emoji: "❄️",
+        era: 'modern',
+        event: `The <span class="vocab" data-def="The U.S. policy announced in 1947 that promised to support free nations against communist takeover or Soviet pressure">Truman Doctrine</span> is announced, establishing the U.S. policy of <span class="vocab" data-def="A foreign policy strategy of stopping the spread of communism to new countries, rather than attacking where it already existed">"containment"</span> against the spread of communism. This begins the <span class="vocab" data-def="A period of intense political rivalry and arms competition between the USA and USSR from 1947–1991, which never resulted in direct armed conflict">Cold War</span>.`,
+        p1_source: "Harry S. Truman — Truman Doctrine Speech to Congress (March 12, 1947):",
+        p1_tag: "Containment",
+        p1_quote: "I believe that it must be the policy of the United States to support free peoples who are resisting attempted subjugation by armed minorities or by outside pressures. I believe that we must assist free peoples to work out their own destinies in their own way.",
+        p2_source: "Henry A. Wallace — Former Vice President, speech opposing the Truman Doctrine (1947):",
+        p2_tag: "Critic",
+        p2_quote: "We are reckoning with a force which... is the expression of the longing of people everywhere to be free of foreign domination... The Truman Doctrine, in trying to stop Russian ideas, will spread them.",
+        discussion: "Truman said the U.S. needed to stop communism from spreading. Wallace said this approach would actually make things worse. Looking back at history — who do you think was right? What evidence supports your view?",
+        wikiArticle: "Cold War",
+        imgCaption: "U.S. and Soviet tanks face off at Checkpoint Charlie, Berlin — the defining image of Cold War tension"
+    },
+    {
+        id: 13.5,
+        title: "The Korean War (1950–1953)",
+        emoji: "🪖",
+        era: 'modern',
+        event: `North Korean forces, backed by the Soviet Union and China, invade South Korea, drawing the United States into a brutal three-year conflict. Often called the <span class="vocab" data-def="A nickname for the Korean War, reflecting how little attention it received compared to World War II and later Vietnam">"Forgotten War,"</span> it ends in <span class="vocab" data-def="A formal agreement to stop fighting, but not a peace treaty — the Korean War technically never officially ended">armistice</span> with Korea still divided along the <span class="vocab" data-def="The border between North and South Korea at approximately the 38th line of latitude">38th parallel</span>.`,
+        p1_source: "Harry S. Truman — Address to the Nation on Korea (July 19, 1950):",
+        p1_tag: "Interventionist",
+        p1_quote: "The attack upon Korea makes it plain beyond all doubt that Communism has passed beyond the use of subversion to conquer independent nations and will now use armed invasion and war.",
+        p2_source: "General Douglas MacArthur — Letter to House Republican Leader Joseph Martin (March 1951):",
+        p2_tag: "Escalationist",
+        p2_quote: "It seems strangely difficult for some to realize that here in Asia is where the Communist conspirators have elected to make their play for global conquest... There is no substitute for victory.",
+        discussion: "Truman eventually fired MacArthur for insubordination after MacArthur publicly disagreed with his strategy. Was Truman right to fire a popular general? Who should control military strategy — elected politicians or military commanders?",
+        wikiArticle: "Korean War",
+        imgCaption: "Scenes from the Korean War (1950–1953) — often called the 'Forgotten War'"
+    },
+    {
+        id: 14,
+        title: "McCarthyism & The Red Scare (1950)",
+        emoji: "🔴",
+        era: 'modern',
+        event: `Senator Joseph McCarthy claims to have a list of <span class="vocab" data-def="People who follow the political philosophy of communism">communists</span> in the State Department, launching an era of <span class="vocab" data-def="A climate of fear and suspicion about a particular group, often leading to accusations with little evidence">paranoia</span> and investigations. The term <span class="vocab" data-def="Making accusations of disloyalty without proper evidence — named after Senator McCarthy">"McCarthyism"</span> enters the language as a warning about <span class="vocab" data-def="Actions or claims that damage someone's reputation unfairly and without sufficient evidence">political witch hunts</span>.`,
+        p1_source: "Joseph McCarthy — Speech in Wheeling, West Virginia (February 9, 1950):",
+        p1_tag: "Pro-McCarthy",
+        p1_quote: "I have here in my hand a list of 205 — a list of names that were made known to the Secretary of State as being members of the Communist Party and who nevertheless are still working and shaping policy in the State Department.",
+        p2_source: "Joseph Welch — Chief Counsel for the U.S. Army, Army-McCarthy Hearings (June 9, 1954):",
+        p2_tag: "Anti-McCarthy",
+        p2_quote: "Until this moment, Senator, I think I never really gauged your cruelty or your recklessness. Have you no sense of decency, sir? At long last, have you left no sense of decency?",
+        discussion: "McCarthy's accusations ruined many people's careers — even though most were innocent. Joseph Welch's famous question helped turn public opinion against McCarthy. Can you think of modern examples of public figures making accusations that turned out to be false?",
+        wikiArticle: "McCarthyism",
+        imgCaption: "Senator Joseph McCarthy, whose anti-communist crusade gave rise to the term 'McCarthyism'"
+    },
+    {
+        id: 15,
+        title: "The Civil Rights Movement (1963)",
+        emoji: "✊",
+        era: 'modern',
+        event: `The March on Washington for Jobs and Freedom culminates in Dr. Martin Luther King Jr.'s <span class="vocab" data-def="One of the most famous speeches in American history, delivered at the Lincoln Memorial on August 28, 1963">"I Have a Dream"</span> speech, a high point of the <span class="vocab" data-def="A strategy of peaceful protest that refuses to fight back against violence — associated with MLK and Mahatma Gandhi">non-violent civil rights movement</span>.`,
+        p1_source: "Dr. Martin Luther King Jr. — 'I Have a Dream' speech, March on Washington (August 28, 1963):",
+        p1_tag: "Integrationist",
+        p1_quote: "I have a dream that my four little children will one day live in a nation where they will not be judged by the color of their skin but by the content of their character. I have a dream today!",
+        p2_source: "Malcolm X — 'The Ballot or the Bullet' speech (April 3, 1964):",
+        p2_tag: "Black Nationalist",
+        p2_quote: "I'm not going to sit at your table and watch you eat, with nothing on my plate, and call myself a diner. Sitting at the table doesn't make you a diner, unless you eat some of what's on that plate.",
+        discussion: "MLK and Malcolm X both wanted justice for Black Americans but had very different ideas about how to achieve it. Do you think non-violent protest is always the most effective method? Are there situations where it isn't enough?",
+        wikiArticle: "March on Washington",
+        imgCaption: "Dr. Martin Luther King Jr. delivers 'I Have a Dream' at the Lincoln Memorial, August 28, 1963"
+    },
+    {
+        id: 16,
+        title: "The Vietnam War & Anti-War Movement (1968)",
+        emoji: "🕊️",
+        era: 'modern',
+        event: `The <span class="vocab" data-def="A massive coordinated military attack by North Vietnamese forces on January 30, 1968, that shocked the American public">Tet Offensive</span> shatters public confidence in the government's optimistic narrative about the war. The anti-war movement grows rapidly on college campuses and in the media.`,
+        p1_source: "Lyndon B. Johnson — Press Conference on the Vietnam War (November 17, 1967):",
+        p1_tag: '"Hawk" / Pro-War',
+        p1_quote: "We are inflicting greater losses than we're taking... We are making progress... Our adversary is weaker. He is not stronger, and he knows it.",
+        p2_source: "John Kerry — Testimony before the Senate Foreign Relations Committee (April 22, 1971):",
+        p2_tag: '"Dove" / Anti-War',
+        p2_quote: "How do you ask a man to be the last man to die in Vietnam? How do you ask a man to be the last man to die for a mistake?",
+        discussion: "John Kerry was a decorated Vietnam War veteran who later became one of its most vocal critics. Does it matter that he had direct experience of the war? Does personal experience make someone a more credible or a less objective voice?",
+        wikiArticle: "Tet Offensive",
+        imgCaption: "U.S. Marines during the Battle of Huế, part of the Tet Offensive (February 1968)"
+    },
+    {
+        id: 15.5,
+        title: "The Space Race & Moon Landing (1969)",
+        emoji: "🌕",
+        era: 'modern',
+        event: `NASA's <span class="vocab" data-def="The American space programme missions that landed humans on the Moon between 1969 and 1972">Apollo programme</span> lands astronauts Neil Armstrong and Buzz Aldrin on the Moon on July 20, 1969 — fulfilling President Kennedy's <span class="vocab" data-def="A bold, specific challenge or goal set publicly to motivate action">moonshot</span> challenge of 1961 and marking a defining American victory in the <span class="vocab" data-def="The competition between the USA and USSR to achieve milestones in space exploration">Space Race</span> against the Soviet Union.`,
+        p1_source: "Neil Armstrong — First words spoken on the Moon (July 20, 1969):",
+        p1_tag: "Apollo 11",
+        p1_quote: "That's one small step for [a] man, one giant leap for mankind.",
+        p2_source: "Gil Scott-Heron — 'Whitey on the Moon' (spoken word poem, 1970):",
+        p2_tag: "Social Critic",
+        p2_quote: "A rat done bit my sister Nell, with Whitey on the moon. Her face and arms began to swell, and Whitey's on the moon. I can't pay no doctor bills, but Whitey's on the moon.",
+        discussion: "Armstrong's words made the Moon landing feel like a triumph for all humanity. But Gil Scott-Heron pointed out that billions of dollars were spent on space while poor Americans lacked basic healthcare. Can both things be true at once — that it was a great achievement AND a misuse of resources?",
+        wikiArticle: "Apollo 11",
+        imgCaption: "Buzz Aldrin on the surface of the Moon, July 20, 1969 — photographed by Neil Armstrong"
+    },
+    {
+        id: 17,
+        title: "The Reagan Revolution (1981)",
+        emoji: "📈",
+        era: 'modern',
+        event: `President Ronald Reagan implements <span class="vocab" data-def="Reagan's economic policy of cutting taxes (especially for the wealthy) and reducing government spending, based on the theory that wealth would 'trickle down' to everyone">"Reaganomics,"</span> based on <span class="vocab" data-def="Reducing or removing government rules that control businesses and industries">deregulation</span>, tax cuts, and shrinking the <span class="vocab" data-def="The total amount of money a government spends on public services and programmes">federal budget</span>.`,
+        p1_source: "Ronald Reagan — First Inaugural Address (January 20, 1981):",
+        p1_tag: "Supply-Side",
+        p1_quote: "In this present crisis, government is not the solution to our problem; government is the problem. From time to time, we've been tempted to believe that society has become too complex to be managed by self-rule.",
+        p2_source: "Tip O'Neill — Speaker of the House, speech on the economy (1982):",
+        p2_tag: "Critic",
+        p2_quote: "This administration has divided this country... The Rich and the Poor. The Haves and the Have-Nots. This is the most unequal budget since the 1920s.",
+        discussion: "Reagan's famous line — 'government is not the solution; government is the problem' — is still quoted by politicians today. Do you agree with this idea? What are some things that government is good at, and some things it's not?",
+        wikiArticle: "Presidency of Ronald Reagan",
+        imgCaption: "Official White House portrait of President Ronald Reagan (1981)"
+    },
+    {
+        id: 18,
+        title: "The End of the Cold War (1991)",
+        emoji: "🤝",
+        era: 'modern',
+        event: `The Soviet Union formally <span class="vocab" data-def="To officially break apart and cease to exist as a nation or organisation">dissolves</span>, ending the 45-year Cold War and leaving the United States as the world's sole <span class="vocab" data-def="A country with such overwhelming military, economic, and political power that no other country can seriously challenge it">superpower</span>. Millions of people in Eastern Europe gain new freedoms.`,
+        p1_source: "George H.W. Bush — State of the Union Address (January 28, 1992):",
+        p1_tag: "Triumphalist",
+        p1_quote: "By the grace of God, America won the Cold War... A world once divided into two armed camps now recognizes one sole and pre-eminent power, the United States of America.",
+        p2_source: "Francis Fukuyama — 'The End of History?' essay (1989):",
+        p2_tag: "Analyst",
+        p2_quote: "The triumph of the West, of the Western idea, is evident first of all in the total exhaustion of viable systematic alternatives to Western liberalism... But large contradictions... persist in the real world.",
+        discussion: "Fukuyama famously predicted that with the end of communism, liberal democracy had 'won' and would spread everywhere. Looking at the world today — do you think he was right?",
+        wikiArticle: "Fall of the Berlin Wall",
+        imgCaption: "Crowds celebrate atop the Berlin Wall the night it fell, November 9, 1989"
+    },
+    {
+        id: 19,
+        title: "9/11 & The War on Terror (2001)",
+        emoji: "🏙️",
+        era: 'modern',
+        event: `Al-Qaeda <span class="vocab" data-def="People who carry out attacks for a political or ideological cause, often targeting civilians">operatives</span> hijack airliners and crash them into the World Trade Center and the Pentagon, killing nearly 3,000 people and triggering the global <span class="vocab" data-def="A broad, ongoing military and political campaign launched by the U.S. against terrorist groups after September 11, 2001">"War on Terror."</span>`,
+        p1_source: "George W. Bush — Address to a Joint Session of Congress (September 20, 2001):",
+        p1_tag: "Bush Doctrine",
+        p1_quote: "Our war on terror begins with Al-Qaeda, but it does not end there. It will not end until every terrorist group of global reach has been found, stopped, and defeated.",
+        p2_source: "Russ Feingold — The only U.S. Senator to vote against the PATRIOT Act (October 25, 2001):",
+        p2_tag: "Civil Liberties",
+        p2_quote: "There is no doubt that if we lived in a police state, it would be easier to catch terrorists. If we lived in a country that allowed the police to search your home at any time... we would probably have less crime... But that would not be a country in which we would want to live.",
+        discussion: "After 9/11, the U.S. government passed new laws giving it more power to monitor its citizens in the name of security. Do you think it's acceptable to trade some personal freedom for greater safety? Where is the line?",
+        wikiArticle: "September 11 attacks",
+        imgCaption: "The World Trade Center towers burning on September 11, 2001, viewed from New York Harbor"
+    },
+    {
+        id: 20,
+        title: "The 2008 Financial Crisis (2008)",
+        emoji: "🏦",
+        era: 'modern',
+        event: `A crisis in the <span class="vocab" data-def="Loans given to people with poor credit history, who are at higher risk of not repaying them">subprime mortgage</span> market triggers a collapse of major financial institutions, leading to a severe global <span class="vocab" data-def="A period of significant economic decline, with high unemployment and reduced output">recession</span> and massive government <span class="vocab" data-def="Emergency financial support given by the government to prevent banks or companies from collapsing">bailouts</span>.`,
+        p1_source: "Ben Bernanke — Federal Reserve Chairman, press conference (2008):",
+        p1_tag: "Government Intervention",
+        p1_quote: "We are in a serious crisis. The purpose of the Treasury plan is to remove the toxic assets, the problematic assets, from the balance sheets of financial institutions... to get credit flowing again.",
+        p2_source: "Bernie Sanders — Senate floor speech on the Wall Street bailout (September 26, 2008):",
+        p2_tag: "Populist Criticism",
+        p2_quote: "If a company is too big to fail, it is too big to exist. I cannot support legislation that asks working families to bear the burden of fixing the mess that Wall Street and the Bush administration created.",
+        discussion: "The government used public money to rescue banks that had made bad decisions. Sanders argued this rewarded recklessness and punished ordinary people. Do you think governments should save failing banks? What would happen if they didn't?",
+        wikiArticle: "Financial crisis of 2007–08",
+        imgCaption: "Lehman Brothers' Times Square offices — the bank's collapse in September 2008 triggered a global crisis"
+    },
+];
+
+// ──────────────────────────────────────────────────────────────
+//  Build timeline dots
+// ──────────────────────────────────────────────────────────────
+let activeIndex = null;
+
+function buildTimeline() {
+    const container = document.getElementById('tlItems');
+    container.innerHTML = timelineData.map((item, i) => {
+        const era = ERAS[item.era];
+        return `
+        <div class="tl-item" data-index="${i}" onclick="openCard(${i})">
+            <div class="tl-title">${item.title}</div>
+            <div class="tl-dot" style="background:${era.color}">
+                <span>${item.emoji}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Card rendering
+// ──────────────────────────────────────────────────────────────
+function openCard(index) {
+    activeIndex = index;
+    renderCard(index);
+    document.getElementById('cardOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Mark active dot
+    document.querySelectorAll('.tl-item').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+    });
+}
+
+function closeCard() {
+    document.getElementById('cardOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    document.querySelectorAll('.tl-item').forEach(el => el.classList.remove('active'));
+    activeIndex = null;
+}
+
+function renderCard(index) {
+    const item = timelineData[index];
+    const era = ERAS[item.era];
+
+    // Image area — Wikipedia API (Access-Control-Allow-Origin: * — works from file://)
+    const imgWrap = document.getElementById('cardImgWrap');
+    imgWrap.innerHTML = '<div class="card-img-loading">' + item.emoji + '</div>';
+    if (item.wikiArticle) {
+        const apiUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles='
+            + encodeURIComponent(item.wikiArticle)
+            + '&prop=pageimages&format=json&pithumbsize=800&origin=*';
+        fetch(apiUrl)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                const pages = data.query && data.query.pages;
+                const page = pages && Object.values(pages)[0];
+                const src = page && page.thumbnail && page.thumbnail.source;
+                if (src) {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'card-img-wrap';
+                    const imgEl = document.createElement('img');
+                    imgEl.className = 'card-img';
+                    imgEl.alt = item.title;
+                    imgEl.onerror = function() {
+                        imgWrap.innerHTML = '<div class="card-img-placeholder">' + item.emoji + '</div>';
+                    };
+                    wrap.appendChild(imgEl);
+                    const caption = document.createElement('p');
+                    caption.className = 'card-img-caption';
+                    caption.textContent = item.imgCaption || '';
+                    imgWrap.innerHTML = '';
+                    imgWrap.appendChild(wrap);
+                    imgWrap.appendChild(caption);
+                    imgEl.src = src;
+                }
+            })
+            .catch(function() {});
+    }
+
+    // Body
+    document.getElementById('cardBody').innerHTML = `
+        <span class="card-era-badge" style="background:${era.color}">${era.label}</span>
+        <h2 class="card-title">${item.title}</h2>
+        <p class="card-event">${item.event}</p>
+        <hr class="card-divider">
+        <p class="card-divider-label">Contrasting Perspectives</p>
+
+        <div class="perspective p1">
+            <p class="persp-source"><span class="persp-tag">${item.p1_tag}</span>${item.p1_source}</p>
+            <p class="persp-quote">"${item.p1_quote}"</p>
+        </div>
+
+        <div class="perspective p2">
+            <p class="persp-source"><span class="persp-tag">${item.p2_tag}</span>${item.p2_source}</p>
+            <p class="persp-quote">"${item.p2_quote}"</p>
+        </div>
+
+        <div class="discussion-box">
+            <p class="discussion-label">💬 Discussion Question</p>
+            <p class="discussion-q">${item.discussion}</p>
+        </div>
+    `;
+
+    // Nav
+    document.getElementById('navPrev').disabled = index === 0;
+    document.getElementById('navNext').disabled = index === timelineData.length - 1;
+    document.getElementById('navCounter').textContent = `${index + 1} of ${timelineData.length}`;
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Controls
+// ──────────────────────────────────────────────────────────────
+document.getElementById('cardClose').onclick = closeCard;
+document.getElementById('cardOverlay').onclick = function(e) {
+    if (e.target === this) closeCard();
+};
+document.getElementById('navPrev').onclick = () => {
+    if (activeIndex > 0) openCard(activeIndex - 1);
+};
+document.getElementById('navNext').onclick = () => {
+    if (activeIndex < timelineData.length - 1) openCard(activeIndex + 1);
+};
+document.addEventListener('keydown', e => {
+    if (!document.getElementById('cardOverlay').classList.contains('open')) return;
+    if (e.key === 'Escape') closeCard();
+    if (e.key === 'ArrowLeft' && activeIndex > 0) openCard(activeIndex - 1);
+    if (e.key === 'ArrowRight' && activeIndex < timelineData.length - 1) openCard(activeIndex + 1);
+});
+
+// ──────────────────────────────────────────────────────────────
+//  Drag-to-scroll on timeline
+// ──────────────────────────────────────────────────────────────
+const scroll = document.getElementById('timelineScroll');
+let isDown = false, startX, scrollLeft;
+scroll.addEventListener('mousedown', e => {
+    isDown = true;
+    startX = e.pageX - scroll.offsetLeft;
+    scrollLeft = scroll.scrollLeft;
+});
+scroll.addEventListener('mouseleave', () => isDown = false);
+scroll.addEventListener('mouseup', () => isDown = false);
+scroll.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - scroll.offsetLeft;
+    scroll.scrollLeft = scrollLeft - (x - startX) * 1.5;
+});
+
+// ──────────────────────────────────────────────────────────────
+//  Init
+// ──────────────────────────────────────────────────────────────
+buildTimeline();
+</script>
+</body>
+</html>
