@@ -15,6 +15,7 @@
         font-size:19px; line-height:1.7 }
   .wrap{ max-width:46rem; margin:0 auto }
   h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:2.5rem 0 .75rem }
   .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.5rem }
 
   .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
@@ -24,7 +25,6 @@
   .steps ol{ margin:0; padding-left:1.3rem }
   .steps li{ margin-bottom:.2rem }
 
-  /* ---------- word tiles ---------- */
   .tray{ display:flex; flex-wrap:wrap; gap:.6rem; min-height:4.2rem;
          background:var(--card); border:1px solid var(--line); border-radius:10px;
          padding:.9rem; margin:0 0 1.5rem; align-content:flex-start }
@@ -35,27 +35,23 @@
   .word[aria-pressed="true"]{ border-color:var(--accent); background:var(--accent-soft);
          box-shadow:0 0 0 3px rgba(47,111,143,.2) }
   .word.placed{ cursor:default }
-  .word:disabled{ opacity:1 }
   .word.dragging{ opacity:.4 }
 
-  /* ---------- bins ---------- */
   .bins{ display:grid; gap:1rem; margin:0 0 1.5rem }
   @media(min-width:34rem){ .bins{ grid-template-columns:1fr 1fr } }
   .bin{ border:2px dashed var(--line); border-radius:12px; background:var(--card);
         padding:1rem; min-height:9rem }
-  .bin h2{ font-size:1rem; margin:0 0 .1rem; display:flex; align-items:center; gap:.5rem }
+  .bin h3{ font-size:1rem; margin:0 0 .1rem; display:flex; align-items:center; gap:.5rem }
   .bin .hint{ font-size:.82rem; color:var(--soft); margin:0 0 .75rem }
-  .bin .drop{ display:flex; flex-wrap:wrap; gap:.5rem; min-height:3rem;
-        align-content:flex-start }
-  .bin.calm{ border-color:#bcdccb } .bin.calm h2{ color:var(--calm) }
-  .bin.creepy{ border-color:#e2c3d3 } .bin.creepy h2{ color:var(--creepy) }
+  .bin .drop{ display:flex; flex-wrap:wrap; gap:.5rem; min-height:3rem; align-content:flex-start }
+  .bin.calm{ border-color:#bcdccb } .bin.calm h3{ color:var(--calm) }
+  .bin.creepy{ border-color:#e2c3d3 } .bin.creepy h3{ color:var(--creepy) }
   .bin.over{ background:var(--accent-soft); border-color:var(--accent); border-style:solid }
   .bin.calm .word.placed{ background:var(--calm-soft); border-color:#bcdccb }
   .bin.creepy .word.placed{ background:var(--creepy-soft); border-color:#e2c3d3 }
   .bin .word.wrong{ border-color:var(--warn); background:var(--warn-soft) }
   .icon{ font-size:1.1rem }
 
-  /* ---------- controls & feedback ---------- */
   .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
   button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
         border-radius:8px; padding:.6rem 1.15rem;
@@ -63,6 +59,8 @@
   button.btn:hover{ filter:brightness(1.08) }
   button.btn.ghost{ background:transparent; color:var(--accent) }
   button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.done{ background:var(--calm); border-color:var(--calm) }
   .count{ color:var(--soft); font-size:.9rem; margin-left:auto }
   :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
 
@@ -72,12 +70,40 @@
   .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
   .fb strong{ display:block; margin-bottom:.3rem }
 
-  .after{ display:none; background:var(--card); border:1px solid var(--line);
-          border-radius:10px; padding:1rem 1.25rem; margin-top:1.5rem }
-  .after.show{ display:block }
-  .after h3{ margin:0 0 .5rem; font-size:1rem }
-  .after p{ margin:0 0 .6rem; font-size:.95rem }
-  .after code{ background:#f0ece6; padding:.15rem .4rem; border-radius:4px; font-size:.9rem }
+  /* ---------- written questions ---------- */
+  .qblock{ display:none }
+  .qblock.show{ display:block }
+  .q{ margin:1.5rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.25rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  /* ---------- turn-in panel ---------- */
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2.5rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .progress{ display:flex; align-items:center; gap:.6rem; margin:0 0 1rem;
+        font-size:.9rem; color:var(--soft) }
+  .dot{ width:.85rem; height:.85rem; border-radius:50%; background:var(--line);
+        border:2px solid var(--line) }
+  .dot.filled{ background:var(--calm); border-color:var(--calm) }
+  .preview{ display:none; margin-top:1rem }
+  .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
 
   @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
 </style>
@@ -92,8 +118,9 @@
     <p>How this works</p>
     <ol>
       <li>Drag a word into a box — or click the word, then click the box.</li>
-      <li>Put all six somewhere.</li>
-      <li>Press <strong>Check</strong>. You can try as many times as you want.</li>
+      <li>Put all six somewhere, then press <strong>Check</strong>. Try as many times as you like.</li>
+      <li>Answer the questions that appear, then press <strong>Copy everything</strong> at the bottom.</li>
+      <li>Paste it into your Canvas submission box. One paste, everything included.</li>
     </ol>
   </div>
 
@@ -101,12 +128,12 @@
 
   <div class="bins">
     <div class="bin calm" id="bin-calm" data-bin="calm">
-      <h2><span class="icon" aria-hidden="true">◍</span> Calm</h2>
+      <h3><span class="icon" aria-hidden="true">◍</span> Calm</h3>
       <p class="hint">Slow, soft, settled. Nothing is wrong.</p>
       <div class="drop"></div>
     </div>
     <div class="bin creepy" id="bin-creepy" data-bin="creepy">
-      <h2><span class="icon" aria-hidden="true">◈</span> Creepy</h2>
+      <h3><span class="icon" aria-hidden="true">◈</span> Creepy</h3>
       <p class="hint">Sharp, sudden, or wrong somehow.</p>
       <div class="drop"></div>
     </div>
@@ -120,124 +147,125 @@
     <span class="count" id="count">0 of 6 placed</span>
   </div>
 
-  <div class="after" id="after">
-    <h3>Nice — you've got it.</h3>
-    <p>Every one of those words describes something ordinary: moving, sitting, making a noise. The word choice is the only thing that decides whether it feels safe or wrong.</p>
-    <p><strong>Now go back to Canvas</strong> and answer the questions in Section 2. Keep this open if you want to look at the words again.</p>
+  <!-- Written questions unlock once the sort is solved -->
+  <div class="qblock" id="qblock">
+    <h2>Now put it in your own words</h2>
+
+    <p class="q"><strong>Q1.</strong> Pick one word you put in <strong>Creepy</strong>. What is it about that word that makes it feel wrong?</p>
+    <div class="abox">
+      <p class="lab">My answer</p>
+      <textarea data-q="Q1. Pick one word you put in Creepy. What is it about that word that makes it feel wrong?"
+                placeholder="Type here…" rows="2"></textarea>
+    </div>
+
+    <p class="q"><strong>Q2.</strong> <em>Hummed</em> went in Calm. Write a sentence where <em>hummed</em> feels tense instead.</p>
+    <div class="abox">
+      <p class="lab">My answer</p>
+      <textarea data-q="Q2. Hummed went in Calm. Write a sentence where hummed feels tense instead."
+                placeholder="Type here…" rows="2"></textarea>
+    </div>
+
+    <p class="q"><strong>Q3.</strong> Here's a new one: <em>The wave gathered itself, patient, and waited.</em> What mood is that, and which word proves it?</p>
+    <div class="abox">
+      <p class="lab">My answer</p>
+      <textarea data-q="Q3. The wave gathered itself, patient, and waited. What mood is that, and which word proves it?"
+                placeholder="Type here…" rows="2"></textarea>
+    </div>
+
+    <div class="stems">
+      <p class="lab">Sentence starters — use them if you want</p>
+      <p>• The word ____ makes it feel ____ because ____.<br>
+         • If the writer had used ____ instead, it would feel ____.</p>
+      <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">Don't worry about spelling.</p>
+    </div>
+
+    <!-- ============ TURN-IN PANEL ============ -->
+    <div class="turnin">
+      <h2>Turn this in</h2>
+      <p class="lede">One button. It collects the questions and your answers together, ready to paste into Canvas.</p>
+
+      <div class="progress" id="progress"></div>
+
+      <div class="row" style="margin-bottom:0">
+        <button class="btn big" id="copyAll">📋 Copy everything</button>
+        <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+      </div>
+
+      <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+
+      <div class="preview" id="preview">
+        <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+        <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+      </div>
+    </div>
   </div>
 
 </div>
 
 <script>
 const WORDS = [
-  { w:'drifted', bin:'calm',
-    why:'Drifting has no effort behind it. Nothing is pushing, so nothing is threatening.' },
-  { w:'lurched', bin:'creepy',
-    why:'A lurch is sudden and uncontrolled. You cannot predict what it does next.' },
-  { w:'settled', bin:'calm',
-    why:'Settling is something finishing and coming to rest. It sounds like safety.' },
-  { w:'twitched', bin:'creepy',
-    why:'A twitch is small, involuntary, and alive. That is what makes it unsettling.' },
-  { w:'hummed', bin:'calm',
-    why:'Humming is steady and low. Careful though — in the right sentence it turns tense.' },
-  { w:'rasped', bin:'creepy',
-    why:'Rasping is rough and dry, like something scraping. You feel it as much as hear it.' }
+  { w:'drifted', bin:'calm',   why:'Drifting has no effort behind it. Nothing is pushing, so nothing is threatening.' },
+  { w:'lurched', bin:'creepy', why:'A lurch is sudden and uncontrolled. You cannot predict what it does next.' },
+  { w:'settled', bin:'calm',   why:'Settling is something finishing and coming to rest. It sounds like safety.' },
+  { w:'twitched',bin:'creepy', why:'A twitch is small, involuntary, and alive. That is what makes it unsettling.' },
+  { w:'hummed',  bin:'calm',   why:'Humming is steady and low. Careful though — in the right sentence it turns tense.' },
+  { w:'rasped',  bin:'creepy', why:'Rasping is rough and dry, like something scraping. You feel it as much as hear it.' }
 ];
 
-const tray   = document.getElementById('tray');
-const fb     = document.getElementById('fb');
-const after  = document.getElementById('after');
-const countEl= document.getElementById('count');
-let selected = null;   /* click-to-place: the currently picked-up word */
-let attempts = 0;
+const tray = document.getElementById('tray');
+const fb = document.getElementById('fb');
+const countEl = document.getElementById('count');
+let selected = null, attempts = 0, solved = false;
+
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
 function build(){
   tray.innerHTML = '';
   document.querySelectorAll('.bin .drop').forEach(d => d.innerHTML = '');
   shuffle(WORDS.slice()).forEach(item => tray.appendChild(makeTile(item)));
-  fb.className = 'fb'; after.className = 'after';
-  selected = null; attempts = 0;
+  fb.className = 'fb'; selected = null; attempts = 0; solved = false;
+  document.getElementById('qblock').classList.remove('show');
   updateCount();
-}
-
-/* Deterministic-enough shuffle without Math.random dependence on load order */
-function shuffle(a){
-  for (let i = a.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 function makeTile(item){
   const b = document.createElement('button');
-  b.className = 'word';
-  b.type = 'button';
-  b.textContent = item.w;
-  b.dataset.word = item.w;
-  b.dataset.bin = item.bin;
-  b.setAttribute('aria-pressed', 'false');
-  b.draggable = true;
-
-  /* Click-to-place. Always available — drag is a bonus, not a requirement.
-     Trackpads, touchscreens and shaky pointers all fail at drag, and a student
-     should never be blocked by an input method. */
+  b.className = 'word'; b.type = 'button'; b.textContent = item.w;
+  b.dataset.word = item.w; b.dataset.bin = item.bin;
+  b.setAttribute('aria-pressed','false'); b.draggable = true;
+  /* Click-to-place is always available — drag is a bonus. Trackpads and
+     touchscreens fail at dragging in ways that look like a wrong answer. */
   b.addEventListener('click', () => {
     if (selected === b){ deselect(); return; }
     if (selected) deselect();
-    selected = b;
-    b.setAttribute('aria-pressed', 'true');
-    say('hint', 'Picked up "' + b.textContent + '"', 'Now click Calm or Creepy. Click it again to put it down.');
+    selected = b; b.setAttribute('aria-pressed','true');
+    say('hint','Picked up "'+b.textContent+'"','Now click Calm or Creepy. Click it again to put it down.');
   });
-
-  b.addEventListener('dragstart', e => {
-    selected = b;
-    b.classList.add('dragging');
-    e.dataTransfer.setData('text/plain', item.w);
-    e.dataTransfer.effectAllowed = 'move';
-  });
+  b.addEventListener('dragstart', e => { selected=b; b.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', item.w); e.dataTransfer.effectAllowed='move'; });
   b.addEventListener('dragend', () => b.classList.remove('dragging'));
-
   return b;
 }
 
-function deselect(){
-  if (!selected) return;
-  selected.setAttribute('aria-pressed', 'false');
-  selected = null;
-  fb.className = 'fb';
-}
+function deselect(){ if(!selected) return; selected.setAttribute('aria-pressed','false'); selected=null; fb.className='fb'; }
 
 function place(tile, bin){
   bin.querySelector('.drop').appendChild(tile);
-  tile.classList.add('placed');
-  tile.classList.remove('wrong');
-  tile.setAttribute('aria-pressed', 'false');
-  selected = null;
-  fb.className = 'fb';
-  updateCount();
+  tile.classList.add('placed'); tile.classList.remove('wrong');
+  tile.setAttribute('aria-pressed','false');
+  selected = null; fb.className='fb'; updateCount();
 }
 
 document.querySelectorAll('.bin').forEach(bin => {
-  bin.addEventListener('click', e => {
-    if (selected && !e.target.closest('.word')) place(selected, bin);
-  });
+  bin.addEventListener('click', e => { if (selected && !e.target.closest('.word')) place(selected, bin); });
   bin.addEventListener('dragover', e => { e.preventDefault(); bin.classList.add('over'); });
   bin.addEventListener('dragleave', () => bin.classList.remove('over'));
-  bin.addEventListener('drop', e => {
-    e.preventDefault();
-    bin.classList.remove('over');
-    if (selected) place(selected, bin);
-  });
+  bin.addEventListener('drop', e => { e.preventDefault(); bin.classList.remove('over'); if (selected) place(selected, bin); });
 });
 
-/* Clicking the tray puts a picked-up word back */
 tray.addEventListener('click', e => {
   if (selected && !e.target.closest('.word')){
-    tray.appendChild(selected);
-    selected.classList.remove('placed');
-    deselect();
-    updateCount();
+    tray.appendChild(selected); selected.classList.remove('placed'); deselect(); updateCount();
   }
 });
 
@@ -247,10 +275,7 @@ function updateCount(){
   document.getElementById('check').disabled = placed < WORDS.length;
 }
 
-function say(kind, head, body){
-  fb.className = 'fb show ' + kind;
-  fb.innerHTML = '<strong>' + head + '</strong>' + body;
-}
+function say(kind, head, body){ fb.className='fb show '+kind; fb.innerHTML='<strong>'+head+'</strong>'+body; }
 
 document.getElementById('check').addEventListener('click', () => {
   attempts++;
@@ -259,31 +284,141 @@ document.getElementById('check').addEventListener('click', () => {
   tiles.forEach(t => t.classList.remove('wrong'));
 
   if (!wrong.length){
-    say('good', 'All six — that is exactly right.',
-        WORDS.map(x => '<em>' + x.w + '</em> — ' + x.why).join('<br>'));
-    after.className = 'after show';
+    say('good','All six — that is exactly right.',
+        WORDS.map(x => '<em>'+x.w+'</em> — '+x.why).join('<br>'));
+    solved = true;
+    document.getElementById('qblock').classList.add('show');
+    refreshProgress();
+    document.getElementById('qblock').scrollIntoView({behavior:'smooth', block:'start'});
     return;
   }
-
-  /* Hints, never answers, and they get more specific the more you try. */
   wrong.forEach(t => t.classList.add('wrong'));
-  const n = wrong.length;
-  const one = wrong[0];
+  const n = wrong.length, one = wrong[0];
   let body;
   if (attempts === 1){
-    body = n + (n === 1 ? ' word is' : ' words are') +
-      ' in the wrong box — they are outlined in orange. Say each one out loud. Which ones sound rough or sudden?';
+    body = n + (n===1?' word is':' words are') + ' in the wrong box — outlined in orange. Say each one out loud. Which ones sound rough or sudden?';
   } else if (attempts === 2){
-    body = 'Still ' + n + '. Try this on <em>' + one.textContent + '</em>: picture it happening in a dark hallway. Does it make the hallway worse, or not?';
+    body = 'Still ' + n + '. Try this on <em>'+one.textContent+'</em>: picture it happening in a dark hallway. Does it make the hallway worse, or not?';
   } else {
-    body = 'Look at <em>' + one.textContent + '</em>. ' +
-      WORDS.find(x => x.w === one.dataset.word).why.split('.')[0] +
-      '. Which box does that belong in?';
+    body = 'Look at <em>'+one.textContent+'</em>. ' + WORDS.find(x=>x.w===one.dataset.word).why.split('.')[0] + '. Which box does that belong in?';
   }
-  say('hint', n === 1 ? 'One to fix' : n + ' to fix', body);
+  say('hint', n===1?'One to fix':n+' to fix', body);
 });
 
 document.getElementById('reset').addEventListener('click', build);
+
+/* ==================================================================
+   TURN-IN PANEL
+   Collects every [data-q] field with its question and builds one
+   pasteable block. This is the whole point of hosting the activity:
+   the student works in the nice version, and one button produces the
+   evidence the school needs.
+================================================================== */
+const ACTIVITY_TITLE = 'Mood Sort — Word Choice & Mood';
+
+function fields(){ return [...document.querySelectorAll('[data-q]')]; }
+
+function refreshProgress(){
+  const f = fields();
+  const done = f.filter(el => el.value.trim()).length;
+  document.getElementById('progress').innerHTML =
+    f.map((el,i) => `<span class="dot ${el.value.trim()?'filled':''}" title="Q${i+1}"></span>`).join('') +
+    `<span style="margin-left:.4rem">${done} of ${f.length} answered</span>`;
+  const btn = document.getElementById('copyAll');
+  btn.classList.toggle('done', done === f.length);
+}
+
+document.addEventListener('input', e => { if (e.target.dataset.q !== undefined) refreshProgress(); });
+
+function buildPlain(){
+  const sorted = ['calm','creepy'].map(k =>
+    k.toUpperCase() + ': ' + [...document.querySelectorAll('#bin-'+k+' .word')].map(w=>w.textContent).join(', ')
+  ).join('\n');
+
+  const answers = fields().map(el => {
+    const a = el.value.trim();
+    return el.dataset.q + '\n' + (a ? a : '(not answered)');
+  }).join('\n\n');
+
+  return ACTIVITY_TITLE + '\n' +
+         '='.repeat(ACTIVITY_TITLE.length) + '\n\n' +
+         'WORD SORT — completed correctly\n' + sorted + '\n\n' +
+         answers + '\n';
+}
+
+function buildHtml(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const sorted = ['calm','creepy'].map(k =>
+    '<strong>' + (k==='calm'?'Calm':'Creepy') + ':</strong> ' +
+    [...document.querySelectorAll('#bin-'+k+' .word')].map(w=>w.textContent).join(', ')
+  ).join('<br>');
+
+  const answers = fields().map(el => {
+    const a = el.value.trim();
+    return '<p style="margin:0 0 0.25rem;"><strong>' + esc(el.dataset.q) + '</strong></p>' +
+           '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">' +
+           (a ? esc(a).replace(/\n/g,'<br>') : '<em style="color:#8b939c;">(not answered)</em>') + '</p>';
+  }).join('');
+
+  return '<h3 style="margin:0 0 0.5rem;">' + esc(ACTIVITY_TITLE) + '</h3>' +
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Word sort completed correctly.<br>' + sorted + '</p>' +
+         answers;
+}
+
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<strong>' + head + '</strong>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const f = fields();
+  const blank = f.filter(el => !el.value.trim()).length;
+  const plain = buildPlain();
+
+  document.getElementById('previewText').value = plain;
+
+  /* Three levels of fallback, because clipboard access inside a cross-origin
+     iframe is the flakiest thing in this whole system. The preview textarea
+     at the bottom always works even if every API path fails. */
+  let ok = false;
+  try {
+    if (navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([ new ClipboardItem({
+        'text/html':  new Blob([buildHtml()], {type:'text/html'}),
+        'text/plain': new Blob([plain],       {type:'text/plain'})
+      })]);
+      ok = true;
+    } else if (navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  } catch(e){ ok = false; }
+
+  if (!ok){
+    try {
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select();
+      ok = document.execCommand('copy');
+    } catch(e){ ok = false; }
+  }
+
+  if (ok){
+    copyFeedback('good', '✓ Copied.',
+      'Go to your Canvas assignment, click <strong>Start Assignment</strong>, click in the box and paste (Ctrl+V). Then Submit.' +
+      (blank ? '<br><br><strong style="color:#a8641b;">Heads up:</strong> ' + blank + ' question' + (blank>1?'s were':' was') + ' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
 build();
 </script>
 </body>
