@@ -127,7 +127,8 @@ const ITEMS = [
     tag: 'drag & drop',
     desc: 'Six words describing ordinary actions. Sort them into Calm or Creepy, then find out why each one lands where it does.',
     skills: 'Word choice · mood · connotation · tone',
-    height: 900
+    note: 'Sort, then three written questions. One button at the bottom copies everything for the Canvas submission.',
+    height: 1250
   },
   {
     type: 'activity',
@@ -154,10 +155,14 @@ const ITEMS = [
 const base = location.href.replace(/index\.html$/, '').replace(/\/?$/, '/');
 document.getElementById('baseurl').textContent = base;
 
+/* allow="clipboard-write" lets a hosted activity's "Copy everything" button
+   reach the clipboard from inside the Canvas iframe. Without it the button
+   still works via a fallback, but the clean path needs this. */
 const embed = it =>
   '<iframe src="' + base + it.file + '"\n' +
   '        width="100%" height="' + it.height + '"\n' +
   '        style="border:1px solid #e2ddd4;border-radius:8px;"\n' +
+  '        allow="clipboard-write"\n' +
   '        title="' + it.title + '"></iframe>';
 
 const card = (it, i) => `
