@@ -262,33 +262,45 @@ const REWARDS = {
 };
 
 const LL = {
-  evidence: {},          /* stageId -> array of lines for the copy block */
+  extra: {},      /* stageId -> non-text evidence, captured once when solved */
+  summary: {},    /* stageId -> custom done-bar text, e.g. "solved in 2 tries" */
   done: new Set(),
 
-  finish(id, extra){
-    if (LL.done.has(id)) return;
-    /* Collect any written answers in this stage before closing it */
+  /* Marks a stage complete. Deliberately does NOT snapshot the written
+     answers — those are read live at copy time, so a student who reopens a
+     part and adds to it still gets credit for what they wrote. */
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  /* Live read — never cached. */
+  collect(id){
     const stage = document.getElementById(id);
     const lines = [];
-    if (extra) lines.push(extra);
+    if (LL.extra[id]) lines.push(LL.extra[id]);
     stage.querySelectorAll('[data-q]').forEach(el => {
       const a = el.value.trim();
       lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
     });
-    LL.evidence[id] = lines;
+    return lines;
+  },
 
-    /* A stage may already have set its own summary (e.g. "solved in 2 tries").
-       Only fall back to the generic one if nothing is there. */
+  refreshSummary(id){
     const sum = document.getElementById('sum-' + id);
-    const blanks = [...stage.querySelectorAll('[data-q]')].filter(el => !el.value.trim()).length;
-    if (blanks) sum.textContent = blanks + ' left blank';
-    else if (!sum.textContent.trim()) sum.textContent = 'tap to see it again';
-
-    LL.done.add(id);
-    stage.classList.remove('active');
-    stage.classList.add('done');
-    LL.award(id);
-    LL.next();
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
   },
 
   award(id){
@@ -296,22 +308,29 @@ const LL = {
     const bar = document.getElementById('earned');
     [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
     const s = document.createElement('span');
-    s.className = 'star'; s.textContent = r.star; s.title = r.msg;
-    bar.appendChild(s);
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
     const m = document.createElement('span');
-    m.className = 'msg'; m.textContent = r.msg;
-    bar.appendChild(m);
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
   },
 
   next(){
     const nextId = ORDER.find(x => !LL.done.has(x));
-    const target = document.getElementById(nextId || 'turnin');
-    target.classList.add('active');
-    setTimeout(() => target.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
   },
 
   toggle(id){ document.getElementById(id).classList.toggle('open'); }
 };
+
+/* Typing in a reopened stage updates its done-bar immediately, so the student
+   can see a blank turn into a saved answer without closing anything. */
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
 
 /* ---------------- Stage 1: the sort ---------------- */
 const WORDS = [
@@ -387,8 +406,7 @@ document.getElementById('check').addEventListener('click',()=>{
       (k==='calm'?'Calm':'Creepy') + ': ' +
       [...document.querySelectorAll('#bin-'+k+' .word')].map(w=>w.textContent).join(', ')
     ).join('\n');
-    document.getElementById('sum-s1').textContent =
-      'solved in ' + attempts + (attempts===1?' try':' tries');
+    LL.summary.s1 = 'solved in ' + attempts + (attempts===1?' try':' tries');
     setTimeout(() => LL.finish('s1',
       'Sorted correctly in ' + attempts + (attempts===1?' try':' tries') + '.\n' + sorted), 2200);
     return;
@@ -405,9 +423,9 @@ document.getElementById('reset').addEventListener('click', build);
 
 /* ---------------- Evidence assembly ---------------- */
 function buildPlain(){
-  const parts = ORDER.filter(id => LL.evidence[id]).map(id => {
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
     const title = document.getElementById(id).dataset.title;
-    return '── ' + title.toUpperCase() + ' ──\n' + LL.evidence[id].join('\n\n');
+    return '── ' + title.toUpperCase() + ' ──\n' + LL.collect(id).join('\n\n');
   });
   return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
          'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
@@ -415,9 +433,9 @@ function buildPlain(){
 }
 function buildHtml(){
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const parts = ORDER.filter(id => LL.evidence[id]).map(id => {
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
     const title = document.getElementById(id).dataset.title;
-    const body = LL.evidence[id].map(block => {
+    const body = LL.collect(id).map(block => {
       const [q, ...rest] = block.split('\n');
       const a = rest.join('\n');
       return a
@@ -442,7 +460,7 @@ document.getElementById('copyAll').addEventListener('click', async () => {
   const plain = buildPlain();
   document.getElementById('previewText').value = plain;
   const blanks = ORDER.reduce((n,id) =>
-    n + (LL.evidence[id]||[]).filter(b => b.includes('(not answered)')).length, 0);
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
 
   /* Three fallbacks — clipboard access from a cross-origin iframe is the
      flakiest part of this system, and a student must never be stranded. */
