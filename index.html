@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!--
+  ACTIVITY HUB — the index of your hosted activities.
+
+  This page figures out its own URL and writes the Canvas embed code for you,
+  so you never have to remember or type your GitHub Pages address.
+
+  TO ADD AN ACTIVITY
+    1. Put the .html file in activities/
+    2. Add one entry to the ACTIVITIES array at the bottom of this file
+    3. Commit. It appears here within a minute or two.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activity Hub</title>
+<style>
+  :root{ --bg:#f2efea; --paper:#fffdfa; --ink:#22252a; --soft:#555a63; --line:#e2ddd4;
+         --accent:#2f6f8f; --accent-soft:#e8f1f6; --go:#2e7d5b; --go-soft:#e6f3ec; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:0 1rem 5rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:17px; line-height:1.7 }
+  .wrap{ max-width:52rem; margin:0 auto }
+  header{ background:var(--ink); color:#fff; margin:0 -1rem 2rem; padding:2.25rem 1rem }
+  header .in{ max-width:52rem; margin:0 auto }
+  header h1{ margin:0 0 .3rem; font-size:1.9rem }
+  header p{ margin:0; opacity:.8 }
+  header .url{ display:inline-block; margin-top:.8rem; background:#333a44; color:#cfe3ee;
+        padding:.35rem .8rem; border-radius:6px; font-family:Consolas,monospace; font-size:.85rem }
+
+  h2{ font-size:1.15rem; margin:2.5rem 0 1rem; padding-top:1rem; border-top:2px solid var(--line) }
+
+  .act{ background:var(--paper); border:1px solid var(--line); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:0 0 1.25rem }
+  .act-head{ display:flex; align-items:baseline; gap:.75rem; flex-wrap:wrap; margin-bottom:.35rem }
+  .act h3{ margin:0; font-size:1.15rem }
+  .tag{ font-size:.72rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+        background:var(--accent-soft); color:var(--accent); padding:.2rem .6rem; border-radius:999px }
+  .act .desc{ margin:0 0 .5rem; color:var(--ink) }
+  .act .skills{ margin:0 0 1rem; font-size:.88rem; color:var(--soft) }
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center }
+  button,a.btn{ font:inherit; font-size:.88rem; font-weight:700; cursor:pointer; text-decoration:none;
+        border-radius:8px; padding:.5rem 1rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff; display:inline-block }
+  a.btn.ghost,button.ghost{ background:transparent; color:var(--accent) }
+  button:hover,a.btn:hover{ filter:brightness(1.07) }
+  button.copied{ background:var(--go); border-color:var(--go) }
+  .code{ display:none; margin-top:.9rem; background:var(--ink); color:#f0ece6; padding:.9rem 1.1rem;
+        border-radius:8px; font-family:Consolas,monospace; font-size:.8rem; line-height:1.55;
+        white-space:pre-wrap; word-break:break-all }
+  .code.show{ display:block }
+  .note{ background:var(--go-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:1rem 1.3rem; margin:1.5rem 0 }
+  .note h3{ margin:0 0 .4rem; font-size:1rem }
+  .note p:last-child{ margin-bottom:0 }
+  .note.warn{ background:#fbf0e2; border-color:#ddbf94 }
+  code{ background:#eae5dd; padding:.1rem .38rem; border-radius:4px; font-family:Consolas,monospace; font-size:.88em }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none!important } }
+</style>
+</head>
+<body>
+
+<header><div class="in">
+  <h1>Activity Hub</h1>
+  <p>Interactive activities, hosted and ready to embed in Canvas.</p>
+  <span class="url" id="baseurl">detecting address…</span>
+</div></header>
+
+<div class="wrap">
+
+<div class="note">
+  <h3>How to put one of these in Canvas</h3>
+  <p><strong>1.</strong> Click <strong>Copy embed code</strong> on the activity you want.<br>
+  <strong>2.</strong> In Canvas, open the assignment or page and click <code>&lt;/&gt;</code> in the editor toolbar.<br>
+  <strong>3.</strong> Paste. Switch back to the rich view — the activity appears inline.</p>
+  <p>The embed codes below are generated from this page's own address, so they are always correct for your site.</p>
+</div>
+
+<div class="note warn">
+  <h3>This site is public</h3>
+  <p>GitHub Pages sites are reachable by anyone with the URL. That's fine for activities — but never put student names, student work, grades, or your teaching notes in this repository. Activities only.</p>
+</div>
+
+<h2>Activities</h2>
+<div id="list"></div>
+
+<div class="note">
+  <h3>Adding a new one</h3>
+  <p>Drop the <code>.html</code> file into <code>activities/</code>, then add an entry to the <code>ACTIVITIES</code> list at the bottom of <code>index.html</code>. Commit both. It shows up here in a minute or two.</p>
+  <p>Or just ask Claude — "add the sentence surgery activity to my hub" — and it'll give you both files ready to upload.</p>
+</div>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   Add an entry here for each activity. `height` is the iframe height
+   in pixels — give it enough room that the student isn't scrolling
+   inside a small window, which is miserable on a shared screen.
+------------------------------------------------------------------ */
+const ACTIVITIES = [
+  {
+    file: 'activities/mood-sort.html',
+    title: 'Mood Sort',
+    tag: 'drag & drop',
+    desc: 'Six words describing ordinary actions. Sort them into Calm or Creepy, then find out why each one lands where it does.',
+    skills: 'Word choice · mood · connotation · tone',
+    height: 900
+  }
+];
+
+const base = location.href.replace(/index\.html$/, '').replace(/\/?$/, '/');
+document.getElementById('baseurl').textContent = base;
+
+const embed = a =>
+  '<iframe src="' + base + a.file + '"\n' +
+  '        width="100%" height="' + a.height + '"\n' +
+  '        style="border:1px solid #e2ddd4;border-radius:8px;"\n' +
+  '        title="' + a.title + '"></iframe>';
+
+document.getElementById('list').innerHTML = ACTIVITIES.map((a, i) => `
+  <div class="act">
+    <div class="act-head"><h3>${a.title}</h3><span class="tag">${a.tag}</span></div>
+    <p class="desc">${a.desc}</p>
+    <p class="skills">${a.skills}</p>
+    <div class="row">
+      <a class="btn ghost" href="${a.file}" target="_blank" rel="noopener">Open it</a>
+      <button onclick="copyEmbed(${i}, this)">Copy embed code</button>
+      <button class="ghost" onclick="toggleCode(${i})">Show code</button>
+    </div>
+    <div class="code" id="code-${i}"></div>
+  </div>`).join('');
+
+ACTIVITIES.forEach((a, i) => document.getElementById('code-' + i).textContent = embed(a));
+
+function toggleCode(i){ document.getElementById('code-' + i).classList.toggle('show'); }
+
+function copyEmbed(i, btn){
+  const text = embed(ACTIVITIES[i]);
+  const done = ok => {
+    btn.textContent = ok ? '✓ Copied — paste into </>' : '✗ Use "Show code" instead';
+    btn.classList.toggle('copied', ok);
+    setTimeout(() => { btn.textContent = 'Copy embed code'; btn.classList.remove('copied'); }, 4000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
+  } else { done(false); }
+}
+</script>
+</body>
+</html>
