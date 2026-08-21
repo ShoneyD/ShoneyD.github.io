@@ -136,7 +136,7 @@
   <div class="steps">
     <p>How this works</p>
     <ol>
-      <li>Finish one part, then the next one opens.</li>
+      <li>Finish one part, then press the green button when you're ready for the next.</li>
       <li>You can retry as many times as you like — nothing is timed.</li>
       <li>At the end, one button copies everything for your Canvas submission.</li>
     </ol>
@@ -170,6 +170,12 @@
         <button class="btn" id="check">Check</button>
         <button class="btn ghost" id="reset">Start over</button>
         <span class="count" id="count">0 of 6 placed</span>
+      </div>
+      <!-- Appears once solved. Nothing advances on a timer — the student
+           reads the explanation for as long as they want and moves on
+           when they decide to. -->
+      <div class="row" id="s1next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s1')">Next part →</button>
       </div>
     </div>
   </section>
@@ -351,7 +357,9 @@ function build(){
   tray.innerHTML='';
   document.querySelectorAll('.bin .drop').forEach(d=>d.innerHTML='');
   shuffle(WORDS.slice()).forEach(i => tray.appendChild(makeTile(i)));
-  fb.className='fb'; selected=null; attempts=0; updateCount();
+  fb.className='fb'; selected=null; attempts=0;
+  document.getElementById('s1next').style.display='none';
+  updateCount();
 }
 
 function makeTile(item){
@@ -388,7 +396,8 @@ tray.addEventListener('click',e=>{ if(selected && !e.target.closest('.word')){
 function updateCount(){
   const n=document.querySelectorAll('.bin .word').length;
   document.getElementById('count').textContent=n+' of '+WORDS.length+' placed';
-  document.getElementById('check').disabled = n < WORDS.length;
+  if (!LL.done.has('s1') && document.getElementById('s1next').style.display === 'none')
+    document.getElementById('check').disabled = n < WORDS.length;
 }
 function say(kind,head,body){ fb.className='fb show '+kind;
   fb.innerHTML='<span class="fb-head">'+head+'</span>'+body; }
@@ -407,8 +416,9 @@ document.getElementById('check').addEventListener('click',()=>{
       [...document.querySelectorAll('#bin-'+k+' .word')].map(w=>w.textContent).join(', ')
     ).join('\n');
     LL.summary.s1 = 'solved in ' + attempts + (attempts===1?' try':' tries');
-    setTimeout(() => LL.finish('s1',
-      'Sorted correctly in ' + attempts + (attempts===1?' try':' tries') + '.\n' + sorted), 2200);
+    LL.extra.s1 = 'Sorted correctly in ' + attempts + (attempts===1?' try':' tries') + '.\n' + sorted;
+    document.getElementById('s1next').style.display = 'flex';
+    document.getElementById('check').disabled = true;
     return;
   }
   wrong.forEach(t=>t.classList.add('wrong'));
