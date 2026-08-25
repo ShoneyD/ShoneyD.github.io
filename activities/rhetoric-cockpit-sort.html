@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<!--
+  RHETORIC COCKPIT SORT — perennial activity, tier 2/3.
+
+  WHAT IT PRACTISES
+    Sorting real lines from a text into ethos / pathos / logos, then the harder
+    move the objective actually names: saying what each line DOES to the reader.
+
+  SWAPPING THE TEXT
+    Everything text-specific lives in the two arrays QUOTES and IMPACTS near the
+    top of the script, plus SOURCE. Change those three and the activity works on
+    any argumentative text. Nothing else needs touching.
+
+  RULES HONOURED
+    One file, everything inline. No localStorage. Every drag has a click-to-place
+    fallback and full keyboard operation. Feedback teaches rather than marks.
+    Nothing animates except the earned stars. Reduced motion respected.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rhetoric Cockpit Sort</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; --hl:#fdf1b8; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:48rem; margin:0 auto }
+  h1{ font-size:1.35rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .5rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+  mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  .stage{ display:none }
+  .stage.active{ display:block }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:1rem 0 }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn:disabled{ opacity:.45; cursor:default; filter:none }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; font-size:.98rem; display:none }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+  .fb ul{ margin:.4rem 0 0; padding-left:1.15rem } .fb li{ margin-bottom:.25rem }
+
+  /* ---------- tiles & panels ---------- */
+  .bank{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+         padding:.8rem 1rem; margin:0 0 1.1rem; min-height:4.5rem }
+  .bank .lab, .panel .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+  .tile{ display:block; width:100%; text-align:left; font:inherit; font-size:.95rem;
+        line-height:1.5; cursor:grab; background:#fff; color:var(--ink);
+        border:2px solid #b9c4cc; border-left:7px solid var(--accent);
+        border-radius:8px; padding:.6rem .8rem; margin:0 0 .5rem }
+  .tile:last-child{ margin-bottom:0 }
+  .tile .tag{ display:block; font-size:.7rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+  .tile.picked{ border-color:var(--warn); border-left-color:var(--warn);
+        background:var(--warn-soft) }
+  .tile.right{ border-color:var(--calm); border-left-color:var(--calm); background:var(--calm-soft) }
+  .tile.wrong{ border-color:var(--warn); border-left-color:var(--warn); background:var(--warn-soft) }
+  .tile.right .tag::after{ content:" ✓" }
+  .tile.wrong .tag::after{ content:" ✗ try another panel" }
+
+  .panels{ display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem }
+  @media (max-width:720px){ .panels{ grid-template-columns:1fr } }
+  .panel{ background:var(--card); border:2px dashed #b9c4cc; border-radius:10px;
+        padding:.7rem .8rem; min-height:9rem }
+  .panel.over{ border-style:solid; border-color:var(--accent); background:var(--accent-soft) }
+  .panel h3{ font-size:1rem; margin:0 0 .1rem }
+  .panel .greek{ font-size:.8rem; color:var(--soft); margin:0 0 .1rem }
+  .panel .gloss{ font-size:.82rem; color:var(--soft); margin:0 0 .6rem; line-height:1.45 }
+  .panel .drop{ font-size:.8rem; color:#8b949c; margin:0 }
+
+  .slotrow{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1rem; margin:0 0 .7rem }
+  .slotrow .quote{ font-size:.98rem; margin:0 0 .55rem }
+  .slot{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+        padding:.55rem .75rem; min-height:3.2rem; font-size:.92rem; color:#8b949c }
+  .slot.over{ border-style:solid; border-color:var(--accent); background:var(--accent-soft) }
+  .slot.filled{ color:var(--ink) }
+  .slot.right{ border-style:solid; border-color:var(--calm); background:var(--calm-soft) }
+  .slot.wrong{ border-style:solid; border-color:var(--warn); background:var(--warn-soft) }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea, .abox select{ width:100%; border:0; outline:0; resize:vertical; min-height:3rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox select{ min-height:0; border:1px solid var(--line); border-radius:6px; padding:.4rem .5rem }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+  .done-look{ background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .done-look .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--calm); margin:0 0 .25rem }
+  .done-look p{ margin:0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .dots{ display:flex; gap:.35rem; align-items:center; font-size:.85rem;
+        color:var(--soft); margin:0 0 .9rem }
+  .dots i{ width:.75rem; height:.75rem; border-radius:50%; border:2px solid #b9c4cc; display:inline-block }
+  .dots i.on{ background:var(--calm); border-color:var(--calm) }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Rhetoric Cockpit</h1>
+  <p class="sub">Three controls. Figure out which one the writer is flying with — then work out where it steers the reader.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li><strong>Drag</strong> a card into a panel — or <strong>click</strong> the card, then click the panel. Both work.</li>
+      <li>Press <strong>Check it</strong>. Wrong ones come back to you with a hint. You get as many tries as you want.</li>
+      <li>Nothing is timed. At the end, one button copies everything for Canvas.</li>
+    </ol>
+  </div>
+
+  <!-- ==================== STAGE 1 — THE SORT ==================== -->
+  <section class="stage active" id="s1" data-title="Sort the controls">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1 — Sort the controls</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 — Sort the controls</h2>
+      <p>Six real lines from Dr. Murthy's article. Put each one in the panel that matches
+         <mark>what the line is doing</mark> — not what it is about.</p>
+
+      <div class="panels" id="panels1">
+        <div class="panel" data-cat="ethos" tabindex="0" role="button" aria-label="Panel: Trust, ethos">
+          <h3>TRUST</h3>
+          <p class="greek">(ethos)</p>
+          <p class="gloss">"Why should I believe this guy?"</p>
+          <p class="drop">Drop here</p>
+        </div>
+        <div class="panel" data-cat="pathos" tabindex="0" role="button" aria-label="Panel: Feeling, pathos">
+          <h3>FEELING</h3>
+          <p class="greek">(pathos)</p>
+          <p class="gloss">"This made something move in my chest."</p>
+          <p class="drop">Drop here</p>
+        </div>
+        <div class="panel" data-cat="logos" tabindex="0" role="button" aria-label="Panel: Facts, logos">
+          <h3>FACTS</h3>
+          <p class="greek">(logos)</p>
+          <p class="gloss">"Here are the numbers and the reasons."</p>
+          <p class="drop">Drop here</p>
+        </div>
+      </div>
+
+      <div class="bank" id="bank1">
+        <p class="lab">Cards left to place</p>
+      </div>
+
+      <div class="fb" id="fb1" role="status" aria-live="polite"></div>
+
+      <div class="row">
+        <button class="btn" id="check1">Check it</button>
+        <button class="btn ghost" id="reset1">Put them all back</button>
+        <button class="btn go" id="next1" hidden>Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== STAGE 2 — THE IMPACT ==================== -->
+  <section class="stage" id="s2" data-title="What does it do to the reader?">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2 — What does it do to the reader?</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — What does it do to the reader?</h2>
+      <p>Naming the control is the easy half. <mark>Impact</mark> is the other half: where does the
+         reader end up after they read it? Drag the right effect into each box.
+         <strong>Two of the five cards are decoys</strong> — they don't belong anywhere.</p>
+
+      <div id="slots2"></div>
+
+      <div class="bank" id="bank2">
+        <p class="lab">Effects — two of these are decoys</p>
+      </div>
+
+      <div class="fb" id="fb2" role="status" aria-live="polite"></div>
+
+      <div class="row">
+        <button class="btn" id="check2">Check it</button>
+        <button class="btn ghost" id="reset2">Put them all back</button>
+        <button class="btn go" id="next2" hidden>Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== STAGE 3 — SAY IT YOURSELF ==================== -->
+  <section class="stage" id="s3" data-title="Say it yourself">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3 — Say it yourself</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 — Say it yourself</h2>
+      <p>One question. <strong>You can type it or say it out loud and I'll type — your call,
+         and don't worry about spelling.</strong></p>
+
+      <p class="q"><strong>Q1.</strong> Of the six lines you just sorted, which one hit you hardest?
+         Copy or name it, then say <mark>what it does to the reader</mark> and
+         <mark>why Dr. Murthy put it where he put it</mark>.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q1. Which of the six lines hit you hardest? What does it do to the reader, and why did Dr. Murthy put it where he put it?" placeholder="Type here…" rows="4"></textarea></div>
+
+      <div class="stems"><p class="lab">Sentence starters — use them, that's what they're for</p>
+        <p>• The line that hit me hardest was ____.<br>
+           • It makes the reader feel ____.<br>
+           • He put it there because ____.</p></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three things in your answer: <strong>the line</strong>, <strong>what it does to the reader</strong>,
+           and <strong>why it's there</strong>. Two or three sentences is plenty.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s3')">Done — take me to turn-in →</button></div>
+    </div>
+  </section>
+
+  <!-- ==================== TURN IN ==================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects all three parts — ready to paste into Canvas.</p>
+        <div class="dots" id="dots"></div>
+        <div class="row" style="margin-top:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ====================================================================
+   SWAP THE TEXT HERE — these three things are the only text-specific
+   parts of this activity. Change them and everything else still works.
+   ==================================================================== */
+const SOURCE = 'Rhetoric Cockpit — "We Have Become a Lonely Nation" (Murthy)';
+
+const QUOTES = [
+  { id:'a', cat:'ethos',
+    text:'"A patient of mine once shared with me a most unusual story."',
+    why:'Those three words — <strong>a patient of mine</strong> — quietly remind you he is a doctor. This card is doing two jobs at once, because it also starts a sad story. We file it under TRUST because of who it tells you he is.' },
+  { id:'b', cat:'pathos',
+    text:'"Winning the lottery was one of the worst things that ever happened to me."',
+    why:'Nothing here is a fact or a credential. It is a sentence built to make you go <em>wait, what?</em> — and then feel sorry for him.' },
+  { id:'c', cat:'logos',
+    text:'"About one out of every two Americans is experiencing measurable levels of loneliness."',
+    why:'A number. One in two. That is the instrument panel, not the feeling.' },
+  { id:'d', cat:'logos',
+    text:'"Their risk of heart disease (29 percent), dementia (50 percent), and stroke (32 percent)."',
+    why:'Three percentages in one line. Pure FACTS panel.' },
+  { id:'e', cat:'pathos',
+    text:'"I found myself increasingly lonely and isolated, and it felt as if I was the only one who felt that way."',
+    why:'He is not proving anything here. He is letting you feel what he felt. That is the FEELING panel.' },
+  { id:'f', cat:'ethos',
+    text:'"This week I am proposing a national framework to rebuild social connection." <span style="color:#555a63;font-size:.85rem;">(framework = a plan)</span>',
+    why:'Only someone with real authority can propose a national plan. He is showing you his rank, not his feelings.' }
+];
+
+/* Two of these five have match:null — they are decoys and belong nowhere. */
+const IMPACTS = [
+  { id:'p', match:'c', text:'Makes you think: this is huge — and it is probably me, or someone I know.' },
+  { id:'q', match:'d', text:'Makes loneliness feel like a real medical danger, not just a bad mood.' },
+  { id:'r', match:'e', text:'Makes you feel less ashamed — if the Surgeon General felt it, it is not a personal failure.' },
+  { id:'s', match:null, text:'Makes you want to move to a gated community.' },
+  { id:'t', match:null, text:'Proves that loneliness only affects older people.' }
+];
+
+/* Which quotes get an impact slot in Part 2, in order. */
+const IMPACT_SLOTS = ['c','d','e'];
+
+const REWARDS = {
+  s1:{ star:'★', msg:'Sort complete — you can name the control.' },
+  s2:{ star:'★', msg:'That is impact. That is the whole objective.' },
+  s3:{ star:'★', msg:'All done — go turn it in.' }
+};
+
+/* ================= build the tiles ================= */
+const ORDER = ['s1','s2','s3'];
+const CAT_NAME = { ethos:'TRUST (ethos)', pathos:'FEELING (pathos)', logos:'FACTS (logos)' };
+const byId = id => QUOTES.find(q => q.id === id);
+const impById = id => IMPACTS.find(i => i.id === id);
+const shuffle = a => a.map(v => [Math.random(), v]).sort((x,y) => x[0]-y[0]).map(p => p[1]);
+
+let picked1 = null, picked2 = null;
+let tries1 = 0, tries2 = 0;
+
+function makeTile(id, label, tagText, kind){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'tile';
+  b.draggable = true;
+  b.dataset.id = id;
+  b.dataset.kind = kind;
+  b.innerHTML = '<span class="tag">' + tagText + '</span>' + label;
+  b.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', kind + ':' + id);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  /* Click-to-place, the fallback that has to work when dragging doesn't.
+     A tile sitting inside a panel or slot must not swallow the click that was
+     meant for the panel underneath it — so when something else is already
+     picked, we let the click bubble to the container. Tiles still in the bank
+     always just switch the pick, which is what a student expects there. */
+  b.addEventListener('click', e => {
+    const inBank = !!b.closest('.bank');
+    const cur = (kind === 'q1') ? picked1 : picked2;
+    if (cur && cur !== id && !inBank) return;   /* bubble → drop the picked tile here */
+    e.stopPropagation();
+    if (kind === 'q1') pick1(id); else pick2(id);
+  });
+  return b;
+}
+
+/* ---------- stage 1 ---------- */
+function buildStage1(){
+  const bank = document.getElementById('bank1');
+  bank.querySelectorAll('.tile').forEach(t => t.remove());
+  document.querySelectorAll('#panels1 .tile').forEach(t => t.remove());
+  shuffle(QUOTES.slice()).forEach(q => {
+    bank.appendChild(makeTile(q.id, q.text, 'Card ' + q.id.toUpperCase(), 'q1'));
+  });
+  picked1 = null; tries1 = 0;
+  document.getElementById('fb1').className = 'fb';
+  document.getElementById('check1').disabled = false;
+  document.getElementById('next1').hidden = true;
+}
+
+function pick1(id){
+  picked1 = (picked1 === id) ? null : id;
+  document.querySelectorAll('#s1 .tile').forEach(t =>
+    t.classList.toggle('picked', t.dataset.id === picked1));
+  if (picked1) say('fb1','hint','Card picked.','Now click one of the three panels above to drop it in. Click the card again to un-pick it.');
+}
+
+function place1(id, panel){
+  const tile = document.querySelector('#s1 .tile[data-id="'+id+'"]');
+  if (!tile) return;
+  tile.classList.remove('picked','right','wrong');
+  tile.querySelector('.tag').textContent = 'Card ' + id.toUpperCase();
+  panel.appendChild(tile);
+  picked1 = null;
+  document.getElementById('fb1').className = 'fb';
+}
+
+function wire1(){
+  document.querySelectorAll('#panels1 .panel').forEach(p => {
+    p.addEventListener('dragover', e => { e.preventDefault(); p.classList.add('over'); });
+    p.addEventListener('dragleave', () => p.classList.remove('over'));
+    p.addEventListener('drop', e => {
+      e.preventDefault(); p.classList.remove('over');
+      const [kind, id] = (e.dataTransfer.getData('text/plain')||'').split(':');
+      if (kind === 'q1') place1(id, p);
+    });
+    const activate = () => { if (picked1) place1(picked1, p); };
+    p.addEventListener('click', activate);
+    p.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); activate(); }
+    });
+  });
+  const bank = document.getElementById('bank1');
+  bank.addEventListener('dragover', e => e.preventDefault());
+  bank.addEventListener('drop', e => {
+    e.preventDefault();
+    const [kind, id] = (e.dataTransfer.getData('text/plain')||'').split(':');
+    if (kind === 'q1') place1(id, bank);
+  });
+  bank.addEventListener('click', () => { if (picked1) place1(picked1, bank); });
+
+  document.getElementById('reset1').addEventListener('click', buildStage1);
+
+  document.getElementById('check1').addEventListener('click', () => {
+    const left = document.querySelectorAll('#bank1 .tile').length;
+    if (left){
+      say('fb1','hint','Still ' + left + ' card' + (left>1?'s':'') + ' to place.',
+        'Every card goes somewhere. If you are unsure, ask yourself: is this line telling me <strong>who he is</strong>, <strong>how to feel</strong>, or <strong>a number</strong>?');
+      return;
+    }
+    tries1++;
+    let wrong = [];
+    document.querySelectorAll('#panels1 .panel').forEach(p => {
+      p.querySelectorAll('.tile').forEach(t => {
+        const q = byId(t.dataset.id);
+        const ok = q.cat === p.dataset.cat;
+        t.classList.toggle('right', ok);
+        t.classList.toggle('wrong', !ok);
+        if (!ok) wrong.push(q);
+      });
+    });
+    if (wrong.length){
+      say('fb1','hint', wrong.length + ' card' + (wrong.length>1?'s are':' is') + ' in the wrong panel.',
+        '<ul>' + wrong.map(q => '<li><strong>Card ' + q.id.toUpperCase() +
+        '</strong> — is this line telling you who he is, how to feel, or a number?</li>').join('') +
+        '</ul>Drag the red ones somewhere else and check again. As many tries as you want.');
+    } else {
+      say('fb1','good','All six in the right panel.',
+        '<ul>' + QUOTES.map(q => '<li><strong>' + q.id.toUpperCase() + '</strong> → ' +
+        CAT_NAME[q.cat] + ' — ' + q.why + '</li>').join('') + '</ul>');
+      document.getElementById('check1').disabled = true;
+      document.getElementById('next1').hidden = false;
+      document.getElementById('next1').focus();
+    }
+  });
+
+  document.getElementById('next1').addEventListener('click', () => {
+    const lines = ['Sorted all six correctly in ' + tries1 + (tries1===1?' try.':' tries.')];
+    ['ethos','pathos','logos'].forEach(c => {
+      lines.push(CAT_NAME[c] + ': ' + QUOTES.filter(q=>q.cat===c).map(q=>q.id.toUpperCase()).join(', '));
+    });
+    LL.finish('s1', lines.join('\n'));
+  });
+}
+
+/* ---------- stage 2 ---------- */
+function buildStage2(){
+  const slots = document.getElementById('slots2');
+  slots.innerHTML = '';
+  IMPACT_SLOTS.forEach(qid => {
+    const q = byId(qid);
+    const row = document.createElement('div');
+    row.className = 'slotrow';
+    row.innerHTML = '<p class="quote"><strong>Card ' + qid.toUpperCase() + '</strong> — ' + q.text +
+      '<br><span style="font-size:.82rem;color:#555a63;">' + CAT_NAME[q.cat] + '</span></p>';
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.dataset.slot = qid;
+    slot.tabIndex = 0;
+    slot.setAttribute('role','button');
+    slot.setAttribute('aria-label','Effect slot for card ' + qid.toUpperCase());
+    slot.textContent = 'Drop the effect here — or click a card below, then click this box';
+    row.appendChild(slot);
+    slots.appendChild(row);
+    slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('over'); });
+    slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault(); slot.classList.remove('over');
+      const [kind, id] = (e.dataTransfer.getData('text/plain')||'').split(':');
+      if (kind === 'q2') place2(id, slot);
+    });
+    const activate = () => { if (picked2) place2(picked2, slot); };
+    slot.addEventListener('click', activate);
+    slot.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); activate(); }
+    });
+  });
+
+  const bank = document.getElementById('bank2');
+  bank.querySelectorAll('.tile').forEach(t => t.remove());
+  shuffle(IMPACTS.slice()).forEach(i => {
+    bank.appendChild(makeTile(i.id, i.text, 'Effect ' + i.id.toUpperCase(), 'q2'));
+  });
+  picked2 = null; tries2 = 0;
+  document.getElementById('fb2').className = 'fb';
+  document.getElementById('check2').disabled = false;
+  document.getElementById('next2').hidden = true;
+}
+
+function pick2(id){
+  picked2 = (picked2 === id) ? null : id;
+  document.querySelectorAll('#s2 .tile').forEach(t =>
+    t.classList.toggle('picked', t.dataset.id === picked2));
+  if (picked2) say('fb2','hint','Effect picked.','Now click the box you want it in. Click it again to un-pick it.');
+}
+
+function place2(id, slot){
+  const tile = document.querySelector('#s2 .tile[data-id="'+id+'"]');
+  if (!tile) return;
+  /* a slot holds one tile — anything already there goes back to the bank */
+  if (slot.classList.contains('slot')){
+    const existing = slot.querySelector('.tile');
+    if (existing) document.getElementById('bank2').appendChild(existing);
+    slot.textContent = '';
+    slot.classList.add('filled');
+  }
+  tile.classList.remove('picked','right','wrong');
+  tile.querySelector('.tag').textContent = 'Effect ' + id.toUpperCase();
+  slot.appendChild(tile);
+  picked2 = null;
+  document.getElementById('fb2').className = 'fb';
+  document.querySelectorAll('#slots2 .slot').forEach(s => {
+    s.classList.remove('right','wrong');
+    if (!s.querySelector('.tile')){
+      s.classList.remove('filled');
+      s.textContent = 'Drop the effect here — or click a card below, then click this box';
+    }
+  });
+}
+
+function wire2(){
+  const bank = document.getElementById('bank2');
+  bank.addEventListener('dragover', e => e.preventDefault());
+  bank.addEventListener('drop', e => {
+    e.preventDefault();
+    const [kind, id] = (e.dataTransfer.getData('text/plain')||'').split(':');
+    if (kind === 'q2') place2(id, bank);
+  });
+  bank.addEventListener('click', () => { if (picked2) place2(picked2, bank); });
+
+  document.getElementById('reset2').addEventListener('click', buildStage2);
+
+  document.getElementById('check2').addEventListener('click', () => {
+    const empty = [...document.querySelectorAll('#slots2 .slot')].filter(s => !s.querySelector('.tile'));
+    if (empty.length){
+      say('fb2','hint', empty.length + ' box' + (empty.length>1?'es':'') + ' still empty.',
+        'Every box needs one effect. Remember two of the five cards are decoys — you will have two left over at the end, and that is correct.');
+      return;
+    }
+    tries2++;
+    let wrong = 0;
+    document.querySelectorAll('#slots2 .slot').forEach(s => {
+      const tile = s.querySelector('.tile');
+      const ok = impById(tile.dataset.id).match === s.dataset.slot;
+      s.classList.toggle('right', ok); s.classList.toggle('wrong', !ok);
+      tile.classList.toggle('right', ok); tile.classList.toggle('wrong', !ok);
+      if (!ok) wrong++;
+    });
+    if (wrong){
+      say('fb2','hint', wrong + ' box' + (wrong>1?'es are':' is') + ' not right yet.',
+        'Read the quote, then read the effect, and ask: <strong>could I get from that line to that feeling?</strong> If the effect says something the line never says, it is a decoy. Try again — no limit.');
+    } else {
+      const leftovers = [...document.querySelectorAll('#bank2 .tile')].map(t => impById(t.dataset.id));
+      say('fb2','good','All three matched — and you spotted the decoys.',
+        'The two you left in the bank were <strong>' +
+        leftovers.map(l => 'Effect ' + l.id.toUpperCase()).join(' and ') +
+        '</strong>. Neither one can be reached from anything Dr. Murthy actually wrote. That is the test for impact: <mark>can you get there from the words on the page?</mark>');
+      document.getElementById('check2').disabled = true;
+      document.getElementById('next2').hidden = false;
+      document.getElementById('next2').focus();
+    }
+  });
+
+  document.getElementById('next2').addEventListener('click', () => {
+    const lines = ['Matched all three effects in ' + tries2 + (tries2===1?' try.':' tries.')];
+    document.querySelectorAll('#slots2 .slot').forEach(s => {
+      const t = s.querySelector('.tile');
+      lines.push('Card ' + s.dataset.slot.toUpperCase() + ' → ' + impById(t.dataset.id).text);
+    });
+    LL.finish('s2', lines.join('\n'));
+  });
+}
+
+function say(id, kind, head, body){
+  const box = document.getElementById(id);
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+/* ================= engine ================= */
+const LL = {
+  extra:{}, summary:{}, done:new Set(),
+
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active','open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    LL.dots();
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = (el.value||'').trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !(el.value||'').trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (fields.length) sum.textContent = fields.length + (fields.length===1?' answer saved':' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const msg = (ORDER[ORDER.length-1] === id) ? 'All done — go turn it in.' : r.msg;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); },
+
+  dots(){
+    const d = document.getElementById('dots');
+    d.innerHTML = ORDER.map(id => '<i class="' + (LL.done.has(id)?'on':'') + '"></i>').join('') +
+      '<span style="margin-left:.4rem;">' + LL.done.size + ' of ' + ORDER.length + ' parts done</span>';
+  }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+    LL.dots();
+  }
+});
+
+/* ---------------- evidence assembly ---------------- */
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return SOURCE + '\n' + '='.repeat(SOURCE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q).replace(/\n/g,'<br>')+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(SOURCE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
+buildStage1(); wire1();
+buildStage2(); wire2();
+LL.dots();
+</script>
+</body>
+</html>
