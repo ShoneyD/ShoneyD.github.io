@@ -1,33 +1,31 @@
 <!DOCTYPE html>
 <!--
-  ACTIVITY HUB — the index of your hosted lessons, activities and resources.
+  ACTIVITY HUB — the public index of hosted lessons, activities and resources.
 
   This page figures out its own URL and writes the Canvas embed code for you,
   so you never have to remember or type your GitHub Pages address.
 
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  THIS SITE IS PUBLIC.                                                │
+  │  No student names. No student IDs. No grades. No teacher notes.      │
+  │  Lesson pages are named by course and lesson only.                   │
+  │  The student side of all this lives in Class Planning\Dashboard.html │
+  │  on your own disk, which is never published.                         │
+  └──────────────────────────────────────────────────────────────────────┘
+
   TO ADD SOMETHING
-    1. Put the .html file in lessons/, activities/ or resources/
-       (see the three categories below)
+    1. Put the .html file in lessons/<course-slug>/, activities/ or resources/
     2. Add one entry to the ITEMS array at the bottom of this file
-    3. Commit both. It appears here within a minute or two.
+    3. Commit both. Live in a minute or two.
 
-  Or ask Claude: "add this to my hub" with the file attached — you'll get the
-  file plus an updated index.html, ready to upload together.
-
-  THREE CATEGORIES
+  THREE TABS
     lessons    — student-facing lesson pages with typeable fields and a
-                 turn-in button. Named by course and lesson, NEVER by student.
+                 turn-in button, grouped by grade level
     activities — practice with a right answer: sorts, games, drills, puzzles
     resources  — reference material to explore and discuss, nothing to score
 
-  CLASSES
-    Every item carries a `course`. The tabs at the top are generated from
-    those values, so adding a new class is just typing a new course name on
-    an item. Rename them freely — nothing depends on the exact strings.
-
-  OLDER FILES sit in flat activities/ and resources/ folders; newer ones sit
-  in class subfolders. Both work — the hub reads whatever path an item
-  declares, so nothing has to be moved and no existing Canvas embed breaks.
+  GRADE LEVELS are generated from each item's `course` value. Adding one is
+  typing a new course name — the sub-menu builds itself.
 -->
 <html lang="en">
 <head>
@@ -41,67 +39,93 @@
   *{box-sizing:border-box}
   body{ margin:0; padding:0 1rem 5rem; background:var(--bg); color:var(--ink);
         font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
-        font-size:17px; line-height:1.7 }
-  .wrap{ max-width:52rem; margin:0 auto }
-  header{ background:var(--ink); color:#fff; margin:0 -1rem 0; padding:2.25rem 1rem 1.5rem }
-  header .in{ max-width:52rem; margin:0 auto }
-  header h1{ margin:0 0 .3rem; font-size:1.9rem }
-  header p{ margin:0; opacity:.8 }
-  header .url{ display:inline-block; margin-top:.8rem; background:#333a44; color:#cfe3ee;
-        padding:.35rem .8rem; border-radius:6px; font-family:Consolas,monospace; font-size:.85rem }
+        font-size:17px; line-height:1.6 }
+  .wrap{ max-width:64rem; margin:0 auto }
 
-  /* class tabs */
-  .tabs{ background:var(--ink); margin:0 -1rem 2rem; padding:0 1rem 1.1rem }
-  .tabs .in{ max-width:52rem; margin:0 auto; display:flex; gap:.5rem; flex-wrap:wrap }
-  .tabs button{ font:inherit; font-size:.88rem; font-weight:700; cursor:pointer;
-        border-radius:999px; padding:.4rem 1rem; border:1px solid #4b5560;
-        background:#333a44; color:#e6e2dc }
-  .tabs button:hover{ background:#414a57 }
-  .tabs button[aria-pressed="true"]{ background:#faf8f5; color:var(--ink); border-color:#faf8f5 }
-  .tabs .count{ opacity:.6; font-weight:400 }
+  header{ background:var(--ink); color:#fff; margin:0 -1rem; padding:2rem 1rem 0 }
+  header .in{ max-width:64rem; margin:0 auto }
+  header h1{ margin:0 0 .3rem; font-size:1.8rem }
+  header p{ margin:0 0 .9rem; opacity:.8; font-size:.95rem }
+  header .url{ display:inline-block; background:#333a44; color:#cfe3ee;
+        padding:.3rem .7rem; border-radius:6px; font-family:Consolas,monospace; font-size:.8rem }
 
-  h2{ font-size:1.15rem; margin:2.5rem 0 .3rem; padding-top:1rem; border-top:2px solid var(--line) }
-  h2 .pill{ font-size:.68rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
-        padding:.15rem .55rem; border-radius:999px; vertical-align:.18em; margin-left:.5rem }
-  h2 + .lede{ margin:0 0 1.25rem; color:var(--soft); font-size:.92rem }
-  section.group[hidden]{ display:none }
+  /* primary tabs */
+  .tabs{ display:flex; gap:.35rem; flex-wrap:wrap; margin-top:1.25rem }
+  .tabs button{ font:inherit; font-size:.92rem; font-weight:700; cursor:pointer;
+        border:0; border-bottom:3px solid transparent; background:transparent;
+        color:#b9c4cc; padding:.6rem 1rem }
+  .tabs button:hover{ color:#fff }
+  .tabs button[aria-selected="true"]{ color:#fff; border-bottom-color:#e8b45a }
+  .tabs .count{ opacity:.55; font-weight:400; font-size:.85em }
 
-  .act{ background:var(--paper); border:1px solid var(--line); border-radius:12px;
-        padding:1.25rem 1.5rem; margin:0 0 1.25rem; border-left:5px solid var(--accent) }
-  .act.resource{ border-left-color:var(--res) }
-  .act.lesson{ border-left-color:var(--les) }
-  .act-head{ display:flex; align-items:baseline; gap:.75rem; flex-wrap:wrap; margin-bottom:.35rem }
-  .act h3{ margin:0; font-size:1.15rem }
-  .tag{ font-size:.72rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
-        background:var(--accent-soft); color:var(--accent); padding:.2rem .6rem; border-radius:999px }
-  .act.resource .tag{ background:var(--res-soft); color:var(--res) }
-  .act.lesson .tag{ background:var(--les-soft); color:var(--les) }
-  .lid{ font-size:.72rem; font-weight:700; letter-spacing:.04em; color:var(--les);
-        background:var(--les-soft); border:1px solid #ddbf94;
-        padding:.15rem .55rem; border-radius:999px; font-family:Consolas,monospace }
-  .course{ font-size:.72rem; font-weight:700; letter-spacing:.04em; color:var(--soft);
-        border:1px solid var(--line); padding:.15rem .55rem; border-radius:999px }
-  .act .desc{ margin:0 0 .5rem }
-  .act .skills{ margin:0 0 .5rem; font-size:.88rem; color:var(--soft) }
-  .act .note{ margin:0 0 .5rem; font-size:.85rem; color:var(--soft); font-style:italic }
-  .act .path{ margin:0 0 1rem; font-size:.78rem; color:var(--soft); font-family:Consolas,monospace }
-  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center }
-  button,a.btn{ font:inherit; font-size:.88rem; font-weight:700; cursor:pointer; text-decoration:none;
-        border-radius:8px; padding:.5rem 1rem; border:1px solid var(--accent);
+  /* controls row */
+  .controls{ display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; margin:1.5rem 0 1rem }
+  .search{ flex:1 1 16rem; position:relative }
+  .search input{ width:100%; font:inherit; font-size:.95rem; padding:.55rem .8rem .55rem 2.1rem;
+        border:1px solid var(--line); border-radius:9px; background:var(--paper); color:var(--ink) }
+  .search input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft) }
+  .search .icon{ position:absolute; left:.7rem; top:50%; transform:translateY(-50%);
+        color:var(--soft); font-size:.95rem; pointer-events:none }
+  .hint{ font-size:.85rem; color:var(--soft) }
+
+  /* grade-level sub-menu */
+  .subs{ display:flex; gap:.4rem; flex-wrap:wrap; margin:0 0 1.25rem }
+  .subs button{ font:inherit; font-size:.85rem; font-weight:700; cursor:pointer;
+        border-radius:999px; padding:.32rem .85rem; border:1px solid var(--line);
+        background:var(--paper); color:var(--soft) }
+  .subs button:hover{ border-color:var(--accent); color:var(--accent) }
+  .subs button[aria-pressed="true"]{ background:var(--ink); border-color:var(--ink); color:#fff }
+  .subs[hidden]{ display:none }
+
+  /* card grid */
+  .grid{ display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(19rem,1fr)) }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:12px;
+        border-top:4px solid var(--accent); padding:1rem 1.15rem; display:flex; flex-direction:column }
+  .card.resource{ border-top-color:var(--res) }
+  .card.lesson{ border-top-color:var(--les) }
+  .chips{ display:flex; gap:.4rem; flex-wrap:wrap; margin:0 0 .5rem }
+  .chip{ font-size:.68rem; font-weight:700; letter-spacing:.04em; padding:.14rem .5rem;
+        border-radius:999px; border:1px solid var(--line); color:var(--soft) }
+  .chip.id{ font-family:Consolas,monospace; color:var(--les);
+        background:var(--les-soft); border-color:#ddbf94 }
+  .chip.tag{ text-transform:uppercase; background:var(--accent-soft);
+        color:var(--accent); border-color:#cfe0e8 }
+  .card.resource .chip.tag{ background:var(--res-soft); color:var(--res); border-color:#ddd0ea }
+  .card.lesson .chip.tag{ background:var(--les-soft); color:var(--les); border-color:#ddbf94 }
+  .card h3{ margin:0 0 .35rem; font-size:1.05rem; line-height:1.35 }
+  .card .desc{ margin:0 0 .6rem; font-size:.88rem; color:var(--ink); line-height:1.5 }
+  .card .skills{ margin:0 0 .5rem; font-size:.8rem; color:var(--soft) }
+  .card .path{ margin:0 0 .75rem; font-size:.72rem; color:var(--soft);
+        font-family:Consolas,monospace; word-break:break-all }
+  .card .foot{ margin-top:auto; display:flex; gap:.4rem; flex-wrap:wrap }
+  .card .note{ font-size:.78rem; color:var(--soft); font-style:italic; margin:0 0 .6rem }
+
+  button.b,a.b{ font:inherit; font-size:.82rem; font-weight:700; cursor:pointer; text-decoration:none;
+        border-radius:7px; padding:.4rem .75rem; border:1px solid var(--accent);
         background:var(--accent); color:#fff; display:inline-block }
-  a.btn.ghost,button.ghost{ background:transparent; color:var(--accent) }
-  button:hover,a.btn:hover{ filter:brightness(1.07) }
-  button.copied{ background:var(--go); border-color:var(--go) }
-  .code{ display:none; margin-top:.9rem; background:var(--ink); color:#f0ece6; padding:.9rem 1.1rem;
-        border-radius:8px; font-family:Consolas,monospace; font-size:.8rem; line-height:1.55;
-        white-space:pre-wrap; word-break:break-all }
+  a.b.ghost,button.b.ghost{ background:transparent; color:var(--accent) }
+  button.b:hover,a.b:hover{ filter:brightness(1.07) }
+  button.b.copied{ background:var(--go); border-color:var(--go) }
+
+  .parts{ display:none; margin-top:.75rem; padding-top:.75rem; border-top:1px dashed var(--line) }
+  .parts.show{ display:block }
+  .parts p.lab{ margin:0 0 .4rem; font-size:.7rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft) }
+  .parts .prow{ display:flex; gap:.4rem; align-items:center; margin-bottom:.4rem; flex-wrap:wrap }
+  .parts .pname{ font-size:.83rem; flex:1 1 8rem }
+  .code{ display:none; margin-top:.6rem; background:var(--ink); color:#f0ece6;
+        padding:.7rem .85rem; border-radius:8px; font-family:Consolas,monospace;
+        font-size:.72rem; line-height:1.5; white-space:pre-wrap; word-break:break-all }
   .code.show{ display:block }
+
+  .empty{ grid-column:1/-1; color:var(--soft); font-style:italic; padding:2rem 0 }
   .note-card{ background:var(--go-soft); border:1px solid #c4e0d2; border-radius:10px;
-        padding:1rem 1.3rem; margin:1.5rem 0 }
-  .note-card h3{ margin:0 0 .4rem; font-size:1rem }
-  .note-card p:last-child{ margin-bottom:0 }
+        padding:.9rem 1.2rem; margin:1.5rem 0; font-size:.9rem }
   .note-card.warn{ background:#fbf0e2; border-color:#ddbf94 }
-  code{ background:#eae5dd; padding:.1rem .38rem; border-radius:4px; font-family:Consolas,monospace; font-size:.88em }
+  .note-card h3{ margin:0 0 .35rem; font-size:.95rem }
+  .note-card p{ margin:0 0 .5rem } .note-card p:last-child{ margin-bottom:0 }
+  code{ background:#eae5dd; padding:.1rem .35rem; border-radius:4px;
+        font-family:Consolas,monospace; font-size:.88em }
   :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
   @media (prefers-reduced-motion:reduce){ *{ transition:none!important } }
 </style>
@@ -112,51 +136,38 @@
   <h1>Activity Hub</h1>
   <p>Lessons, activities and resources — hosted and ready to embed in Canvas.</p>
   <span class="url" id="baseurl">detecting address…</span>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
 </div></header>
-
-<nav class="tabs" aria-label="Filter by class"><div class="in" id="tabs"></div></nav>
 
 <div class="wrap">
 
-<div class="note-card">
-  <h3>How to put one of these in Canvas</h3>
-  <p><strong>1.</strong> Click <strong>Copy embed code</strong> on the item you want.<br>
-  <strong>2.</strong> In Canvas, open the assignment or page and click <code>&lt;/&gt;</code> in the editor toolbar.<br>
-  <strong>3.</strong> Paste. Switch back to the rich view — it appears inline.</p>
-  <p>The embed codes are generated from this page's own address, so they're always correct for your site.</p>
-  <p><strong>Lesson pages built after August 2026 already carry their embed code inside the lesson file</strong> — copying a section from the lesson gives you the section and its working iframe in one go, so you don't need this page for those.</p>
-</div>
+  <div class="controls">
+    <div class="search">
+      <span class="icon" aria-hidden="true">⌕</span>
+      <input id="q" type="search" autocomplete="off"
+             placeholder="Search by title, lesson ID, or skill…"
+             aria-label="Search lessons, activities and resources">
+    </div>
+    <span class="hint" id="resultCount"></span>
+  </div>
 
-<div class="note-card warn">
-  <h3>This site is public</h3>
-  <p>GitHub Pages sites are reachable by anyone with the URL. That's fine for teaching material — but never put student names, student work, grades, or your teaching notes in this repository.</p>
-  <p>That's why lesson pages here are named by <strong>course and lesson</strong> and never by student. The named copy, with your run sheet and notes, stays in your local <code>students/</code> folder.</p>
-</div>
+  <div class="subs" id="subs" role="group" aria-label="Filter by grade level"></div>
 
-<section class="group" id="group-lesson">
-  <h2>Lessons <span class="pill" style="background:var(--les-soft);color:var(--les)">student-facing</span></h2>
-  <p class="lede">Lesson pages with typeable fields and a turn-in button. The student works here and pastes once into Canvas.</p>
-  <div id="list-lesson"></div>
-</section>
+  <div class="grid" id="grid"></div>
 
-<section class="group" id="group-activity">
-  <h2>Activities</h2>
-  <p class="lede">Practice with a right answer. Feedback, retries, and something to get correct.</p>
-  <div id="list-activity"></div>
-</section>
+  <div class="note-card">
+    <h3>Putting one in Canvas</h3>
+    <p><strong>1.</strong> Click <strong>Embed</strong> on the card, then copy the code for the part you want.
+    <strong>2.</strong> In Canvas, click <code>&lt;/&gt;</code> in the editor toolbar.
+    <strong>3.</strong> Paste, switch back to rich view.</p>
+    <p>Embed codes are generated from this page's own address, so they're always right for your site. Lesson files built after August 2026 already carry their embeds inside them — copying a section from the lesson gives you the section and its iframe together, so you don't need this page for those.</p>
+  </div>
 
-<section class="group" id="group-resource">
-  <h2>Resources</h2>
-  <p class="lede">Interactive reference material to explore and discuss. Nothing to score.</p>
-  <div id="list-resource"></div>
-</section>
-
-<div class="note-card">
-  <h3>Adding something new</h3>
-  <p>Drop the <code>.html</code> file into <code>lessons/</code>, <code>activities/</code> or <code>resources/</code> — class subfolders inside those are fine and preferred for new material. Then add an entry to the <code>ITEMS</code> list at the bottom of <code>index.html</code>. Commit both.</p>
-  <p>To add a class, just type a new <code>course</code> value on an item. The tabs build themselves.</p>
-  <p>Or attach the file to Claude and say <em>"add this to my hub"</em> — you'll get the file plus an updated <code>index.html</code>, ready to upload together.</p>
-</div>
+  <div class="note-card warn">
+    <h3>This site is public</h3>
+    <p>Anyone with the URL can read it. Teaching material only — never student names, student IDs, student work, grades, or teacher notes.</p>
+    <p>That's why lesson pages here are named by course and lesson. The student side — who did which lesson, profiles, lever settings — lives in <code>Class Planning\Dashboard.html</code> on your own machine and is never published.</p>
+  </div>
 
 </div>
 
@@ -164,29 +175,25 @@
 /* ------------------------------------------------------------------
    One entry per item.
 
-   type   'lesson'   — student-facing lesson page, named by course+lesson
-          'activity' — practice with a right answer
-          'resource' — reference material to explore
-   id     lesson ID, e.g. KOR1A-L01. Lesson pages only. It is the join
-          between this public page and the teacher's personalised copies —
-          same ID at the front of both filenames.
-   course the class it belongs to. Drives the tabs at the top. Use 'Any'
-          for something that isn't tied to one class.
+   type   'lesson' | 'activity' | 'resource'
+   id     lesson ID (lessons only), e.g. KOR1A-L01
+   course grade level. Drives the sub-menu under Lessons. 'Any' for
+          something not tied to one class.
+   parts  lessons only — one per Canvas assignment. Each gets its own
+          embed code pointing at ?part=<key>.
    height iframe height in px. Be generous: a student scrolling inside
           a short iframe on a shared screen is a bad experience.
-   note   optional — anything the student or you should know up front
 ------------------------------------------------------------------ */
 const ITEMS = [
   {
     type: 'lesson',
-    course: 'Korean 1A',
     id:   'KOR1A-L01',
+    course: 'Korean 1A',
     file: 'lessons/korean-1a/KOR1A-L01-first-ten-letters.html',
-    title: 'Korean 1A — Lesson 1',
-    tag: 'the first ten letters',
-    desc: 'Every written part of lesson 1 in one file. Mouth-shape reasoning and the vowel rule, five unseen words to read, and homework that sends her hunting for a letter in a K-drama.',
-    skills: 'Hangul basic letters · syllable blocks · knowing what you don’t know yet',
-    note: 'One upload, three assignments. Each part below has its own embed code — the student only sees that part and the turn-in button collects only that part.',
+    title: 'The First Ten Letters',
+    tag: 'lesson 1',
+    desc: 'Mouth-shape reasoning and the vowel rule, five unseen words to read, and homework that sends them hunting for a letter in a K-drama.',
+    skills: 'Hangul · basic vowels · basic consonants · syllable blocks',
     height: 900,
     parts: [
       { key: 'intro',    label: 'Introduce the Concept' },
@@ -200,9 +207,9 @@ const ITEMS = [
     file: 'activities/hangul-stage.html',
     title: 'Hangul Stage',
     tag: 'click to build',
-    desc: 'Match five Korean consonants to where they happen in your mouth, build four vowels from two strokes and a dot, then assemble real syllable blocks one letter at a time — including two K-pop idol names.',
-    skills: 'Hangul · basic vowels · basic consonants · syllable block structure',
-    note: 'First-contact Hangul: ㅏㅓㅗㅜㅡㅣ and ㄱㄴㅁㅅㅇ only — no aspirated, tensed, or combined vowels, and no batchim.',
+    desc: 'Match consonants to where they happen in your mouth, build vowels from two strokes and a dot, then assemble real syllable blocks — including two K-pop idol names.',
+    skills: 'Hangul · basic letters · syllable block structure',
+    note: 'First-contact Hangul: ㅏㅓㅗㅜㅡㅣ and ㄱㄴㅁㅅㅇ only. No batchim.',
     height: 900
   },
   {
@@ -213,7 +220,6 @@ const ITEMS = [
     tag: 'drag & drop',
     desc: 'Six words describing ordinary actions. Sort them into Calm or Creepy, then find out why each one lands where it does.',
     skills: 'Word choice · mood · connotation · tone',
-    note: 'Sort, then three written questions. One button at the bottom copies everything for the Canvas submission.',
     height: 1250
   },
   {
@@ -222,9 +228,9 @@ const ITEMS = [
     file: 'activities/meter-wraith.html',
     title: 'The Meter Wraith',
     tag: 'boss battle',
-    desc: 'Read the verse, answer to attack, then dodge the scythe. Correct answers unlock a shield and a gold blast; wrong ones lock the boons and intensify the next round.',
+    desc: 'Read the verse, answer to attack, then dodge the scythe. Correct answers unlock a shield; wrong ones intensify the next round.',
     skills: 'Poetic meter · stress · syllables · scansion',
-    note: 'Large file with an embedded soundtrack — give it a few seconds to load. Audio starts muted until they press Start.',
+    note: 'Large file with embedded audio — give it a few seconds. Starts muted.',
     height: 1000
   },
   {
@@ -233,19 +239,15 @@ const ITEMS = [
     file: 'resources/american-history-timeline.html',
     title: 'A Timeline of American History',
     tag: 'explore & discuss',
-    desc: 'Twenty-four events, each opening a card with two contrasting primary-source perspectives and a discussion question. Hover any underlined term for a definition.',
+    desc: 'Twenty-four events, each opening a card with two contrasting primary-source perspectives and a discussion question.',
     skills: 'Perspective · bias · primary sources · argument · context',
-    note: 'Pairs well with claim-and-evidence work — pick one event and have them defend a side.',
     height: 800
   }
 ];
 
-const base = location.href.replace(/index\.html$/, '').replace(/\/?$/, '/');
+const base = location.href.replace(/index\.html$/, '').replace(/[?#].*$/, '').replace(/\/?$/, '/');
 document.getElementById('baseurl').textContent = base;
 
-/* allow="clipboard-write" lets a hosted page's "Copy everything" button
-   reach the clipboard from inside the Canvas iframe. Without it the button
-   still works via a fallback, but the clean path needs this. */
 const embed = (it, part) => {
   const url = base + it.file + (part ? '?part=' + part.key : '');
   const title = it.title + (part ? ' — ' + part.label : '');
@@ -256,55 +258,91 @@ const embed = (it, part) => {
          '        title="' + title + '"></iframe>';
 };
 
-const KINDS = ['lesson', 'activity', 'resource'];
+const TABS = [
+  { key:'lesson',   label:'Lessons'    },
+  { key:'activity', label:'Activities' },
+  { key:'resource', label:'Resources'  }
+];
 
-const card = (it, i) => `
-  <div class="act ${it.type}">
-    <div class="act-head">
-      <h3>${it.title}</h3>
-      <span class="tag">${it.tag}</span>
-      <span class="course">${it.course}</span>
-      ${it.id ? `<span class="lid">${it.id}</span>` : ''}
-    </div>
-    <p class="desc">${it.desc}</p>
-    <p class="skills">${it.skills}</p>
-    ${it.note ? `<p class="note">${it.note}</p>` : ''}
-    <p class="path">${it.file}</p>
-    <div class="row">
-      <a class="btn ghost" href="${it.file}" target="_blank" rel="noopener">Open it</a>
-      ${it.parts
-        ? it.parts.map((pt, k) =>
-            `<button onclick="copyEmbed(${i}, this, ${k})">Copy embed — ${pt.label}</button>`).join('')
-        : `<button onclick="copyEmbed(${i}, this)">Copy embed code</button>`}
-      <button class="ghost" onclick="toggleCode(${i})">Show code</button>
-    </div>
-    <div class="code" id="code-${i}"></div>
-  </div>`;
+let tab = 'lesson', course = 'All', query = '';
 
-/* ---- class tabs, built from the courses actually present ---- */
-const courses = [...new Set(ITEMS.map(it => it.course))].sort();
-let active = 'All';
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* Search matches title, lesson ID, tag, skills and course — never a student,
+   because no student data exists on this site. */
+function matches(it){
+  if (it.type !== tab) return false;
+  if (course !== 'All' && it.course !== course) return false;
+  if (!query) return true;
+  const hay = [it.title, it.id, it.tag, it.skills, it.course, it.desc]
+                .filter(Boolean).join(' ').toLowerCase();
+  return query.toLowerCase().split(/\s+/).every(t => hay.includes(t));
+}
 
 function renderTabs(){
-  document.getElementById('tabs').innerHTML =
-    ['All', ...courses].map(c => {
-      const n = c === 'All' ? ITEMS.length : ITEMS.filter(it => it.course === c).length;
-      return `<button type="button" aria-pressed="${c === active}" onclick="setCourse('${c.replace(/'/g, "\\'")}')">` +
-             `${c} <span class="count">${n}</span></button>`;
-    }).join('');
+  document.getElementById('tabs').innerHTML = TABS.map(t => {
+    const n = ITEMS.filter(i => i.type === t.key).length;
+    return `<button role="tab" aria-selected="${t.key === tab}" onclick="setTab('${t.key}')">` +
+           `${t.label} <span class="count">${n}</span></button>`;
+  }).join('');
+}
+
+function renderSubs(){
+  const el = document.getElementById('subs');
+  const courses = [...new Set(ITEMS.filter(i => i.type === tab).map(i => i.course))].sort();
+  /* the sub-menu only earns its space when there is more than one grade level */
+  el.hidden = courses.length < 2;
+  if (el.hidden) { course = 'All'; return; }
+  if (course !== 'All' && !courses.includes(course)) course = 'All';
+  el.innerHTML = ['All', ...courses].map(c =>
+    `<button type="button" aria-pressed="${c === course}" onclick="setCourse(${JSON.stringify(c).replace(/"/g,'&quot;')})">${c}</button>`
+  ).join('');
+}
+
+function card(it, i){
+  const parts = it.parts || null;
+  return `
+  <div class="card ${it.type}">
+    <div class="chips">
+      ${it.id ? `<span class="chip id">${it.id}</span>` : ''}
+      <span class="chip tag">${esc(it.tag)}</span>
+      <span class="chip">${esc(it.course)}</span>
+    </div>
+    <h3>${esc(it.title)}</h3>
+    <p class="desc">${esc(it.desc)}</p>
+    <p class="skills">${esc(it.skills)}</p>
+    ${it.note ? `<p class="note">${esc(it.note)}</p>` : ''}
+    <p class="path">${esc(it.file)}</p>
+    <div class="foot">
+      <a class="b ghost" href="${it.file}" target="_blank" rel="noopener">Open</a>
+      <button class="b" onclick="togglePanel(${i})">Embed${parts ? ' ▾' : ''}</button>
+    </div>
+    <div class="parts" id="panel-${i}">
+      ${parts ? `<p class="lab">One per Canvas assignment</p>` + parts.map((pt,k) => `
+        <div class="prow">
+          <span class="pname">${esc(pt.label)}</span>
+          <button class="b" onclick="copyEmbed(${i}, this, ${k})">Copy</button>
+          <a class="b ghost" href="${it.file}?part=${pt.key}" target="_blank" rel="noopener">Open</a>
+        </div>`).join('')
+      : `<div class="prow">
+          <span class="pname">Whole activity</span>
+          <button class="b" onclick="copyEmbed(${i}, this)">Copy embed code</button>
+        </div>`}
+      <button class="b ghost" onclick="toggleCode(${i})" style="margin-top:.3rem">Show code</button>
+      <div class="code" id="code-${i}"></div>
+    </div>
+  </div>`;
 }
 
 function render(){
-  const shown = ITEMS.map((it, i) => ({ it, i }))
-                     .filter(({ it }) => active === 'All' || it.course === active);
-  KINDS.forEach(kind => {
-    const mine = shown.filter(({ it }) => it.type === kind);
-    document.getElementById('group-' + kind).hidden = mine.length === 0;
-    document.getElementById('list-' + kind).innerHTML =
-      mine.map(({ it, i }) => card(it, i)).join('');
-  });
-  /* embed code is set as textContent so it never gets parsed as markup */
-  ITEMS.forEach((it, i) => {
+  const shown = ITEMS.map((it,i) => ({it,i})).filter(({it}) => matches(it));
+  document.getElementById('grid').innerHTML =
+    shown.length ? shown.map(({it,i}) => card(it,i)).join('')
+                 : `<p class="empty">Nothing matches${query ? ` “${esc(query)}”` : ''} here.</p>`;
+  document.getElementById('resultCount').textContent =
+    shown.length + (shown.length === 1 ? ' item' : ' items');
+  /* textContent, so an embed is never parsed as markup */
+  ITEMS.forEach((it,i) => {
     const el = document.getElementById('code-' + i);
     if (!el) return;
     el.textContent = it.parts
@@ -313,25 +351,31 @@ function render(){
   });
 }
 
-function setCourse(c){ active = c; renderTabs(); render(); }
+function setTab(k){ tab = k; renderTabs(); renderSubs(); render(); }
+function setCourse(c){ course = c; renderSubs(); render(); }
+function togglePanel(i){ document.getElementById('panel-' + i).classList.toggle('show'); }
 function toggleCode(i){ document.getElementById('code-' + i).classList.toggle('show'); }
 
 function copyEmbed(i, btn, partIndex){
   const it = ITEMS[i];
-  const text = embed(it, (partIndex === undefined) ? null : it.parts[partIndex]);
+  const text = embed(it, partIndex === undefined ? null : it.parts[partIndex]);
+  const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
   const done = ok => {
-    const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
-    btn.textContent = ok ? '✓ Copied — paste into </>' : '✗ Use "Show code" instead';
+    btn.textContent = ok ? '✓ Copied' : '✗ Use Show code';
     btn.classList.toggle('copied', ok);
-    setTimeout(() => { btn.textContent = label; btn.classList.remove('copied'); }, 4000);
+    setTimeout(() => { btn.textContent = label; btn.classList.remove('copied'); }, 3500);
   };
   if (navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
-  } else { done(false); }
+  } else done(false);
 }
 
-renderTabs();
-render();
+document.getElementById('q').addEventListener('input', e => {
+  query = e.target.value.trim();
+  render();
+});
+
+renderTabs(); renderSubs(); render();
 </script>
 </body>
 </html>
