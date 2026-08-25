@@ -213,9 +213,9 @@
       <h2>Part 3 — Your turn</h2>
       <p>Short answers. Two sentences max on each one.</p>
 
-      <p class="q"><strong>Q1.</strong> Line 6 goes both ways. Pick a side — terror or horror — and tell me how you know.</p>
+      <p class="q" id="q1text"><strong>Q1.</strong> One of those lines goes both ways. Pick a side — terror or horror — and tell me how you know.</p>
       <div class="abox"><p class="lab">My answer</p>
-        <textarea data-q="Q1. Line 6 goes both ways. Pick a side — terror or horror — and say how you know." placeholder="Type here…" rows="2"></textarea></div>
+        <textarea id="q1box" data-q="Q1. The arguable line — pick a side, terror or horror, and say how you know." placeholder="Type here…" rows="2"></textarea></div>
 
       <p class="q"><strong>Q2.</strong> You're posting two clips, no context, no sound. <strong>Clip A</strong> is pure terror. <strong>Clip B</strong> is pure horror. Write the caption for each.</p>
       <div class="abox"><p class="lab">Clip A — terror</p>
@@ -267,8 +267,20 @@ const REWARDS = {
   s3: { star:'★', msg:'All done — go turn it in.' }
 };
 
+/* Fisher-Yates. Card order AND option order are shuffled on every load so the
+   correct answers never fall into a guessable pattern — no alternating run in
+   Part 1, no "the answers are in the same order as the term list" in Part 2. */
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 /* ---- Part 1 content. 'both' means either answer is defensible. ---- */
-const LINES = [
+const RAW_LINES = [
   { t:'The radio says the escaped convict was last seen on this road.',
     a:'terror',
     why:'<b>Terror.</b> Nothing has happened. The threat is a rumour on a speaker, and your brain does the rest of the work.' },
@@ -289,7 +301,9 @@ const LINES = [
     why:'<b>Both work, and this is the argument.</b> Light means the reveal, which is horror’s move — but nothing gruesome is shown, so the dread keeps running. Whichever side you take, you have to say what the light does.' }
 ];
 
-const DEVICES = [
+const LINES = shuffle(RAW_LINES);
+
+const RAW_DEVICES = [
   { t:'The gate groaned like it had been waiting a hundred years to complain.',
     a:'personification',
     why:'<b>Personification.</b> Gates do not complain or wait. Giving the setting a mood makes the place itself feel hostile.' },
@@ -304,6 +318,7 @@ const DEVICES = [
     why:'<b>Motif.</b> One image repeated until it stops being decoration and starts meaning something. Red is the classic Gothic one.' }
 ];
 
+const DEVICES = shuffle(RAW_DEVICES);
 const DEVICE_OPTS = ['personification','hyperbole','foreshadowing','motif'];
 const label = s => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -340,7 +355,8 @@ function buildCards2(){
   DEVICES.forEach((d, i) => {
     const c = document.createElement('div');
     c.className = 'card'; c.id = 'c2-' + i;
-    const opts = DEVICE_OPTS.map(o => '<option value="' + o + '">' + label(o) + '</option>').join('');
+    /* options reshuffled per card — the same term is never in the same slot twice */
+    const opts = shuffle(DEVICE_OPTS).map(o => '<option value="' + o + '">' + label(o) + '</option>').join('');
     c.innerHTML =
       '<p class="line"><span class="num">' + String.fromCharCode(65+i) + '.</span>' + d.t + '</p>' +
       '<label style="font-size:.9rem;color:var(--soft)">This line is using ' +
@@ -353,8 +369,23 @@ function buildCards2(){
     s.addEventListener('change', () => { picks2[s.dataset.i] = s.value; }));
 }
 
+/* Part 1 is shuffled, so Q1 cannot hard-code "line 6". Point it at the
+   arguable line by number AND by quoting it, so the question survives the
+   shuffle and reads clearly in the gradebook two weeks later. */
+function pointQ1AtArguableLine(){
+  const i = LINES.findIndex(l => l.a === 'both');
+  if (i < 0) return;
+  const n = i + 1, quote = LINES[i].t;
+  document.getElementById('q1text').innerHTML =
+    '<strong>Q1.</strong> Line ' + n + ' — <em>“' + quote + '”</em> — goes both ways. ' +
+    'Pick a side, terror or horror, and tell me how you know.';
+  document.getElementById('q1box').dataset.q =
+    'Q1. Line ' + n + ' (“' + quote + '”) goes both ways. Pick a side — terror or horror — and say how you know.';
+}
+
 buildCards1();
 buildCards2();
+pointQ1AtArguableLine();
 
 /* ---- checking ---- */
 function say(boxId, kind, head, body){
@@ -388,11 +419,11 @@ document.getElementById('check').addEventListener('click', () => {
   } else {
     const evidence = 'Sorted all 6 correctly in ' + tries1 + (tries1===1?' try.':' tries.') +
       '\n' + LINES.map((l,i) => (i+1) + '. ' + picks1[i].toUpperCase() +
-        (l.a === 'both' ? ' (line 6 — both defensible)' : '')).join('\n');
+        (l.a === 'both' ? '  ← the arguable one, both defensible' : '')).join('\n');
     LL.extra.s1 = evidence;
     LL.summary.s1 = 'solved in ' + tries1 + (tries1===1?' try':' tries');
     say('fb', 'good', 'That is the dial.',
-      'Read the notes under each line — especially line 6. That one is the real conversation.');
+      'Read the notes under each line — especially the one that took both answers. That one is the real conversation.');
     document.getElementById('check').disabled = true;
     document.getElementById('s1next').style.display = 'flex';
   }
