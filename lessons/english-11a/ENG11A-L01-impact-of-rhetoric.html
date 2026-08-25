@@ -55,6 +55,16 @@
   .outcomes .oid{ font-family:Consolas,monospace; font-size:.8rem; color:var(--soft) }
   .lessonid{ font-family:Consolas,monospace; font-size:.8rem; color:var(--soft); letter-spacing:.03em }
 
+  .agenda{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.85rem 1.1rem; margin:0 0 1.5rem; font-size:.95rem }
+  .agenda .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+  .agenda ol{ margin:0; padding-left:1.4rem }
+  .agenda li{ margin-bottom:.25rem; color:var(--soft) }
+  .agenda li .mins{ font-size:.88rem }
+  .agenda li.here{ color:var(--ink); font-weight:700 }
+  .agenda li.here .you{ color:var(--accent); font-weight:700; white-space:nowrap }
+
   .partsep{ margin:2.5rem 0 1.25rem; padding-top:1.25rem; border-top:2px solid var(--line);
         font-size:1.2rem; font-weight:700 }
 
@@ -192,6 +202,11 @@
   <div class="outcomes" id="outcomes">
     <p class="lab">What you'll be able to do</p>
     <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
   </div>
 
   <div class="earned" id="earned" role="status" aria-live="polite"></div>
@@ -581,6 +596,18 @@ const OUTCOMES = {
   'O4': 'Run all three steps on a line nobody has walked them through.'
 };
 
+/* Same order and same times as the teacher's run sheet. The reading window has
+   no `part` because it isn't a Canvas assignment — but it still shows, because
+   ten minutes of the lesson is ten minutes of the lesson. */
+const AGENDA = [
+  { label:'Catch up & get set',          mins:5                  },
+  { label:'The cockpit: three controls', mins:11, part:'intro'    },
+  { label:'Read the article together',   mins:10                 },
+  { label:'Sort the controls',           mins:11                 },
+  { label:'Fly it solo',                 mins:9,  part:'mastery'  },
+  { label:'Start homework together',     mins:4,  part:'homework' }
+];
+
 const PARTS = {
   intro:    { title:'Introduce the Concept', sub:'Three controls, and the three-step chain.', sheet:true,  outcomes:['O1','O2','O3'] },
   mastery:  { title:'Independent Mastery',   sub:'Two lines from the end of the article. No hints.', sheet:false, outcomes:['O1','O2','O3','O4'] },
@@ -628,8 +655,19 @@ function applyScope(){
     document.getElementById('outcomelist').innerHTML = Object.keys(OUTCOMES).map(k =>
       '<li><span class="oid">' + LESSON_ID + '.' + k + '</span> — ' + OUTCOMES[k] + '</li>').join('');
   }
+  renderAgenda();
   document.getElementById('sheet').hidden = ACTIVE ? !PARTS[ACTIVE].sheet : false;
   if (ORDER.length) document.getElementById(ORDER[0]).classList.add('active');
+}
+
+function renderAgenda(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  document.getElementById('agendalist').innerHTML = AGENDA.map(row => {
+    const here = ACTIVE && row.part === ACTIVE;
+    return '<li class="' + (here ? 'here' : '') + '">' + esc(row.label) +
+           ' <span class="mins">— ' + row.mins + ' min</span>' +
+           (here ? ' <span class="you">← you’re here</span>' : '') + '</li>';
+  }).join('');
 }
 
 /* ================= engine ================= */
