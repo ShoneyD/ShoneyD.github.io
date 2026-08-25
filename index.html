@@ -76,6 +76,9 @@
         background:var(--accent-soft); color:var(--accent); padding:.2rem .6rem; border-radius:999px }
   .act.resource .tag{ background:var(--res-soft); color:var(--res) }
   .act.lesson .tag{ background:var(--les-soft); color:var(--les) }
+  .lid{ font-size:.72rem; font-weight:700; letter-spacing:.04em; color:var(--les);
+        background:var(--les-soft); border:1px solid #ddbf94;
+        padding:.15rem .55rem; border-radius:999px; font-family:Consolas,monospace }
   .course{ font-size:.72rem; font-weight:700; letter-spacing:.04em; color:var(--soft);
         border:1px solid var(--line); padding:.15rem .55rem; border-radius:999px }
   .act .desc{ margin:0 0 .5rem }
@@ -164,6 +167,9 @@
    type   'lesson'   — student-facing lesson page, named by course+lesson
           'activity' — practice with a right answer
           'resource' — reference material to explore
+   id     lesson ID, e.g. KOR1A-L01. Lesson pages only. It is the join
+          between this public page and the teacher's personalised copies —
+          same ID at the front of both filenames.
    course the class it belongs to. Drives the tabs at the top. Use 'Any'
           for something that isn't tied to one class.
    height iframe height in px. Be generous: a student scrolling inside
@@ -174,13 +180,19 @@ const ITEMS = [
   {
     type: 'lesson',
     course: 'Korean 1A',
-    file: 'lessons/korean-1a/korean-1a-l1-homework.html',
-    title: 'Korean 1A — L1 Homework',
-    tag: 'homework',
-    desc: 'Find one known letter in a K-pop video or K-drama, read three unseen syllable blocks, then say which parts of 사랑 and 오빠 are still out of reach.',
+    id:   'KOR1A-L01',
+    file: 'lessons/korean-1a/KOR1A-L01-first-ten-letters.html',
+    title: 'Korean 1A — Lesson 1',
+    tag: 'the first ten letters',
+    desc: 'Every written part of lesson 1 in one file. Mouth-shape reasoning and the vowel rule, five unseen words to read, and homework that sends her hunting for a letter in a K-drama.',
     skills: 'Hangul basic letters · syllable blocks · knowing what you don’t know yet',
-    note: 'Three parts, real typeable fields, self-check on the reading. One button copies everything for the Canvas submission.',
-    height: 900
+    note: 'One upload, three assignments. Each part below has its own embed code — the student only sees that part and the turn-in button collects only that part.',
+    height: 900,
+    parts: [
+      { key: 'intro',    label: 'Introduce the Concept' },
+      { key: 'mastery',  label: 'Independent Mastery' },
+      { key: 'homework', label: 'Homework' }
+    ]
   },
   {
     type: 'activity',
@@ -234,12 +246,15 @@ document.getElementById('baseurl').textContent = base;
 /* allow="clipboard-write" lets a hosted page's "Copy everything" button
    reach the clipboard from inside the Canvas iframe. Without it the button
    still works via a fallback, but the clean path needs this. */
-const embed = it =>
-  '<iframe src="' + base + it.file + '"\n' +
-  '        width="100%" height="' + it.height + '"\n' +
-  '        style="border:1px solid #e2ddd4;border-radius:8px;"\n' +
-  '        allow="clipboard-write"\n' +
-  '        title="' + it.title + '"></iframe>';
+const embed = (it, part) => {
+  const url = base + it.file + (part ? '?part=' + part.key : '');
+  const title = it.title + (part ? ' — ' + part.label : '');
+  return '<iframe src="' + url + '"\n' +
+         '        width="100%" height="' + it.height + '"\n' +
+         '        style="border:1px solid #e2ddd4;border-radius:8px;"\n' +
+         '        allow="clipboard-write"\n' +
+         '        title="' + title + '"></iframe>';
+};
 
 const KINDS = ['lesson', 'activity', 'resource'];
 
@@ -249,6 +264,7 @@ const card = (it, i) => `
       <h3>${it.title}</h3>
       <span class="tag">${it.tag}</span>
       <span class="course">${it.course}</span>
+      ${it.id ? `<span class="lid">${it.id}</span>` : ''}
     </div>
     <p class="desc">${it.desc}</p>
     <p class="skills">${it.skills}</p>
@@ -256,7 +272,10 @@ const card = (it, i) => `
     <p class="path">${it.file}</p>
     <div class="row">
       <a class="btn ghost" href="${it.file}" target="_blank" rel="noopener">Open it</a>
-      <button onclick="copyEmbed(${i}, this)">Copy embed code</button>
+      ${it.parts
+        ? it.parts.map((pt, k) =>
+            `<button onclick="copyEmbed(${i}, this, ${k})">Copy embed — ${pt.label}</button>`).join('')
+        : `<button onclick="copyEmbed(${i}, this)">Copy embed code</button>`}
       <button class="ghost" onclick="toggleCode(${i})">Show code</button>
     </div>
     <div class="code" id="code-${i}"></div>
@@ -287,19 +306,24 @@ function render(){
   /* embed code is set as textContent so it never gets parsed as markup */
   ITEMS.forEach((it, i) => {
     const el = document.getElementById('code-' + i);
-    if (el) el.textContent = embed(it);
+    if (!el) return;
+    el.textContent = it.parts
+      ? it.parts.map(pt => '/* ' + pt.label + ' */\n' + embed(it, pt)).join('\n\n')
+      : embed(it);
   });
 }
 
 function setCourse(c){ active = c; renderTabs(); render(); }
 function toggleCode(i){ document.getElementById('code-' + i).classList.toggle('show'); }
 
-function copyEmbed(i, btn){
-  const text = embed(ITEMS[i]);
+function copyEmbed(i, btn, partIndex){
+  const it = ITEMS[i];
+  const text = embed(it, (partIndex === undefined) ? null : it.parts[partIndex]);
   const done = ok => {
+    const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
     btn.textContent = ok ? '✓ Copied — paste into </>' : '✗ Use "Show code" instead';
     btn.classList.toggle('copied', ok);
-    setTimeout(() => { btn.textContent = 'Copy embed code'; btn.classList.remove('copied'); }, 4000);
+    setTimeout(() => { btn.textContent = label; btn.classList.remove('copied'); }, 4000);
   };
   if (navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
