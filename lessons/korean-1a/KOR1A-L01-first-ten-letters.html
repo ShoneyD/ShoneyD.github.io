@@ -64,6 +64,11 @@
             text-transform:uppercase; color:var(--soft) }
   .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
 
+  .brief{ margin:0 0 1.5rem }
+  .brief[hidden]{ display:none }
+  .stage-body table{ max-width:100%; }
+  .stage-body figure{ max-width:100%; }
+  .stage-body figure img{ max-width:100%; height:auto }
   .outcomes{ background:var(--card); border:1px solid var(--line);
         border-left:4px solid var(--accent); border-radius:8px;
         padding:.85rem 1.1rem; margin:0 0 1.5rem; font-size:.95rem }
@@ -177,12 +182,16 @@
 <body>
 <div class="wrap">
 
-  <p class="lessonid" id="lessonid">KOR1A-L01</p>
+  <!-- The lesson ID and the outcomes table are TEACHER information. They show
+       only in the no-parameter preview; a student opening ?part=… never sees
+       them, because a page of codes and objectives is clutter she can't act on.
+       The outcomes live in the master lesson document. -->
+  <p class="lessonid" id="lessonid" hidden>KOR1A-L01</p>
   <h1 id="pagetitle">Korean 1A · Lesson 1</h1>
   <p class="sub" id="pagesub">The first ten letters.</p>
 
-  <div class="outcomes" id="outcomes">
-    <p class="lab">What you'll be able to do</p>
+  <div class="outcomes" id="outcomes" hidden>
+    <p class="lab">Outcomes — teacher preview only, not shown to the student</p>
     <ul id="outcomelist"></ul>
   </div>
 
@@ -197,6 +206,21 @@
     </ol>
   </div>
 
+  <!-- Agenda. Shown in the intro part and in the preview, nowhere else:
+       the student should be able to see the whole lesson and where it ends. -->
+  <div class="brief" id="brief">
+<div style="border:1px solid #e2ddd4;border-radius:10px;background:#fffdfa;padding:1rem 1.25rem;margin:0 0 1.5rem;">
+    <p style="font-size:0.78rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#555a63;margin:0 0 0.6rem;">Today's plan</p>
+    <p style="font-size:0.95rem;line-height:1.9;color:#22252a;margin:0;">
+      <strong>1.</strong> Catch up &amp; get set — 5 min<br>
+      <strong>2.</strong> Letters that show you where the sound is made — 12 min<br>
+      <strong>3.</strong> Hangul Stage — build the blocks — 13 min<br>
+      <strong>4.</strong> Read the lineup — 10 min<br>
+      <strong>5.</strong> Start homework together — 5 min
+    </p>
+  </div>
+  </div>
+
   <!-- =================== INTRO =================== -->
   <p class="partsep" data-partsep="intro">Introduce the Concept</p>
 
@@ -208,6 +232,103 @@
     <div class="stage-body">
       <h2>Part 1 — Letters as mouth pictures</h2>
       <p>Use your own mouth for these, not the chart. Say the sound out loud first, then look at the shape.</p>
+
+  <p style="font-size:1rem;line-height:1.7;color:#22252a;margin:0 0 1rem;">
+    Most alphabets happened by accident, over centuries. Korean didn't. In 1443 King Sejong sat down and <strong>designed</strong> one, on purpose, so that an ordinary person could learn to read in a morning instead of spending years on Chinese characters. The handbook that came with it explains the reasoning letter by letter — which is why you don't have to memorise these. You can work most of them out from your own mouth.
+  </p>
+
+  <figure style="margin:1.25rem 0;text-align:center;"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Hunminjeongeumhaerye.jpg?width=760" alt="A page from the 1446 Hunminjeongeum Haerye, the handbook that explains how each Hangul letter was designed" style="max-width:100%;height:auto;border-radius:8px;border:1px solid #e2ddd4;" /><figcaption style="font-size:0.78rem;color:#555a63;margin-top:0.4rem;line-height:1.4;"><a href="https://commons.wikimedia.org/wiki/File:Hunminjeongeumhaerye.jpg" style="color:#555a63;">Hunminjeongeum Haerye (1446) — Hall of Worthies, Joseon dynasty — Public domain, via Wikimedia Commons</a></figcaption></figure>
+
+  <p style="font-size:1rem;line-height:1.7;color:#22252a;margin:1.25rem 0 0.5rem;">
+    <strong>Five consonants.</strong> Say each sound out loud before you look at the shape.
+  </p>
+
+  <table style="width:100%;border-collapse:collapse;margin:0 0 1.5rem;font-size:0.95rem;">
+    <tr style="background:#f1eee9;">
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-weight:700;">Letter</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-weight:700;">Name</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-weight:700;">Sound</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-weight:700;">What the shape is a picture of</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㄱ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">giyeok</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>g</strong> / <strong>k</strong></td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">The back of your tongue humping up to block the roof of your mouth.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㄴ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">nieun</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>n</strong></td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">Your tongue tip pressing the ridge behind your top teeth.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅁ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">mieum</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>m</strong></td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">Your closed lips, seen from the front.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅅ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">siot</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>s</strong></td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">A tooth. The air hisses through the gap.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅇ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">ieung</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>silent</strong></td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">An open, round throat with nothing blocking it.</td>
+    </tr>
+  </table>
+
+  <div style="border:1px solid #cfe0e8;border-radius:8px;background:#eaf3f7;padding:0.85rem 1.1rem;margin:1rem 0 1.5rem;">
+    <p style="font-size:0.75rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#2f6f8f;margin:0 0 0.25rem;">The one weird one</p>
+    <p style="font-size:1rem;line-height:1.6;color:#22252a;margin:0;">Every Korean syllable has to <strong>start</strong> with a consonant. So when a syllable really begins with a vowel sound, <strong>ㅇ</strong> sits in the front seat and stays silent. It's holding the spot, not making a noise.</p>
+  </div>
+
+  <p style="font-size:1rem;line-height:1.7;color:#22252a;margin:1.25rem 0 0.5rem;">
+    <strong>Six vowels, built from three pieces.</strong> A standing person <strong>ㅣ</strong>, the flat earth <strong>ㅡ</strong>, and the sun — originally a dot, now a short stroke.
+  </p>
+
+  <table style="width:100%;border-collapse:collapse;margin:0 0 1.5rem;font-size:0.95rem;">
+    <tr style="background:#f1eee9;">
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-weight:700;">Letter</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-weight:700;">Sounds like</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-weight:700;">How it's built</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅣ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>ee</strong>, as in s<strong>ee</strong></td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">The standing person, on their own.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅡ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>eu</strong> — no English version</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">The flat earth, on its own. Say "ee" but with flat, spread lips.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅏ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>ah</strong>, as in f<strong>a</strong>ther</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">Person, sun on the right.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅓ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>uh</strong>, as in d<strong>u</strong>h</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">Person, sun on the left. Lips relaxed — <strong>not</strong> rounded.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅗ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>oh</strong>, as in g<strong>o</strong></td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">Earth, sun above it. Lips pushed forward and round.</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;font-size:2rem;font-weight:700;text-align:center;">ㅜ</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;"><strong>oo</strong>, as in m<strong>oo</strong>n</td>
+      <td style="border:1px solid #e2ddd4;padding:0.5rem 0.7rem;">Earth, sun below it.</td>
+    </tr>
+  </table>
+
 
       <p class="q"><strong>Q1.</strong> Say "mmm" and then "nnn" slowly, and pay attention to <strong>where</strong> in your mouth each one happens. Now look at <strong>ㅁ</strong> and <strong>ㄴ</strong>. What is each shape showing you?</p>
       <div class="abox"><p class="lab">My answer</p>
@@ -261,6 +382,12 @@
     </button>
     <div class="stage-body">
       <h2>Part 1 — Read five new words</h2>
+<figure style="margin:1.25rem 0;text-align:center;"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Korea_KPOP_World_Festival_13.jpg?width=760" alt="Performers on a brightly lit stage at the K-pop World Festival in Changwon, South Korea" style="max-width:100%;height:auto;border-radius:8px;border:1px solid #e2ddd4;" /><figcaption style="font-size:0.78rem;color:#555a63;margin-top:0.4rem;line-height:1.4;"><a href="https://commons.wikimedia.org/wiki/File:Korea_KPOP_World_Festival_13.jpg" style="color:#555a63;">K-pop World Festival — Republic of Korea (Korean Culture and Information Service) — CC BY-SA 2.0, via Wikimedia Commons</a></figcaption></figure>
+
+  <p style="font-size:1rem;line-height:1.7;color:#22252a;margin:0 0 1rem;">
+    Every name on a stage like that is written in blocks exactly like the ones you just built. Five new words below — you haven't seen any of them. Take each block apart, find the consonant and the vowel, and put the sound back together.
+  </p>
+
       <p>You haven't seen any of these. Take each block apart, find the consonant and the vowel, and put the sound back together. Write it in English letters.</p>
 
       <div class="minirow"><span class="big">소미</span><span class="meaning">a singer's name</span>
@@ -492,11 +619,20 @@ function applyScope(){
     document.getElementById('turninLede').textContent =
       'One button. It collects this section — ready to paste into your ' + PARTS[ACTIVE].title + ' assignment.';
   }
-  const keys = ACTIVE ? PARTS[ACTIVE].outcomes : Object.keys(OUTCOMES);
-  document.getElementById('lessonid').textContent =
-    LESSON_ID + (ACTIVE ? ' · ' + PARTS[ACTIVE].title : '');
-  document.getElementById('outcomelist').innerHTML = keys.map(k =>
-    '<li><span class="oid">' + LESSON_ID + '.' + k + '</span> — ' + OUTCOMES[k] + '</li>').join('');
+  /* Teacher preview only. In a scoped student view both stay hidden. */
+  const preview = !ACTIVE;
+  const idEl = document.getElementById('lessonid');
+  const outEl = document.getElementById('outcomes');
+  idEl.hidden = !preview;
+  outEl.hidden = !preview;
+  if (preview){
+    idEl.textContent = LESSON_ID;
+    document.getElementById('outcomelist').innerHTML = Object.keys(OUTCOMES).map(k =>
+      '<li><span class="oid">' + LESSON_ID + '.' + k + '</span> — ' + OUTCOMES[k] + '</li>').join('');
+  }
+
+  /* The agenda belongs to the first thing she opens, and to the preview. */
+  document.getElementById('brief').hidden = !(preview || ACTIVE === 'intro');
 
   const sheet = document.getElementById('sheet');
   sheet.hidden = ACTIVE ? !PARTS[ACTIVE].sheet : false;
