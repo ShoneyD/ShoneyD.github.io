@@ -35,148 +35,73 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KOR1A-L01 · Korean 1A Lesson 1</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
 <style>
-  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+/* Rules specific to this lesson. The shared sheet is linked above. */
+:root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
          --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
          --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
          --gold:#c68a1a; }
-  *{box-sizing:border-box}
-  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
-        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
-        font-size:19px; line-height:1.7 }
-  .wrap{ max-width:46rem; margin:0 auto }
-  h1{ font-size:1.4rem; margin:0 0 .25rem }
-  h2{ font-size:1.15rem; margin:0 0 .75rem }
-  h3{ font-size:1rem; margin:1.25rem 0 .5rem }
-  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
 
-  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
-        margin:0 0 1.25rem; flex-wrap:wrap }
-  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
-        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
-  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
-  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
-  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+.brief{ margin:0 0 1.5rem }
 
-  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
-          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
-  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
-            text-transform:uppercase; color:var(--soft) }
-  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+.brief[hidden]{ display:none }
 
-  .brief{ margin:0 0 1.5rem }
-  .brief[hidden]{ display:none }
-  .stage-body table{ max-width:100%; }
-  .stage-body figure{ max-width:100%; }
-  .stage-body figure img{ max-width:100%; height:auto }
-  .outcomes{ background:var(--card); border:1px solid var(--line);
-        border-left:4px solid var(--accent); border-radius:8px;
-        padding:.85rem 1.1rem; margin:0 0 1.5rem; font-size:.95rem }
-  .outcomes .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
-        text-transform:uppercase; color:var(--accent); margin:0 0 .5rem }
-  .outcomes ul{ margin:0; padding-left:1.1rem }
-  .outcomes li{ margin-bottom:.3rem }
-  .outcomes .oid{ font-family:Consolas,monospace; font-size:.8rem; color:var(--soft) }
-  .lessonid{ font-family:Consolas,monospace; font-size:.8rem; color:var(--soft);
-        letter-spacing:.03em }
+.stage-body table{ max-width:100%; }
 
-  .parthead{ background:var(--accent-soft); border:1px solid #cfe0e8; border-radius:10px;
+.stage-body figure{ max-width:100%; }
+
+.stage-body figure img{ max-width:100%; height:auto }
+
+.parthead{ background:var(--accent-soft); border:1px solid #cfe0e8; border-radius:10px;
         padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
-  .parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
         text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
-  .partsep{ margin:2.5rem 0 1.25rem; padding-top:1.25rem; border-top:2px solid var(--line);
-        font-size:1.2rem; font-weight:700 }
 
-  .stage{ display:none }
-  .stage.active{ display:block; animation:slide .3s ease both }
-  .stage.done{ display:block }
-  .stage.done > .stage-body{ display:none }
-  .stage.done.open > .stage-body{ display:block }
-  .stage[hidden]{ display:none !important }
-  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
-        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
-        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
-        color:var(--ink); cursor:pointer }
-  .stage.done > .donebar{ display:flex }
-  .donebar .tick{ color:var(--calm); font-weight:700 }
-  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
 
-  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
-  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
-        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
-        background:var(--accent); color:#fff }
-  button.btn:hover{ filter:brightness(1.08) }
-  button.btn.ghost{ background:transparent; color:var(--accent) }
-  button.btn.go{ background:var(--calm); border-color:var(--calm) }
-  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
-  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
-
-  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; font-size:.98rem; display:none }
-  .fb.show{ display:block }
-  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
-  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
-  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
-
-  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
-  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
-         padding:.85rem 1rem; margin:0 0 1.1rem }
-  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
-        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
-  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
-        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
-  .abox textarea::placeholder{ color:#9aa5ae }
-  .abox:focus-within{ border-color:var(--accent); border-style:solid }
-  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
-        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
-  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
-        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
-  .stems p{ margin:0 }
-  .done-look{ background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:8px;
-        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
-  .done-look .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
-        text-transform:uppercase; color:var(--calm); margin:0 0 .25rem }
-  .done-look p{ margin:0 }
-
-  .minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
         background:var(--card); border:1px solid var(--line); border-radius:10px;
         padding:.7rem 1rem; margin:0 0 .7rem }
-  .minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
-  .minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
-  .minirow label{ font-size:.9rem; color:var(--soft) }
-  .minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
         border:2px dashed #b9c4cc; background:#fff; color:var(--ink); width:9rem }
-  .minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
 
-  details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
         background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
-  details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
-  details.check p{ margin:.75rem 0 0; font-size:.96rem }
-  details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
-  details.sheet table{ width:100%; border-collapse:collapse; margin:.75rem 0 0; font-size:.92rem }
-  details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
-  details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
 
-  .keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
         padding:.75rem 1rem; margin:0 0 1.1rem }
-  .keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
         text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
-  .keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
-  .keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
         width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
         border:1px solid var(--line); background:#fff; color:var(--ink) }
-  .keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
 
-  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
-        padding:1.25rem 1.5rem; margin:2rem 0 0 }
-  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
-  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
-  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
-  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
-        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
-        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
-  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
-
-  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
 </style>
 </head>
 <body>
@@ -595,226 +520,13 @@ const REWARDS = {
 };
 
 /* ---- which part are we showing? ---- */
-const wanted = new URLSearchParams(location.search).get('part');
-const ACTIVE = PARTS[wanted] ? wanted : null;      /* null = show everything */
-const ALL_STAGES = [...document.querySelectorAll('.stage[data-part]')].map(s => s.id);
-const ORDER = ALL_STAGES.filter(id =>
-  !ACTIVE || document.getElementById(id).dataset.part === ACTIVE);
 
-const ACTIVITY_TITLE = ACTIVE
-  ? LESSON + ' — ' + PARTS[ACTIVE].title
-  : LESSON + ' — all parts';
+/* Click-to-insert letter keys — an input method, not a scaffold. */
+const KEYS = [
+  { host: 'keys-m2', chars: 'ㄱㄴㅁㅅㅇㅏㅓㅗㅜㅡㅣ'.split(''), field: 'textarea[data-q]' }
+];
 
-function applyScope(){
-  document.querySelectorAll('.stage[data-part]').forEach(s => {
-    s.hidden = !ORDER.includes(s.id);
-  });
-  document.querySelectorAll('[data-partsep]').forEach(p => {
-    /* the section heading only earns its place when several parts are shown */
-    p.hidden = !!ACTIVE;
-  });
-  if (ACTIVE){
-    document.getElementById('pagetitle').textContent = LESSON + ' — ' + PARTS[ACTIVE].title;
-    document.getElementById('pagesub').textContent = PARTS[ACTIVE].sub;
-    document.getElementById('turninLede').textContent =
-      'One button. It collects this section — ready to paste into your ' + PARTS[ACTIVE].title + ' assignment.';
-  }
-  /* Teacher preview only. In a scoped student view both stay hidden. */
-  const preview = !ACTIVE;
-  const idEl = document.getElementById('lessonid');
-  const outEl = document.getElementById('outcomes');
-  idEl.hidden = !preview;
-  outEl.hidden = !preview;
-  if (preview){
-    idEl.textContent = LESSON_ID;
-    document.getElementById('outcomelist').innerHTML = Object.keys(OUTCOMES).map(k =>
-      '<li><span class="oid">' + LESSON_ID + '.' + k + '</span> — ' + OUTCOMES[k] + '</li>').join('');
-  }
-
-  /* The agenda belongs to the first thing she opens, and to the preview. */
-  document.getElementById('brief').hidden = !(preview || ACTIVE === 'intro');
-
-  const sheet = document.getElementById('sheet');
-  sheet.hidden = ACTIVE ? !PARTS[ACTIVE].sheet : false;
-  /* first stage of the scoped set opens straight away */
-  if (ORDER.length) document.getElementById(ORDER[0]).classList.add('active');
-}
-
-/* ================= engine ================= */
-const LL = {
-  extra: {}, summary: {}, done: new Set(),
-
-  finish(id, extraEvidence){
-    const stage = document.getElementById(id);
-    if (extraEvidence) LL.extra[id] = extraEvidence;
-    const firstTime = !LL.done.has(id);
-    LL.done.add(id);
-    stage.classList.remove('active', 'open');
-    stage.classList.add('done');
-    LL.refreshSummary(id);
-    if (firstTime){ LL.award(id); LL.next(); }
-  },
-
-  collect(id){
-    const stage = document.getElementById(id);
-    const lines = [];
-    if (LL.extra[id]) lines.push(LL.extra[id]);
-    stage.querySelectorAll('[data-q]').forEach(el => {
-      const a = el.value.trim();
-      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
-    });
-    return lines;
-  },
-
-  refreshSummary(id){
-    const sum = document.getElementById('sum-' + id);
-    if (!sum) return;
-    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
-    const blanks = fields.filter(el => !el.value.trim()).length;
-    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
-    else if (LL.summary[id]) sum.textContent = LL.summary[id];
-    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
-    else sum.textContent = 'tap to see it again';
-  },
-
-  award(id){
-    const r = REWARDS[id]; if (!r) return;
-    /* the last stage of the scoped set always points at the finish */
-    const msg = (ORDER[ORDER.length - 1] === id) ? 'All done — go turn it in.' : r.msg;
-    const bar = document.getElementById('earned');
-    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
-    const s = document.createElement('span');
-    s.className = 'star'; s.textContent = r.star; s.title = msg; bar.appendChild(s);
-    const m = document.createElement('span');
-    m.className = 'msg'; m.textContent = msg; bar.appendChild(m);
-  },
-
-  next(){
-    const nextId = ORDER.find(x => !LL.done.has(x));
-    const t = document.getElementById(nextId || 'turnin');
-    t.classList.add('active');
-    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
-  },
-
-  toggle(id){ document.getElementById(id).classList.toggle('open'); }
-};
-
-document.addEventListener('input', e => {
-  if (e.target.dataset && e.target.dataset.q !== undefined){
-    const st = e.target.closest('.stage');
-    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
-  }
-});
-
-/* ---------------- evidence assembly ---------------- */
-function buildPlain(){
-  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
-    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
-    LL.collect(id).join('\n\n'));
-  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
-         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
-         parts.join('\n\n') + '\n';
-}
-function buildHtml(){
-  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
-    const body = LL.collect(id).map(block => {
-      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
-      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
-                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
-                 esc(a).replace(/\n/g,'<br>')+'</p>'
-               : '<p style="margin:0 0 1rem;">'+esc(q).replace(/\n/g,'<br>')+'</p>';
-    }).join('');
-    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
-           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
-  });
-  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
-         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
-         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
-}
-function copyFeedback(kind, head, body){
-  const box = document.getElementById('copyFb');
-  box.className = 'fb show ' + kind;
-  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
-}
-
-document.getElementById('copyAll').addEventListener('click', async () => {
-  const plain = buildPlain();
-  document.getElementById('previewText').value = plain;
-  const blanks = ORDER.reduce((n,id) =>
-    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
-
-  let ok = false;
-  try{
-    if(navigator.clipboard && window.ClipboardItem){
-      await navigator.clipboard.write([new ClipboardItem({
-        'text/html': new Blob([buildHtml()],{type:'text/html'}),
-        'text/plain':new Blob([plain],{type:'text/plain'})
-      })]); ok = true;
-    } else if(navigator.clipboard && navigator.clipboard.writeText){
-      await navigator.clipboard.writeText(plain); ok = true;
-    }
-  }catch(e){ ok = false; }
-  if(!ok){
-    try{
-      const ta = document.getElementById('previewText');
-      document.getElementById('preview').classList.add('show');
-      ta.focus(); ta.select(); ok = document.execCommand('copy');
-    }catch(e){ ok = false; }
-  }
-
-  if(ok){
-    copyFeedback('good','✓ Copied.',
-      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
-      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
-  } else {
-    document.getElementById('preview').classList.add('show');
-    copyFeedback('hint','Copy it by hand — takes two seconds.',
-      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
-  }
-});
-document.getElementById('showPrev').addEventListener('click', () => {
-  document.getElementById('previewText').value = buildPlain();
-  document.getElementById('preview').classList.toggle('show');
-});
-
-/* ---------- letter keys: an input method for a machine with no Korean keyboard.
-   Inserts at the caret of the last focused answer field, so it behaves like
-   typing rather than like a chart to copy from. ---------- */
-let lastField = null;
-document.addEventListener('focusin', e => {
-  if (e.target.dataset && e.target.dataset.q !== undefined) lastField = e.target;
-});
-
-function buildKeys(hostId, fallbackSelector){
-  const host = document.getElementById(hostId);
-  if (!host) return;
-  '\u3131\u3134\u3141\u3145\u3147\u314f\u3153\u3157\u315c\u3161\u3163'.split('').forEach(ch => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.textContent = ch;
-    b.setAttribute('aria-label', 'Insert ' + ch);
-    b.addEventListener('click', () => {
-      const f = (lastField && f_isInScope(lastField)) ? lastField
-              : host.closest('.stage').querySelector(fallbackSelector);
-      if (!f) return;
-      const a = f.selectionStart ?? f.value.length, z = f.selectionEnd ?? f.value.length;
-      f.value = f.value.slice(0, a) + ch + f.value.slice(z);
-      f.focus();
-      f.setSelectionRange(a + ch.length, a + ch.length);
-      f.dispatchEvent(new Event('input', { bubbles: true }));
-      lastField = f;
-    });
-    host.appendChild(b);
-  });
-}
-function f_isInScope(f){
-  const st = f.closest('.stage');
-  return st && !st.hidden;
-}
-
-buildKeys('keys-m2', 'textarea[data-q]');
-
-applyScope();
 </script>
+<script src="../../assets/lesson.js"></script>
 </body>
 </html>
