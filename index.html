@@ -215,6 +215,17 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'English',
+    file: 'activities/second-take.html',
+    title: 'Second Take',
+    tag: 'commit & revise',
+    desc: 'The student locks in a reading before any conversation, builds the strongest case against themselves, argues it out loud with three named discussion moves, then answers the same questions again \u2014 and the page shows first take against second take, generated from what they actually did.',
+    skills: 'Discussion \u00b7 analyzing a text \u00b7 evidence \u00b7 counterargument \u00b7 revising a claim',
+    note: 'Text-swappable: RAW_QS and STORY at the top of the script are the only text-specific parts. Currently set to Raymond\u2019s Run. Part 3 needs the teacher live on the call arguing the other side \u2014 it does not work as solo homework.',
+    height: 1150
+  },
+  {
+    type: 'activity',
+    course: 'English',
     file: 'activities/dread-dial.html',
     title: 'The Dread Dial',
     tag: 'tap to sort',
@@ -238,6 +249,34 @@ const ITEMS = [
       { key: 'mastery',  label: 'Independent Mastery' },
       { key: 'homework', label: 'Homework' }
     ]
+  },
+  {
+    type: 'lesson',
+    id:   'KOR1A-L02',
+    course: 'Korean 1A',
+    file: 'lessons/korean-1a/KOR1A-L02-five-more-letters.html',
+    title: 'Five More Letters',
+    tag: 'lesson 2',
+    desc: 'A spelling warm-up on the first ten letters, the rule that a vowel can never sit in a block alone, then ㄷ ㄹ ㅂ ㅈ ㅎ taught as letters she already has with one more stroke on them — and eight unseen words to read and write.',
+    skills: 'Hangul · derived consonants · the ㅇ placeholder rule · syllable blocks · reading and spelling',
+    note: 'No Korean keyboard needed — every Hangul answer is produced from a click-to-insert bank of pre-composed syllable blocks. The bank stays on in Independent Mastery (input method, not scaffold) even though the reference sheet is off there.',
+    height: 1400,
+    parts: [
+      { key: 'intro',    label: 'Introduce the Concept' },
+      { key: 'mastery',  label: 'Independent Mastery' },
+      { key: 'homework', label: 'Homework' }
+    ]
+  },
+  {
+    type: 'activity',
+    course: 'Korean 1A',
+    file: 'activities/hangul-stage-two.html',
+    title: 'Hangul Stage II',
+    tag: 'click to build',
+    desc: 'The second consonant set. Match each new letter to the one hiding inside it, pick its sound against the near-miss English reaches for, build five real words — including two idol names — then read three blocks cold.',
+    skills: 'Hangul · derived consonants ㄷ ㄹ ㅂ ㅈ ㅎ · syllable blocks · reading unseen blocks',
+    note: 'Rejiggered from Hangul Stage — same engine, second letter set. Text-swappable: M_ITEMS, V_ITEMS, WORDS and READS at the top of each stage’s script are the only content-specific parts. Assumes ㅏㅓㅗㅜㅡㅣ and ㄱㄴㅁㅅㅇ are already known. No batchim. Item and option order shuffle on load, so two people opening it see different orders.',
+    height: 1000
   },
   {
     type: 'activity',
