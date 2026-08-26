@@ -24,6 +24,14 @@
     activities — practice with a right answer: sorts, games, drills, puzzles
     resources  — reference material to explore and discuss, nothing to score
 
+  A LESSON'S EMBED MENU IS THE RUN ORDER, not just its own parts. If an
+  activity is played in the middle of the class, it gets a row in that lesson's
+  `parts` array at the position it is played, written as
+      { file: 'activities/<name>.html', label: '<Title>', height: <n> }
+  with no `key`. The activity still keeps its own card in the Activities tab;
+  this only borrows it into the lesson's menu so the teacher copies the four
+  Canvas embeds top to bottom without leaving the lesson card.
+
   GRADE LEVELS are generated from each item's `course` value. Adding one is
   typing a new course name — the sub-menu builds itself.
 -->
@@ -112,6 +120,7 @@
   .parts p.lab{ margin:0 0 .4rem; font-size:.7rem; font-weight:700; letter-spacing:.05em;
         text-transform:uppercase; color:var(--soft) }
   .parts .prow{ display:flex; gap:.4rem; align-items:center; margin-bottom:.4rem; flex-wrap:wrap }
+  .parts .pfrom{display:inline-block;margin-left:.45rem;padding:.05rem .35rem;border:1px solid #d8d2c6;border-radius:4px;font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;color:#8a8378;vertical-align:1px}
   .parts .pname{ font-size:.83rem; flex:1 1 8rem }
   .code{ display:none; margin-top:.6rem; background:var(--ink); color:#f0ece6;
         padding:.7rem .85rem; border-radius:8px; font-family:Consolas,monospace;
@@ -197,6 +206,7 @@ const ITEMS = [
     height: 1100,
     parts: [
       { key: 'intro',    label: 'Introduce the Concept' },
+      { file: 'activities/rhetoric-cockpit-sort.html', label: 'Rhetoric Cockpit Sort', height: 1000 },
       { key: 'mastery',  label: 'Independent Mastery' },
       { key: 'homework', label: 'Homework' }
     ]
@@ -246,6 +256,7 @@ const ITEMS = [
     height: 900,
     parts: [
       { key: 'intro',    label: 'Introduce the Concept' },
+      { file: 'activities/hangul-stage.html', label: 'Hangul Stage', height: 900 },
       { key: 'mastery',  label: 'Independent Mastery' },
       { key: 'homework', label: 'Homework' }
     ]
@@ -263,6 +274,7 @@ const ITEMS = [
     height: 1400,
     parts: [
       { key: 'intro',    label: 'Introduce the Concept' },
+      { file: 'activities/hangul-stage-two.html', label: 'Hangul Stage II', height: 1000 },
       { key: 'mastery',  label: 'Independent Mastery' },
       { key: 'homework', label: 'Homework' }
     ]
@@ -325,11 +337,17 @@ const ITEMS = [
 const base = location.href.replace(/index\.html$/, '').replace(/[?#].*$/, '').replace(/\/?$/, '/');
 document.getElementById('baseurl').textContent = base;
 
+/* A part may carry its own `file` and `height` — that is how an activity that
+   runs in the middle of a lesson gets an embed row in run order, even though the
+   activity itself lives in the Activities tab. No `key` means no ?part=. */
+const partFile = (it, part) => (part && part.file) || it.file;
+const partUrl  = (it, part) => base + partFile(it, part) + (part && part.key ? '?part=' + part.key : '');
+
 const embed = (it, part) => {
-  const url = base + it.file + (part ? '?part=' + part.key : '');
+  const url = partUrl(it, part);
   const title = it.title + (part ? ' — ' + part.label : '');
   return '<iframe src="' + url + '"\n' +
-         '        width="100%" height="' + it.height + '"\n' +
+         '        width="100%" height="' + ((part && part.height) || it.height) + '"\n' +
          '        style="border:1px solid #e2ddd4;border-radius:8px;"\n' +
          '        allow="clipboard-write"\n' +
          '        title="' + title + '"></iframe>';
@@ -395,11 +413,11 @@ function card(it, i){
       <button class="b" onclick="togglePanel(${i})">Embed${parts ? ' ▾' : ''}</button>
     </div>
     <div class="parts" id="panel-${i}">
-      ${parts ? `<p class="lab">One per Canvas assignment</p>` + parts.map((pt,k) => `
+      ${parts ? `<p class="lab">In run order — one per Canvas assignment</p>` + parts.map((pt,k) => `
         <div class="prow">
-          <span class="pname">${esc(pt.label)}</span>
+          <span class="pname">${esc(pt.label)}${pt.file ? `<span class="pfrom">${esc(pt.file.split('/')[0])}</span>` : ''}</span>
           <button class="b" onclick="copyEmbed(${i}, this, ${k})">Copy</button>
-          <a class="b ghost" href="${it.file}?part=${pt.key}" target="_blank" rel="noopener">Open</a>
+          <a class="b ghost" href="${pt.file ? pt.file : it.file + '?part=' + pt.key}" target="_blank" rel="noopener">Open</a>
         </div>`).join('')
       : `<div class="prow">
           <span class="pname">Whole activity</span>
