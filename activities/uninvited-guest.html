@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted activity (tier 3). Dark gothic theme.
+  Terror vs. Horror + four Gothic literary devices — second pass.
+  Rejiggered from activities/dread-dial.html: same 'dial' engine, new content.
+  Lines seed the two texts read after it (Dickinson; Poe's masquerade) without
+  giving either away. RAW_LINES and RAW_DEVICES are the only text-specific parts.
+  Built from templates/activity-shell.html — stages, earned stars, turn-in panel.
+  Everything inline. No localStorage. No drag (tap/keyboard only).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Uninvited Guest</title>
+<style>
+  :root{ --bg:#100d0f; --card:#1a1518; --ink:#ece7e4; --soft:#a89ea1;
+         --line:#3a2c31; --accent:#c62828; --accent-soft:#2b1416;
+         --calm:#6fd39b; --calm-soft:#16291f; --calm-line:#2f5c44;
+         --warn:#e0a92c; --warn-soft:#2a2113; --warn-line:#5c4a1e;
+         --gold:#e0a92c; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.6rem; margin:0 0 .25rem; letter-spacing:.02em }
+  h1 .drip{ color:var(--accent) }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+  .rule{ height:2px; background:linear-gradient(90deg,var(--accent),transparent);
+         margin:0 0 1.1rem; border-radius:2px }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  .key{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+        border-radius:10px; padding:.9rem 1.2rem; margin:0 0 1.25rem; font-size:.97rem }
+  .key p{ margin:0 0 .5rem } .key p:last-child{ margin:0 }
+  .key b{ color:#ff8a80 }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid var(--calm-line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.15) }
+  button.btn.ghost{ background:transparent; color:#ff8a80 }
+  button.btn.go{ background:#1f7a52; border-color:#2f9c6a; color:#fff }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn:disabled{ opacity:.4; cursor:not-allowed }
+  :focus-visible{ outline:3px solid #ff8a80; outline-offset:2px }
+
+  /* cards */
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+         padding:.9rem 1.1rem; margin:0 0 .8rem }
+  .card .line{ margin:0 0 .7rem; font-size:1.02rem }
+  .card .num{ color:var(--accent); font-weight:700; margin-right:.4rem }
+  .picks{ display:flex; gap:.5rem; flex-wrap:wrap }
+  .pick{ font:inherit; font-size:.88rem; font-weight:700; cursor:pointer;
+         border-radius:20px; padding:.35rem 1rem; border:1px solid var(--line);
+         background:transparent; color:var(--soft) }
+  .pick:hover{ border-color:#ff8a80; color:#ff8a80 }
+  .pick[aria-pressed="true"]{ background:var(--accent); border-color:var(--accent); color:#fff }
+  .card.right{ border-color:var(--calm-line); box-shadow:inset 3px 0 0 var(--calm) }
+  .card.wrong{ border-color:#7a3b1e; box-shadow:inset 3px 0 0 var(--warn) }
+  .note{ font-size:.9rem; color:var(--soft); margin:.7rem 0 0; padding-top:.6rem;
+         border-top:1px dashed var(--line); display:none }
+  .note.show{ display:block }
+  .note b{ color:var(--ink) }
+
+  select{ font:inherit; font-size:.92rem; padding:.4rem .6rem; border-radius:8px;
+          background:#241d20; color:var(--ink); border:1px solid var(--line) }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid var(--warn-line) }
+  .fb.good{ background:var(--calm-soft); border:1px solid var(--calm-line) }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #4a3a3f; border-radius:8px; background:#181315;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#7b6f73 }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed var(--warn-line); border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#181315; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  figure{ margin:1.1rem 0 }
+  figure img{ width:100%; height:auto; display:block; border-radius:8px;
+        border:1px solid var(--line) }
+  figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem; line-height:1.5 }
+  figcaption a{ color:var(--soft) }
+  .pair{ display:grid; grid-template-columns:1fr 1fr; gap:1rem }
+  .pair .tag{ display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.08em;
+        text-transform:uppercase; padding:.15rem .55rem; border-radius:20px; margin-bottom:.35rem }
+  .pair .tag.t{ background:var(--warn-soft); border:1px solid var(--warn-line); color:var(--warn) }
+  .pair .tag.h{ background:var(--accent-soft); border:1px solid var(--accent); color:#ff8a80 }
+  .svgbox{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:1rem 1.1rem; margin:0 0 1.25rem }
+  .svgbox svg{ width:100%; height:auto; display:block }
+  .ahead{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--gold);
+        border-radius:10px; padding:1.1rem 1.3rem; margin:1.5rem 0 0 }
+  .ahead h3{ margin:0 0 .5rem; font-size:1.05rem; color:var(--gold) }
+  .ahead p{ margin:0 0 .7rem; font-size:.96rem }
+  @media (max-width:640px){ .pair{ grid-template-columns:1fr } }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The Uninvited Guest <span class="drip">🕯</span></h1>
+  <p class="sub">Same dial as last time, new company. Six lines, two feelings — then name the machinery. Every line here is a rumour about what we're reading next.</p>
+  <div class="rule"></div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Three parts. Finish one, then press the green button when you're ready.</li>
+      <li>Retry as much as you like. Nothing here is timed.</li>
+      <li>At the end, one button copies your work for Canvas.</li>
+    </ol>
+  </div>
+
+  <div class="key">
+    <p><b>TERROR</b> = the dread <em>before</em>. You don't know what's out there yet. Your brain fills the dark in for you.</p>
+    <p><b>HORROR</b> = the hit <em>after</em>. You see it, touch it, smell it. No mystery left — just shock and disgust.</p>
+    <p style="color:var(--soft);font-size:.9rem;">Short version: terrified of what <em>might</em> happen, horrified when it <em>did</em>.</p>
+  </div>
+
+  <div class="pair">
+    <figure>
+      <span class="tag t">Terror</span>
+      <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Arnold_B%C3%B6cklin_-_Die_Toteninsel_III_(Alte_Nationalgalerie,_Berlin).jpg?width=700"
+           alt="A small rocky island of black cypress trees at dusk. A rowing boat approaches it, carrying a standing figure draped in white beside a coffin. Nothing is happening yet.">
+      <figcaption>Arnold B&ouml;cklin, <em>Isle of the Dead</em> (1883). The boat has not landed. Public domain &mdash; <a href="https://commons.wikimedia.org/wiki/File:Arnold_B%C3%B6cklin_-_Die_Toteninsel_III_(Alte_Nationalgalerie,_Berlin).jpg">Wikimedia Commons</a>.</figcaption>
+    </figure>
+    <figure>
+      <span class="tag h">Horror</span>
+      <img src="https://commons.wikimedia.org/wiki/Special:FilePath/John_Henry_Fuseli_-_The_Nightmare.JPG?width=700"
+           alt="A woman thrown backwards off a bed, arms hanging to the floor, with a squat grinning creature crouched on her chest and a pale horse's head pushing through the curtain behind her.">
+      <figcaption>Henry Fuseli, <em>The Nightmare</em> (1781). The thing is already sitting on her. Public domain &mdash; <a href="https://commons.wikimedia.org/wiki/File:John_Henry_Fuseli_-_The_Nightmare.JPG">Wikimedia Commons</a>.</figcaption>
+    </figure>
+  </div>
+
+  <div class="svgbox">
+    <svg viewBox="0 0 640 132" role="img"
+         aria-label="A left-to-right dial. The left half is labelled Terror: it has not happened yet, you cannot see it. The right half is labelled Horror: it has happened, it is in front of you. The pivot point in the middle is the question, has it happened yet?">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#a89ea1"/></marker></defs>
+      <line x1="30" y1="76" x2="612" y2="76" stroke="#a89ea1" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="320" y1="52" x2="320" y2="100" stroke="#e0a92c" stroke-width="3"/>
+      <circle cx="320" cy="76" r="9" fill="#100d0f" stroke="#e0a92c" stroke-width="3"/>
+      <text x="320" y="30" text-anchor="middle" fill="#e0a92c" font-size="17" font-weight="bold" font-family="Verdana,sans-serif">Has it happened yet?</text>
+      <text x="150" y="30" text-anchor="middle" fill="#ffffff" font-size="19" font-weight="bold" font-family="Verdana,sans-serif">TERROR</text>
+      <text x="510" y="30" text-anchor="middle" fill="#ff8a80" font-size="19" font-weight="bold" font-family="Verdana,sans-serif">HORROR</text>
+      <text x="150" y="112" text-anchor="middle" fill="#ece7e4" font-size="15" font-family="Verdana,sans-serif">not yet &middot; you can't see it</text>
+      <text x="510" y="112" text-anchor="middle" fill="#ece7e4" font-size="15" font-family="Verdana,sans-serif">already &middot; it's in front of you</text>
+    </svg>
+  </div>
+
+  <!-- ============ STAGE 1 — the sort ============ -->
+  <section class="stage active" id="s1" data-title="Turn the dial">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1 — Turn the dial</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 — Terror or horror?</h2>
+      <p>Six one-line scenes. For each one, tap <strong>TERROR</strong> or <strong>HORROR</strong>. Then hit Check.</p>
+
+      <div id="cards1"></div>
+
+      <div class="fb" id="fb" role="status" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" id="check">Check my dial</button>
+        <button class="btn ghost" id="reset">Start over</button>
+      </div>
+      <div class="row" id="s1next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s1')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — device hunt ============ -->
+  <section class="stage" id="s2" data-title="Name the move">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2 — Name the move</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — Name the move</h2>
+      <p>Gothic writers build that dread on purpose. Four lines, four tools. Pick the tool each line is using.</p>
+
+      <div class="key" style="border-left-color:var(--warn)">
+        <p><b>Personification</b> — the setting acts alive.</p>
+        <p><b>Hyperbole</b> — turned up way past real.</p>
+        <p><b>Foreshadowing</b> — a hint dropped early about what's coming.</p>
+        <p><b>Motif</b> — the same image on repeat until it means something.</p>
+      </div>
+
+      <div class="svgbox">
+        <svg viewBox="0 0 640 150" role="img"
+             aria-label="Four device icons. Personification: a house with two lit windows drawn as eyes. Hyperbole: a small bar beside a bar many times taller. Foreshadowing: a dotted line running ahead to a distant mark. Motif: the same diamond shape repeating three times.">
+          <g font-family="Verdana,sans-serif" font-size="15" fill="#ece7e4" text-anchor="middle">
+            <g><path d="M30 78 L70 44 L110 78 L110 112 L30 112 Z" fill="none" stroke="#ff8a80" stroke-width="3"/>
+               <circle cx="55" cy="90" r="7" fill="#ff8a80"/><circle cx="85" cy="90" r="7" fill="#ff8a80"/>
+               <text x="70" y="140">Personification</text></g>
+            <g><rect x="180" y="98" width="20" height="16" fill="#e0a92c"/>
+               <rect x="212" y="44" width="20" height="70" fill="#e0a92c"/>
+               <text x="206" y="140">Hyperbole</text></g>
+            <g><line x1="330" y1="80" x2="430" y2="80" stroke="#6fd39b" stroke-width="3" stroke-dasharray="7 7"/>
+               <circle cx="330" cy="80" r="6" fill="#6fd39b"/>
+               <path d="M424 68 L444 80 L424 92 Z" fill="#6fd39b"/>
+               <text x="386" y="140">Foreshadowing</text></g>
+            <g fill="#c9a0dc"><path d="M500 80 l14 -18 14 18 -14 18 z"/><path d="M540 80 l14 -18 14 18 -14 18 z"/><path d="M580 80 l14 -18 14 18 -14 18 z"/>
+               <text x="554" y="140" fill="#ece7e4">Motif</text></g>
+          </g>
+        </svg>
+      </div>
+
+      <div id="cards2"></div>
+
+      <div class="fb" id="fb2" role="status" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" id="check2">Check my picks</button>
+        <button class="btn ghost" id="reset2">Start over</button>
+      </div>
+      <div class="row" id="s2next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s2')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 — written ============ -->
+  <section class="stage" id="s3" data-title="Your turn">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3 — Your turn</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 — Your turn</h2>
+      <p>Short answers. Two sentences max on each one.</p>
+
+      <p class="q" id="q1text"><strong>Q1.</strong> One of those lines goes both ways. Pick a side — terror or horror — and tell me how you know.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea id="q1box" data-q="Q1. The arguable line — pick a side, terror or horror, and say how you know." placeholder="Type here…" rows="2"></textarea></div>
+
+      <p class="q"><strong>Q2.</strong> Same video, two thumbnails. <strong>A</strong> makes people click because they're scared of what's in it. <strong>B</strong> makes them click because of something they can already see. Write the title text for each.</p>
+      <div class="abox"><p class="lab">Thumbnail A — terror</p>
+        <textarea data-q="Q2a. Thumbnail title text for A — makes people click because they're scared of what's in it (terror)." placeholder="Title text…" rows="1"></textarea></div>
+      <div class="abox"><p class="lab">Thumbnail B — horror</p>
+        <textarea data-q="Q2b. Thumbnail title text for B — makes people click because of something they can already see (horror)." placeholder="Title text…" rows="1"></textarea></div>
+
+      <p class="q"><strong>Q3.</strong> Your pick: <strong>personification, hyperbole, foreshadowing</strong> or <strong>motif</strong>. Write <strong>one sentence</strong> that makes a room full of people at a party feel wrong — then name the device you used.</p>
+      <div class="abox"><p class="lab">My sentence</p>
+        <textarea data-q="Q3. One sentence using a chosen device to make a room full of people at a party feel wrong." placeholder="Type here…" rows="2"></textarea></div>
+      <div class="abox"><p class="lab">The device I used</p>
+        <textarea data-q="Q3b. Which device that sentence uses." placeholder="Personification / hyperbole / foreshadowing / motif" rows="1"></textarea></div>
+
+      <div class="stems"><p class="lab">Sentence starters — use them if you want</p>
+        <p>• It's ____ because you never actually ____.<br>
+           • The scary part is what you ____, not what you ____.<br>
+           • Nobody looked at the ____, and nobody stopped ____ either.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">Don't worry about spelling here — I'm reading for the idea.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s3')">Done with this part →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ WHAT'S COMING ============ -->
+  <div class="ahead">
+    <h3>Two guests arrive after this &mdash; don't look them up</h3>
+    <p>Both readings today are about somebody showing up uninvited. Just hold one question for each and see which side of the dial it lands on.</p>
+    <div class="pair" style="margin-top:.9rem">
+      <figure>
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Horse-drawn_funeral_hearse_1900.jpg?width=700"
+             alt="A black horse-drawn hearse from around 1900 waiting in a street, with plumes on the horses and a driver seated up front.">
+        <figcaption><strong>The first one is polite.</strong> Somebody stops to collect the speaker and she gets in without arguing. <em>Watch how calm it stays &mdash; and decide whether calm can still be terror.</em><br>Photograph c. 1900, public domain &mdash; <a href="https://commons.wikimedia.org/wiki/File:Horse-drawn_funeral_hearse_1900.jpg">Wikimedia Commons</a>.</figcaption>
+      </figure>
+      <figure>
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Masqueofthereddeath-Clarke.jpg?width=700"
+             alt="A stark black-and-white illustration of masked figures in elaborate costumes crowded together at a masquerade ball.">
+        <figcaption><strong>The second one is a party.</strong> A thousand guests, seven rooms, and one clock nobody likes. <em>Watch what the clock does to the room every hour &mdash; you have already met that clock three times in here.</em><br>Harry Clarke, 1919, public domain &mdash; <a href="https://commons.wikimedia.org/wiki/File:Masqueofthereddeath-Clarke.jpg">Wikimedia Commons</a>.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Part 1 — Terror or horror?",
+    "questions": [
+      "For each of six one-line Gothic scenes: is this terror (it has not happened yet, you cannot see it) or horror (it has happened, it is in front of you)? One line is deliberately arguable and accepts either answer."
+    ] },
+  { "title": "Part 2 — Name the move",
+    "questions": [
+      "For each of four lines: which device is doing the work — personification, hyperbole, foreshadowing, or motif?"
+    ] },
+  { "title": "Part 3 — Your turn",
+    "questions": [
+      "Q1. The arguable line goes both ways. Pick a side — terror or horror — and say how you know.",
+      "Q2a. Thumbnail title text for A — makes people click because they're scared of what's in it (terror).",
+      "Q2b. Thumbnail title text for B — makes them click because of something they can already see (horror).",
+      "Q3. One sentence using a device of your choice to make a room full of people at a party feel wrong.",
+      "Q3b. Which device that sentence uses."
+    ] }
+]
+</script>
+
+<script>
+const ACTIVITY_TITLE = 'The Uninvited Guest — Terror, Horror & Gothic Devices';
+const ORDER = ['s1','s2','s3'];
+const REWARDS = {
+  s1: { star:'★', msg:'Dial still calibrated.' },
+  s2: { star:'★', msg:'You can name the machinery cold.' },
+  s3: { star:'★', msg:'Done — now go meet them.' }
+};
+
+/* Fisher-Yates. Card order AND option order are shuffled on every load so the
+   correct answers never fall into a guessable pattern — no alternating run in
+   Part 1, no "the answers are in the same order as the term list" in Part 2. */
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/* ---- Part 1 content. 'both' means either answer is defensible. ---- */
+const RAW_LINES = [
+  { t:'The carriage stopped at her gate. She had not called for it, and the driver was already holding the door.',
+    a:'terror',
+    why:'<b>Terror.</b> Nothing has happened, and the manners are the problem \u2014 politeness where you expected a threat leaves you doing all the guessing about where it is going.' },
+  { t:'A clock struck somewhere down the hall, and every dancer stood still until it finished.',
+    a:'terror',
+    why:'<b>Terror.</b> A clock is not a threat. Nothing has happened \u2014 but everyone in the room stops, which tells you they are all waiting for something the sound is counting down to.' },
+  { t:'He wiped his mouth and his hand came away red.',
+    a:'horror',
+    why:'<b>Horror.</b> It is on him, in front of you, and you cannot un-know it. Your stomach answers before your brain finishes the sentence.' },
+  { t:'The heavy gate had been welded shut \u2014 from the inside.',
+    a:'terror',
+    why:'<b>Terror.</b> Calm, ordinary evidence. What it implies \u2014 that nobody is leaving, and that somebody chose that \u2014 is the part that gets you.' },
+  { t:'The gown in the box came apart when she lifted it, sixty years of it on her fingers.',
+    a:'horror',
+    why:'<b>Horror.</b> Touch and decay. Nothing is hidden \u2014 it is on her hands, and that is the whole effect.' },
+  { t:'The guest at the end of the room had not moved all evening, and people were starting to notice.',
+    a:'both',
+    why:'<b>Both work, and this is the argument.</b> Everyone can see him, which is horror\u2019s move \u2014 but nothing has been shown or done, so the dread keeps running. Whichever side you take, you have to say what the noticing does.' }
+];
+
+const LINES = shuffle(RAW_LINES);
+
+const RAW_DEVICES = [
+  { t:'The old clock cleared its throat before every hour, and the whole room stopped to hear it out.',
+    a:'personification',
+    why:'<b>Personification.</b> Clocks do not clear their throats or expect to be heard out. Giving an object a personality makes the room feel like it is being supervised by something.' },
+  { t:'There was not a living soul within a thousand miles who had not heard what the sickness did.',
+    a:'hyperbole',
+    why:'<b>Hyperbole.</b> Nobody counted a thousand miles. The exaggeration is not a lie \u2014 it is a measurement of how completely the fear has spread.' },
+  { t:'She noticed, climbing in, that the seat had been made up for three.',
+    a:'foreshadowing',
+    why:'<b>Foreshadowing.</b> A quiet detail planted early that only pays off later. Nothing is explained \u2014 you are just handed a number that does not match the passengers.' },
+  { t:'A clock in the first room, a clock in the last, a clock in every room between.',
+    a:'motif',
+    why:'<b>Motif.</b> One image on repeat until it stops being furniture and starts meaning something. Repetition is the tell: once is a prop, three times is a theme.' }
+];
+
+const DEVICES = shuffle(RAW_DEVICES);
+const DEVICE_OPTS = ['personification','hyperbole','foreshadowing','motif'];
+const label = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+let picks1 = {}, picks2 = {}, tries1 = 0, tries2 = 0;
+
+/* ---- build part 1 ---- */
+function buildCards1(){
+  const host = document.getElementById('cards1');
+  host.innerHTML = '';
+  LINES.forEach((l, i) => {
+    const c = document.createElement('div');
+    c.className = 'card'; c.id = 'c1-' + i;
+    c.innerHTML =
+      '<p class="line"><span class="num">' + (i+1) + '.</span>' + l.t + '</p>' +
+      '<div class="picks">' +
+        '<button class="pick" type="button" aria-pressed="false" data-i="' + i + '" data-v="terror">TERROR</button>' +
+        '<button class="pick" type="button" aria-pressed="false" data-i="' + i + '" data-v="horror">HORROR</button>' +
+      '</div>' +
+      '<p class="note" id="n1-' + i + '">' + l.why + '</p>';
+    host.appendChild(c);
+  });
+  host.querySelectorAll('.pick').forEach(b => b.addEventListener('click', () => {
+    const i = b.dataset.i;
+    picks1[i] = b.dataset.v;
+    document.querySelectorAll('.pick[data-i="' + i + '"]').forEach(o =>
+      o.setAttribute('aria-pressed', String(o === b)));
+  }));
+}
+
+/* ---- build part 2 ---- */
+function buildCards2(){
+  const host = document.getElementById('cards2');
+  host.innerHTML = '';
+  DEVICES.forEach((d, i) => {
+    const c = document.createElement('div');
+    c.className = 'card'; c.id = 'c2-' + i;
+    /* options reshuffled per card — the same term is never in the same slot twice */
+    const opts = shuffle(DEVICE_OPTS).map(o => '<option value="' + o + '">' + label(o) + '</option>').join('');
+    c.innerHTML =
+      '<p class="line"><span class="num">' + String.fromCharCode(65+i) + '.</span>' + d.t + '</p>' +
+      '<label style="font-size:.9rem;color:var(--soft)">This line is using ' +
+      '<select data-i="' + i + '" aria-label="Device for line ' + String.fromCharCode(65+i) + '">' +
+      '<option value="">— pick one —</option>' + opts + '</select></label>' +
+      '<p class="note" id="n2-' + i + '">' + d.why + '</p>';
+    host.appendChild(c);
+  });
+  host.querySelectorAll('select').forEach(s =>
+    s.addEventListener('change', () => { picks2[s.dataset.i] = s.value; }));
+}
+
+/* Part 1 is shuffled, so Q1 cannot hard-code "line 6". Point it at the
+   arguable line by number AND by quoting it, so the question survives the
+   shuffle and reads clearly in the gradebook two weeks later. */
+function pointQ1AtArguableLine(){
+  const i = LINES.findIndex(l => l.a === 'both');
+  if (i < 0) return;
+  const n = i + 1, quote = LINES[i].t;
+  document.getElementById('q1text').innerHTML =
+    '<strong>Q1.</strong> Line ' + n + ' — <em>“' + quote + '”</em> — goes both ways. ' +
+    'Pick a side, terror or horror, and tell me how you know.';
+  document.getElementById('q1box').dataset.q =
+    'Q1. Line ' + n + ' (“' + quote + '”) goes both ways. Pick a side — terror or horror — and say how you know.';
+}
+
+buildCards1();
+buildCards2();
+pointQ1AtArguableLine();
+
+/* ---- checking ---- */
+function say(boxId, kind, head, body){
+  const fb = document.getElementById(boxId);
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('check').addEventListener('click', () => {
+  const unanswered = LINES.map((_, i) => i).filter(i => !picks1[i]);
+  if (unanswered.length){
+    say('fb', 'hint', 'Not quite finished.',
+      'Line' + (unanswered.length > 1 ? 's ' : ' ') +
+      unanswered.map(i => i+1).join(', ') + ' still need' + (unanswered.length > 1 ? '' : 's') +
+      ' a pick. Go with your gut — you can change it.');
+    return;
+  }
+  tries1++;
+  let wrong = [];
+  LINES.forEach((l, i) => {
+    const card = document.getElementById('c1-' + i);
+    const ok = l.a === 'both' || picks1[i] === l.a;
+    card.classList.toggle('right', ok);
+    card.classList.toggle('wrong', !ok);
+    if (ok) document.getElementById('n1-' + i).classList.add('show');
+    else wrong.push(i + 1);
+  });
+  if (wrong.length){
+    say('fb', 'hint', wrong.length + ' still off — line' + (wrong.length>1?'s ':' ') + wrong.join(', ') + '.',
+      'Ask one question about each of those: <strong>has it happened yet?</strong> If the bad thing is still ahead of you, that is terror. If it is in front of you right now, that is horror.');
+  } else {
+    const evidence = 'Sorted all 6 correctly in ' + tries1 + (tries1===1?' try.':' tries.') +
+      '\n' + LINES.map((l,i) => (i+1) + '. ' + picks1[i].toUpperCase() +
+        (l.a === 'both' ? '  ← the arguable one, both defensible' : '')).join('\n');
+    LL.extra.s1 = evidence;
+    LL.summary.s1 = 'solved in ' + tries1 + (tries1===1?' try':' tries');
+    say('fb', 'good', 'That is the dial.',
+      'Read the notes under each line — especially the one that took both answers. That one is the real conversation.');
+    document.getElementById('check').disabled = true;
+    document.getElementById('s1next').style.display = 'flex';
+  }
+});
+document.getElementById('reset').addEventListener('click', () => {
+  picks1 = {}; buildCards1();
+  document.getElementById('fb').className = 'fb';
+  document.getElementById('check').disabled = false;
+  document.getElementById('s1next').style.display = 'none';
+});
+
+document.getElementById('check2').addEventListener('click', () => {
+  const unanswered = DEVICES.map((_, i) => i).filter(i => !picks2[i]);
+  if (unanswered.length){
+    say('fb2', 'hint', 'Still some blanks.',
+      'Line' + (unanswered.length > 1 ? 's ' : ' ') +
+      unanswered.map(i => String.fromCharCode(65+i)).join(', ') + ' need a pick.');
+    return;
+  }
+  tries2++;
+  let wrong = [];
+  DEVICES.forEach((d, i) => {
+    const card = document.getElementById('c2-' + i);
+    const ok = picks2[i] === d.a;
+    card.classList.toggle('right', ok);
+    card.classList.toggle('wrong', !ok);
+    if (ok) document.getElementById('n2-' + i).classList.add('show');
+    else wrong.push(String.fromCharCode(65+i));
+  });
+  if (wrong.length){
+    say('fb2', 'hint', 'Close — check ' + wrong.join(' and ') + '.',
+      'Two questions sort most of these: <strong>is something non-human acting alive?</strong> (personification) and <strong>is the same image coming back again?</strong> (motif). If neither, ask whether it is exaggerating the present or hinting at the future.');
+  } else {
+    const evidence = 'Matched all 4 devices in ' + tries2 + (tries2===1?' try.':' tries.') +
+      '\n' + DEVICES.map((d,i) => String.fromCharCode(65+i) + '. ' + label(d.a)).join('\n');
+    LL.extra.s2 = evidence;
+    LL.summary.s2 = 'solved in ' + tries2 + (tries2===1?' try':' tries');
+    say('fb2', 'good', 'All four.',
+      'Read the notes under each line before you move on — the <em>why</em> is the part you will need in Part 3.');
+    document.getElementById('check2').disabled = true;
+    document.getElementById('s2next').style.display = 'flex';
+  }
+});
+document.getElementById('reset2').addEventListener('click', () => {
+  picks2 = {}; buildCards2();
+  document.getElementById('fb2').className = 'fb';
+  document.getElementById('check2').disabled = false;
+  document.getElementById('s2next').style.display = 'none';
+});
+
+/* ---------------- engine (from the shell) ---------------- */
+const LL = {
+  extra: {}, summary: {}, done: new Set(),
+
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#c62828;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+</script>
+</body>
+</html>
