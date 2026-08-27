@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage — state lives in JS variables.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG12A-L01 · Four Moves, One Purpose</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- the About/Aimed-at diagram. Tokens only: no literal colours. --- */
+.dia{ font-family:Verdana,Tahoma,sans-serif }
+.dia .box   { fill:var(--card);        stroke:var(--line) }
+.dia .goal  { fill:var(--calm-soft);   stroke:var(--calm) }
+.dia .funnel{ fill:var(--accent-soft); stroke:var(--accent) }
+.dia .t     { fill:var(--ink);   font-size:12.5px }
+.dia .lab   { fill:var(--soft);  font-size:11px; font-weight:700; letter-spacing:1px }
+.dia .lab.g { fill:var(--calm) }
+.dia .cap   { fill:var(--soft);  font-size:11px }
+.dia .fl    { fill:var(--accent);font-size:11px; font-weight:700 }
+.dia .arrow { stroke:var(--soft); stroke-width:2; fill:none }
+.dia .head  { fill:var(--soft) }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG12A-L01</p>
+  <h1 id="pagetitle">English 12A · Lesson 1</h1>
+  <p class="sub" id="pagesub">Four moves, one purpose.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- =================== ONE PART =================== -->
+  <!-- Repeat this block per part. data-part must match a key in PARTS. -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="About it, or aimed at it">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">✓</span> <strong>Part 1 — About it, or aimed at it</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 — About it, or aimed at it</h2>
+
+      <p>Do these two parts in whatever order you want.</p>
+
+      <p>Nonfiction is true. That does not make it neutral. Every essay, speech and memoir is <strong>aimed</strong> at something, and the writer chooses every word to get it there.</p>
+
+      <p>Here is the thing worth holding onto: <strong>what a piece of nonfiction is <em>about</em> is almost never what it is <em>aimed at</em>.</strong></p>
+
+      <figure>
+        <svg viewBox="0 0 660 182" class="dia" role="img" aria-labelledby="aimttl aimdesc">
+          <title id="aimttl">About it versus aimed at it</title>
+          <desc id="aimdesc">Two columns. On the left, three small specific subjects: one job in Burma, one Fourth of July, one day on a porch. In the middle, a funnel labelled “the moves and the exact words.” On the right, three large ideas: what power costs the person holding it, who a country is actually for, and who gets to name you.</desc>
+
+          <text x="8" y="20" class="lab">WHAT IT'S ABOUT</text>
+          <text x="470" y="20" class="lab g">WHAT IT'S AIMED AT</text>
+
+          <rect x="4" y="32" width="186" height="34" rx="8" class="box"/>
+          <text x="16" y="54" class="t">one job in Burma</text>
+          <rect x="4" y="76" width="186" height="34" rx="8" class="box"/>
+          <text x="16" y="98" class="t">one Fourth of July</text>
+          <rect x="4" y="120" width="186" height="34" rx="8" class="box"/>
+          <text x="16" y="142" class="t">one day on a porch</text>
+
+          <path d="M214 40 L300 84 L300 122 L214 166 Z" class="funnel"/>
+          <text x="257" y="96" text-anchor="middle" class="fl">the moves</text>
+          <text x="257" y="112" text-anchor="middle" class="fl">+ exact words</text>
+
+          <rect x="322" y="26" width="334" height="42" rx="8" class="goal"/>
+          <text x="336" y="52" class="t">what power costs the person holding it</text>
+          <rect x="322" y="78" width="334" height="42" rx="8" class="goal"/>
+          <text x="336" y="104" class="t">who a country is actually for</text>
+          <rect x="322" y="130" width="334" height="42" rx="8" class="goal"/>
+          <text x="336" y="156" class="t">who gets to name you</text>
+
+          <g class="arrow" marker-end="url(#ah)">
+            <path d="M192 49 H210"/><path d="M192 93 H210"/><path d="M192 137 H210"/>
+            <path d="M302 65 H316"/><path d="M302 99 H316"/><path d="M302 133 H316"/>
+          </g>
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" class="head"/>
+            </marker>
+          </defs>
+        </svg>
+        <figcaption>Small and true on the left; big and shared on the right. The funnel is the writing. None of these three essays is really about the thing on the left.</figcaption>
+      </figure>
+
+      <p>Zora Neale Hurston's essay is <em>about</em> being thirteen and moving away from the all-Black town she grew up in. It is <strong>aimed at</strong> who gets to decide what you are. Look at how much of that she does in nine words:</p>
+
+      <blockquote style="border-left:4px solid var(--accent);margin:1rem 0;padding:.4rem 0 .4rem 1rem;font-size:1.05rem;">
+        “I remember the very day that I became colored.”<br>
+        <span style="font-size:.8rem;color:var(--soft);">Zora Neale Hurston, “How It Feels to Be Colored Me,” 1928</span>
+      </blockquote>
+
+      <p class="q"><strong>Q1.</strong> One word in that sentence is doing almost all of the work. Which one, and what does it do that a different word wouldn't?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q1. In Hurston's line “I remember the very day that I became colored,” one word is doing almost all of the work. Which one, and what does it do that a different word wouldn't?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="stems"><p class="lab">Starters — only if you want one</p>
+        <p>• The word ____ is doing the work, because it makes it sound like ____ rather than ____.<br>
+           • If she had written ____ instead, the sentence would ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these — your own sentence is better if you've got one.</p></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One word named, and one sentence saying what it does. Not what it means — what it <em>does</em>.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part →</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="Swap the word, break the sentence">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">✓</span> <strong>Part 2 — Swap the word, break the sentence</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — Swap the word, break the sentence</h2>
+
+      <p>Here is the test that works on any nonfiction sentence anywhere: <strong>find the loaded word and swap it for its neutral twin.</strong> If the sentence changes sides, you've found where the argument was hiding.</p>
+
+      <table style="width:100%;border-collapse:collapse;font-size:.93rem;margin:1rem 0;">
+        <tr>
+          <th style="text-align:left;border:1px solid var(--line);padding:.5rem .7rem;background:var(--accent-soft);">What the writer wrote</th>
+          <th style="text-align:left;border:1px solid var(--line);padding:.5rem .7rem;background:var(--accent-soft);">Neutral twin</th>
+          <th style="text-align:left;border:1px solid var(--line);padding:.5rem .7rem;background:var(--accent-soft);">What got lost</th>
+        </tr>
+        <tr>
+          <td style="border:1px solid var(--line);padding:.5rem .7rem;">the <strong>dirty work</strong> of Empire</td>
+          <td style="border:1px solid var(--line);padding:.5rem .7rem;">the daily work of Empire</td>
+          <td style="border:1px solid var(--line);padding:.5rem .7rem;">Orwell's entire opinion. He never states it — “dirty” states it for him.</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid var(--line);padding:.5rem .7rem;">I <strong>became</strong> colored</td>
+          <td style="border:1px solid var(--line);padding:.5rem .7rem;">I was colored</td>
+          <td style="border:1px solid var(--line);padding:.5rem .7rem;">The date. The event. The fact that somebody else did it to her.</td>
+        </tr>
+      </table>
+
+      <p>Now try it on a sentence that has been aimed at an entire hall of people:</p>
+
+      <blockquote style="border-left:4px solid var(--accent);margin:1rem 0;padding:.4rem 0 .4rem 1rem;font-size:1.05rem;">
+        “What, to the American slave, is <strong>your</strong> 4th of July?”<br>
+        <span style="font-size:.8rem;color:var(--soft);">Frederick Douglass, speaking in Rochester, 5 July 1852</span>
+      </blockquote>
+
+      <p class="q"><strong>Q2.</strong> Rewrite Douglass's line without the word <em>your</em>. Then say, in one sentence, what the line lost.</p>
+      <div class="abox"><p class="lab">My rewrite, then what it lost</p>
+        <textarea data-q="Q2. Rewrite Douglass's line without the word “your,” then say in one sentence what the line lost." placeholder="Type here…" rows="4"></textarea></div>
+
+      <p class="q"><strong>Q3.</strong> Pick <em>either</em> Orwell's line or Hurston's line. Say what the essay it comes from is probably <strong>aimed at</strong> — not what it's about — and quote the words that got you there.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. Choosing either Orwell's line or Hurston's line: what is that essay probably aimed at (not what it is about), and which exact words got you there?" placeholder="Type here…" rows="4"></textarea></div>
+
+      <p style="color:var(--soft);font-size:.92rem;">Pick whichever you'd rather — or name a bigger idea neither of us has said yet, and we'll use that one.</p>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>A rewritten Douglass line and one sentence on what it lost. Then a bigger idea in your own words, with at least two words quoted from the line that led you to it.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part →</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The four moves — open this any time</summary>
+    <table>
+      <tr><td class="g">▤</td><td><strong>The Pile-Up</strong> — stacks example on example and refuses to stop. The length is the point.</td></tr>
+      <tr><td class="g">◆</td><td><strong>The Loaded Word</strong> — one ordinary-looking word smuggles in a judgment. Swap it for its neutral twin and the sentence changes sides.</td></tr>
+      <tr><td class="g">?</td><td><strong>The Question That Isn't a Question</strong> — asked so you feel the answer, not so anyone answers it.</td></tr>
+      <tr><td class="g">⧉</td><td><strong>The Two Pictures</strong> — sets the version you expected beside the version that's true, and lets the gap do the arguing.</td></tr>
+    </table>
+    <p style="font-size:.9rem;color:var(--soft);margin:.75rem 0 0;">Nobody is going to ask you for the technical names. You are going to be asked what the move <em>does</em>.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = 'English 12A · Lesson 1';
+const LESSON_ID = 'ENG12A-L01';
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber — if an outcome changes
+   meaning, retire it and add a new one. Three to five per lesson. */
+const OUTCOMES = {
+  'O1': 'Name the move a nonfiction writer is making and say what it does to the reader — without needing its technical term',
+  'O2': 'Explain how one word’s exact shade of meaning changes what a sentence argues',
+  'O3': 'Say what a nonfiction text is aimed at — the universal theme — as distinct from what it is about',
+  'O4': 'Use one of the four moves in her own writing, on purpose'
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. Rows with no `part` are
+   the ones that eat the lesson (the activity, the reading), and they still
+   render, so the student sees where the time actually goes. Required. */
+const AGENDA = [
+  { label:'Catch up & get set',                          mins:5              },
+  { label:'About it, or aimed at it',                    mins:12, part:'intro' },
+  { label:'The Aim — five real lines',                   mins:14             },
+  { label:'Read “On Seeing England for the First Time”', mins:17             },
+  { label:'Set up for next time',                        mins:2              }
+];
+
+/* One entry per Canvas assignment. `sheet` is false for mastery on purpose:
+   recall is part of what that section checks. */
+const PARTS = {
+  intro: { title: 'Introduce the Concept',
+           sub: 'What a piece of nonfiction is about, and what it is aimed at.',
+           sheet: true, outcomes: ['O1','O2'] }
+};
+
+const REWARDS = {
+  i1:{star:'★',msg:'You found the word.'},
+  i2:{star:'★',msg:'Nice — go turn it in.'}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* ---- which part are we showing? ---- */
+
+
+</script>
+<script src="../../assets/lesson.js"></script>
+</body>
+</html>

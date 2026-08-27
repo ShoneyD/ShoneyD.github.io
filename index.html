@@ -235,6 +235,34 @@
 const ITEMS = [
   {
     type: 'lesson',
+    id:   'ENG12A-L01',
+    course: 'English 12A',
+    file: 'lessons/english-12a/ENG12A-L01-four-moves-one-purpose.html',
+    title: 'Four Moves, One Purpose',
+    tag: 'lesson 1',
+    desc: 'What a nonfiction text is \u201cabout\u201d against what it is \u201caimed at\u201d \u2014 taught on Hurston and Douglass, with the neutral-twin swap as the test that finds the loaded word in any sentence. Front half of a block that ends in Kincaid.',
+    skills: 'Rhetorical devices \u00b7 connotation and word choice \u00b7 author\u2019s purpose \u00b7 universal themes in nonfiction',
+    note: 'Partial lesson by design: \u00a71 + the activity, then a teacher-led reading of \u201cOn Seeing England for the First Time.\u201d No Independent Mastery and no homework \u2014 those belong to the lesson after the reading.',
+    height: 1300,
+    parts: [
+      { key: 'intro', label: 'Introduce the Concept' },
+      { file: 'activities/the-aim.html', label: 'The Aim', height: 1150 }
+    ]
+  },
+  {
+    type: 'activity',
+    course: 'English',
+    file: 'activities/the-aim.html',
+    engine: 'chain', variant: 'nonfiction-purpose', version: 1, updated: '2026-08-27',
+    title: 'The Aim',
+    tag: 'tap to sort',
+    desc: 'Five real lines \u2014 Orwell, King, Douglass, Hurston twice \u2014 walked through the same three links three times: name the move, say what it does to the reader, say what universal idea it is aimed at. Then the student writes her own, using any move and any theme including one she invents.',
+    skills: 'Rhetorical devices \u00b7 connotation \u00b7 author\u2019s purpose \u00b7 universal themes \u00b7 nonfiction \u00b7 close reading',
+    note: 'Text-swappable: MOVES, THEMES, LINES and DECOYS at the top of the script are the only text-specific parts. No drag \u2014 taps and one dropdown, so it works on a trackpad. Support thins across the parts on purpose: the move list is on screen in part 1, gone by part 2, and part 3 has one deliberately arguable item (Orwell\u2019s \u201cdirty work of Empire\u201d accepts Power or Justice). Part 4 is a free creative write with no topic given. Everything shuffles on load.',
+    height: 1150
+  },
+  {
+    type: 'lesson',
     id:   'ENG11A-L01',
     course: 'English 11A',
     file: 'lessons/english-11a/ENG11A-L01-impact-of-rhetoric.html',
@@ -390,7 +418,8 @@ const ENGINES = {
   'dial':          'Tap-sort, match, then write',
   'stage':         'Build it piece by piece',
   'commit-revise': 'Commit, argue, revise',
-  'boss':          'Boss battle'
+  'boss':          'Boss battle',
+  'chain':         'Name it, say what it does, aim it'
 };
 
 const base = location.href.replace(/index\.html$/, '').replace(/[?#].*$/, '').replace(/\/?$/, '/');
