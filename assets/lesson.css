@@ -9,6 +9,53 @@
    Change a rule here and every lesson page changes. That is the point.
    ========================================================================= */
 
+/* ---------------------------------------------------------------------------
+   THE PALETTE — dark by default. Change a value here and every hosted lesson
+   page changes with it; nothing else defines these.
+
+   Text is near-white rather than pure #fff on purpose: full white on a dark
+   ground haloes for a lot of readers, and #f3f5f8 still reads as white while
+   staying comfortable for a fifty-minute session.
+
+   A student who needs a light page can flip it with the ☀/☾ button in the
+   corner; the choice sticks in that browser. Only the values change — no rule
+   below this block knows which theme is on.
+   --------------------------------------------------------------------------- */
+:root{
+  --bg:#14161a;          /* the page                                   */
+  --card:#1d2128;        /* anything raised off the page               */
+  --field:#232830;       /* a box the student types into               */
+  --ink:#f3f5f8;         /* body text                                  */
+  --soft:#c5cdd8;        /* labels, captions, secondary text           */
+  --line:#2e343d;        /* ordinary borders                           */
+  --field-line:#414a56;  /* the dashed border round an answer box      */
+  --on-accent:#0f1216;   /* text sitting on an accent fill             */
+
+  --accent:#6fbde3;      /* links, headings, the active thing          */
+  --accent-soft:#16303d;
+  --accent-line:#2b5a72;
+
+  --calm:#5ecb92;        /* correct, finished, safe                    */
+  --calm-soft:#123123;
+  --calm-line:#2a5c44;
+
+  --warn:#e8a94e;        /* careful, read this, stems and signposts    */
+  --warn-soft:#38290f;
+  --warn-line:#6b5124;
+
+  --gold:#f2c75c;        /* earned stars                               */
+  --hl:#4a3d12;          /* highlighted words inside running text      */
+}
+
+:root[data-theme="light"]{
+  --bg:#faf8f5; --card:#fffdfa; --field:#ffffff; --ink:#22252a; --soft:#555a63;
+  --line:#e2ddd4; --field-line:var(--field-line); --on-accent:#ffffff;
+  --accent:#2f6f8f; --accent-soft:#e8f1f6; --accent-line:var(--accent-line);
+  --calm:#2e7d5b; --calm-soft:#e6f3ec; --calm-line:var(--calm-line);
+  --warn:#a8641b; --warn-soft:#fbf0e2; --warn-line:var(--warn-line);
+  --gold:#c68a1a; --hl:#fdf1b8;
+}
+
 *{box-sizing:border-box}
 
 body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
@@ -79,7 +126,7 @@ h3{ font-size:1rem; margin:1.25rem 0 .5rem }
 .stage[hidden]{ display:none !important }
 
 .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
-        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        background:var(--calm-soft); border:1px solid var(--calm-line); border-radius:10px;
         padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
         color:var(--ink); cursor:pointer }
 
@@ -91,7 +138,7 @@ h3{ font-size:1rem; margin:1.25rem 0 .5rem }
 
 button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
         border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
-        background:var(--accent); color:#fff }
+        background:var(--accent); color:var(--on-accent) }
 
 button.btn:hover{ filter:brightness(1.08) }
 
@@ -107,28 +154,28 @@ button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
 
 .fb.show{ display:block }
 
-.fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+.fb.hint{ background:var(--warn-soft); border:1px solid var(--warn-line) }
 
-.fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+.fb.good{ background:var(--calm-soft); border:1px solid var(--calm-line) }
 
 .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
 
 .q{ margin:1.25rem 0 .4rem; font-size:1rem }
 
-.abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+.abox{ border:2px dashed var(--field-line); border-radius:8px; background:var(--field);
          padding:.85rem 1rem; margin:0 0 1.1rem }
 
 .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
-        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+        text-transform:uppercase; color:var(--soft); margin:0 0 .35rem }
 
 .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
         font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
 
-.abox textarea::placeholder{ color:#9aa5ae }
+.abox textarea::placeholder{ color:var(--soft) }
 
 .abox:focus-within{ border-color:var(--accent); border-style:solid }
 
-.stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+.stems{ background:var(--warn-soft); border:1px dashed var(--warn-line); border-radius:8px;
         padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
 
 .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
@@ -136,7 +183,7 @@ button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
 
 .stems p{ margin:0 }
 
-.done-look{ background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:8px;
+.done-look{ background:var(--calm-soft); border:1px solid var(--calm-line); border-radius:8px;
         padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
 
 .done-look .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
@@ -159,7 +206,7 @@ details.sheet table{ width:100%; border-collapse:collapse; margin:.75rem 0 0; fo
 
 .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
         font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
-        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+        border:1px solid var(--line); background:var(--field); color:var(--ink); resize:vertical }
 
 .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
 
@@ -176,3 +223,12 @@ details.sheet table{ width:100%; border-collapse:collapse; margin:.75rem 0 0; fo
 .agenda li .mins{ color:var(--soft); font-size:.88rem }
 .agenda li.here{ color:var(--ink); font-weight:700 }
 .agenda li.here .you{ color:var(--accent); font-weight:700; white-space:nowrap }
+
+/* ---- the light/dark switch. Fixed bottom-right, out of the reading path,
+   still reachable by keyboard. ---- */
+.themetog{ position:fixed; right:.9rem; bottom:.9rem; z-index:50;
+        width:2.5rem; height:2.5rem; border-radius:50%; cursor:pointer;
+        font-size:1.1rem; line-height:1; border:1px solid var(--line);
+        background:var(--card); color:var(--ink); opacity:.75 }
+.themetog:hover, .themetog:focus-visible{ opacity:1; border-color:var(--accent) }
+@media print{ .themetog{ display:none } }

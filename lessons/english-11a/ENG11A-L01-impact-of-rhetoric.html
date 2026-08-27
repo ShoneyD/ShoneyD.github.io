@@ -18,10 +18,6 @@
 <link rel="stylesheet" href="../../assets/lesson.css">
 <style>
 /* Rules specific to this lesson. The shared sheet is linked above. */
-:root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
-         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
-         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
-         --gold:#c68a1a; --hl:#fdf1b8; }
 
 mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
 
@@ -44,7 +40,7 @@ mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
 .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:1rem 0 }
 
 .abox select{ font:inherit; font-size:1rem; padding:.5rem .6rem; border-radius:8px;
-        border:1px solid var(--line); background:#fff; color:var(--ink); max-width:100% }
+        border:1px solid var(--line); background:var(--field); color:var(--ink); max-width:100% }
 
 /* ---------- the three control cards ---------- */
   .controls{ display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin:1.25rem 0 }
@@ -71,7 +67,7 @@ mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
 .chain .link{ background:var(--card); border:2px solid var(--accent); border-left-width:8px;
         border-radius:10px; padding:.75rem 1rem; margin:0 0 .35rem }
 
-.chain .link .n{ display:inline-block; background:var(--accent); color:#fff;
+.chain .link .n{ display:inline-block; background:var(--accent); color:var(--on-accent);
         font-size:.75rem; font-weight:700; border-radius:999px; padding:.1rem .55rem;
         margin-right:.45rem; vertical-align:.1rem }
 
@@ -82,7 +78,7 @@ mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
 .chain .arrow{ text-align:center; color:var(--accent); font-size:1.2rem;
         line-height:1; margin:0 0 .35rem }
 
-.worked{ background:var(--accent-soft); border:1px solid #cfe0e8; border-radius:10px;
+.worked{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
         padding:.9rem 1.15rem; margin:1.25rem 0 }
 
 .worked .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
@@ -106,7 +102,7 @@ mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
 
 .vocab tr:last-child td{ border-bottom:0 }
 
-.signpost{ background:var(--warn-soft); border:2px solid #ddbf94; border-radius:10px;
+.signpost{ background:var(--warn-soft); border:2px solid var(--warn-line); border-radius:10px;
         padding:1rem 1.2rem; margin:1.25rem 0; font-size:1rem }
 
 .signpost .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
@@ -131,7 +127,7 @@ details.sheet td.k{ font-weight:700; width:10rem }
 
 .dots{ display:flex; gap:.35rem; align-items:center; font-size:.85rem; color:var(--soft); margin:0 0 .9rem }
 
-.dots i{ width:.75rem; height:.75rem; border-radius:50%; border:2px solid #b9c4cc; display:inline-block }
+.dots i{ width:.75rem; height:.75rem; border-radius:50%; border:2px solid var(--field-line); display:inline-block }
 
 .dots i.on{ background:var(--calm); border-color:var(--calm) }
 </style>

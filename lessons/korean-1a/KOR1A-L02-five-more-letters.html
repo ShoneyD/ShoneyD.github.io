@@ -25,10 +25,6 @@
 <link rel="stylesheet" href="../../assets/lesson.css">
 <style>
 /* Rules specific to this lesson. The shared sheet is linked above. */
-:root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
-         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
-         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
-         --gold:#c68a1a; }
 
 .agenda{ background:var(--card); border:1px solid var(--line); border-radius:10px;
         padding:.85rem 1.1rem; margin:0 0 1.5rem; font-size:.95rem }
@@ -63,7 +59,7 @@
 .minirow label{ font-size:.9rem; color:var(--soft) }
 
 .minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
-        border:2px dashed #b9c4cc; background:#fff; color:var(--ink); width:9rem }
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
 
 .minirow input.kor{ font-size:1.5rem; width:8rem; text-align:center }
 
@@ -94,7 +90,7 @@ details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:
 
 .keyrow button{ font:inherit; font-size:1.4rem; font-weight:700; cursor:pointer;
         min-width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
-        border:1px solid var(--line); background:#fff; color:var(--ink) }
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
 
 .keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
 

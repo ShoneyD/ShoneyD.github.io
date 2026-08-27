@@ -259,3 +259,28 @@ if (typeof KEYS !== 'undefined'){
 }
 
 applyScope();
+
+/* ---------- light / dark ----------
+   Dark is the default. A student who reads better on a light page flips it
+   here and the choice sticks in their browser. The button builds itself, so no
+   lesson page carries markup for it. ---------- */
+(function(){
+  const KEY = 'll-theme', root = document.documentElement;
+  const isLight = () => root.getAttribute('data-theme') === 'light';
+  try { if (localStorage.getItem(KEY) === 'light') root.setAttribute('data-theme','light'); }
+  catch(e){}
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'themetog';
+  const paint = () => {
+    b.textContent = isLight() ? '\u263e' : '\u2600';
+    b.title = b.ariaLabel = isLight() ? 'Switch to the dark page' : 'Switch to the light page';
+  };
+  b.addEventListener('click', () => {
+    const light = isLight();
+    if (light) root.removeAttribute('data-theme'); else root.setAttribute('data-theme','light');
+    try { localStorage.setItem(KEY, light ? 'dark' : 'light'); } catch(e){}
+    paint();
+  });
+  paint();
+  document.body.appendChild(b);
+})();

@@ -41,29 +41,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Activity Hub</title>
 <style>
-  :root{ --bg:#f2efea; --paper:#fffdfa; --ink:#22252a; --soft:#555a63; --line:#e2ddd4;
-         --accent:#2f6f8f; --accent-soft:#e8f1f6; --go:#2e7d5b; --go-soft:#e6f3ec;
-         --res:#7a5c96; --res-soft:#f0eaf6; --les:#a8641b; --les-soft:#fbf0e2; }
+  :root{ --bg:#14161a; --paper:#1d2128; --field:#232830; --ink:#f3f5f8; --soft:#c5cdd8;
+         --line:#2e343d; --head:#0f1218; --head-ink:#f3f5f8; --on-accent:#0f1216;
+         --accent:#6fbde3; --accent-soft:#16303d; --accent-line:#2b5a72;
+         --go:#5ecb92; --go-soft:#123123; --go-line:#2a5c44;
+         --res:#bda2e8; --res-soft:#241d33; --res-line:#463a5e;
+         --les:#e8a94e; --les-soft:#38290f; --les-line:#6b5124;
+         --gold:#f2c75c; }
   *{box-sizing:border-box}
   body{ margin:0; padding:0 1rem 5rem; background:var(--bg); color:var(--ink);
         font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
         font-size:17px; line-height:1.6 }
   .wrap{ max-width:64rem; margin:0 auto }
 
-  header{ background:var(--ink); color:#fff; margin:0 -1rem; padding:2rem 1rem 0 }
+  header{ background:var(--head); color:var(--head-ink); margin:0 -1rem; padding:2rem 1rem 0 }
   header .in{ max-width:64rem; margin:0 auto }
   header h1{ margin:0 0 .3rem; font-size:1.8rem }
   header p{ margin:0 0 .9rem; opacity:.8; font-size:.95rem }
-  header .url{ display:inline-block; background:#333a44; color:#cfe3ee;
+  header .url{ display:inline-block; background:var(--field); color:var(--accent);
         padding:.3rem .7rem; border-radius:6px; font-family:Consolas,monospace; font-size:.8rem }
 
   /* primary tabs */
   .tabs{ display:flex; gap:.35rem; flex-wrap:wrap; margin-top:1.25rem }
   .tabs button{ font:inherit; font-size:.92rem; font-weight:700; cursor:pointer;
         border:0; border-bottom:3px solid transparent; background:transparent;
-        color:#b9c4cc; padding:.6rem 1rem }
-  .tabs button:hover{ color:#fff }
-  .tabs button[aria-selected="true"]{ color:#fff; border-bottom-color:#e8b45a }
+        color:var(--line); padding:.6rem 1rem }
+  .tabs button:hover{ color:var(--head-ink) }
+  .tabs button[aria-selected="true"]{ color:var(--head-ink); border-bottom-color:var(--gold) }
   .tabs .count{ opacity:.55; font-weight:400; font-size:.85em }
 
   /* controls row */
@@ -82,7 +86,7 @@
         border-radius:999px; padding:.32rem .85rem; border:1px solid var(--line);
         background:var(--paper); color:var(--soft) }
   .subs button:hover{ border-color:var(--accent); color:var(--accent) }
-  .subs button[aria-pressed="true"]{ background:var(--ink); border-color:var(--ink); color:#fff }
+  .subs button[aria-pressed="true"]{ background:var(--accent); color:var(--on-accent); border-color:var(--accent); color:var(--head-ink) }
   .subs[hidden]{ display:none }
 
   /* card grid */
@@ -95,11 +99,11 @@
   .chip{ font-size:.68rem; font-weight:700; letter-spacing:.04em; padding:.14rem .5rem;
         border-radius:999px; border:1px solid var(--line); color:var(--soft) }
   .chip.id{ font-family:Consolas,monospace; color:var(--les);
-        background:var(--les-soft); border-color:#ddbf94 }
+        background:var(--les-soft); border-color:var(--les-line) }
   .chip.tag{ text-transform:uppercase; background:var(--accent-soft);
-        color:var(--accent); border-color:#cfe0e8 }
-  .card.resource .chip.tag{ background:var(--res-soft); color:var(--res); border-color:#ddd0ea }
-  .card.lesson .chip.tag{ background:var(--les-soft); color:var(--les); border-color:#ddbf94 }
+        color:var(--accent); border-color:var(--accent-line) }
+  .card.resource .chip.tag{ background:var(--res-soft); color:var(--res); border-color:var(--res-line) }
+  .card.lesson .chip.tag{ background:var(--les-soft); color:var(--les); border-color:var(--les-line) }
   .card h3{ margin:0 0 .35rem; font-size:1.05rem; line-height:1.35 }
   .card .desc{ margin:0 0 .6rem; font-size:.88rem; color:var(--ink); line-height:1.5 }
   .card .skills{ margin:0 0 .5rem; font-size:.8rem; color:var(--soft) }
@@ -110,7 +114,7 @@
 
   button.b,a.b{ font:inherit; font-size:.82rem; font-weight:700; cursor:pointer; text-decoration:none;
         border-radius:7px; padding:.4rem .75rem; border:1px solid var(--accent);
-        background:var(--accent); color:#fff; display:inline-block }
+        background:var(--accent); color:var(--head-ink); display:inline-block }
   a.b.ghost,button.b.ghost{ background:transparent; color:var(--accent) }
   button.b:hover,a.b:hover{ filter:brightness(1.07) }
   button.b.copied{ background:var(--go); border-color:var(--go) }
@@ -120,20 +124,55 @@
   .parts p.lab{ margin:0 0 .4rem; font-size:.7rem; font-weight:700; letter-spacing:.05em;
         text-transform:uppercase; color:var(--soft) }
   .parts .prow{ display:flex; gap:.4rem; align-items:center; margin-bottom:.4rem; flex-wrap:wrap }
-  .parts .pfrom{display:inline-block;margin-left:.45rem;padding:.05rem .35rem;border:1px solid #d8d2c6;border-radius:4px;font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;color:#8a8378;vertical-align:1px}
+
+  /* ---- version + engine markers on an activity card ---- */
+  .chip.ver{ font-family:Consolas,monospace; color:var(--soft); background:transparent;
+        border-color:var(--line) }
+  button.chip.eng{ font:inherit; font-size:inherit; cursor:pointer }
+  button.chip.eng:hover{ border-color:var(--accent) }
+  .chip.eng{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent-line) }
+  .stamp{ margin:.5rem 0 0; font-size:.74rem; color:var(--soft); letter-spacing:.02em }
+
+  /* ---- the question drawer: what the student actually gets asked, beside
+     the card rather than inside it, so the grid stays scannable ---- */
+  .qdrawer{ position:fixed; top:0; right:0; bottom:0; width:min(420px,92vw); z-index:60;
+        background:var(--paper); border-left:1px solid var(--line);
+        box-shadow:-14px 0 34px rgba(0,0,0,.45); padding:1.1rem 1.25rem 3rem;
+        overflow-y:auto; transform:translateX(102%); transition:transform .18s ease }
+  .qdrawer.show{ transform:none }
+  /* With the drawer open the grid gives up the space rather than hiding under
+     it — the whole point is reading the questions beside the card they belong
+     to. Below 1100px there isn't room for both, so it overlays instead. */
+  @media (min-width:1100px){
+    body.qopen .wrap{ padding-right:min(440px,92vw); transition:padding-right .18s ease }
+  }
+  .qdrawer h3{ margin:.2rem 0 .1rem; font-size:1.05rem }
+  .qdrawer .qsub{ margin:0 0 1rem; font-size:.8rem; color:var(--soft) }
+  .qdrawer .qclose{ position:absolute; top:.7rem; right:.8rem; border:1px solid var(--line);
+        background:var(--field); color:var(--ink); border-radius:7px; cursor:pointer;
+        font:inherit; font-size:.78rem; font-weight:700; padding:.25rem .6rem }
+  .qgroup{ margin:0 0 1.15rem; border-left:3px solid var(--accent-line); padding-left:.8rem }
+  .qgroup h4{ margin:0 0 .1rem; font-size:.86rem; color:var(--accent) }
+  .qgroup .qpart{ font-size:.68rem; text-transform:uppercase; letter-spacing:.06em;
+        color:var(--soft); margin:0 0 .45rem }
+  .qgroup ol{ margin:0; padding-left:1.1rem }
+  .qgroup li{ margin-bottom:.4rem; font-size:.87rem; line-height:1.5 }
+  .qempty{ color:var(--soft); font-size:.86rem; line-height:1.6 }
+
+  .parts .pfrom{display:inline-block;margin-left:.45rem;padding:.05rem .35rem;border:1px solid var(--line);border-radius:4px;font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;color:var(--soft);vertical-align:1px}
   .parts .pname{ font-size:.83rem; flex:1 1 8rem }
-  .code{ display:none; margin-top:.6rem; background:var(--ink); color:#f0ece6;
+  .code{ display:none; margin-top:.6rem; background:var(--head); color:var(--ink);
         padding:.7rem .85rem; border-radius:8px; font-family:Consolas,monospace;
         font-size:.72rem; line-height:1.5; white-space:pre-wrap; word-break:break-all }
   .code.show{ display:block }
 
   .empty{ grid-column:1/-1; color:var(--soft); font-style:italic; padding:2rem 0 }
-  .note-card{ background:var(--go-soft); border:1px solid #c4e0d2; border-radius:10px;
+  .note-card{ background:var(--go-soft); border:1px solid var(--go-line); border-radius:10px;
         padding:.9rem 1.2rem; margin:1.5rem 0; font-size:.9rem }
-  .note-card.warn{ background:#fbf0e2; border-color:#ddbf94 }
+  .note-card.warn{ background:var(--les-soft); border-color:var(--les-line) }
   .note-card h3{ margin:0 0 .35rem; font-size:.95rem }
   .note-card p{ margin:0 0 .5rem } .note-card p:last-child{ margin-bottom:0 }
-  code{ background:#eae5dd; padding:.1rem .35rem; border-radius:4px;
+  code{ background:var(--field); padding:.1rem .35rem; border-radius:4px;
         font-family:Consolas,monospace; font-size:.88em }
   :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
   @media (prefers-reduced-motion:reduce){ *{ transition:none!important } }
@@ -215,6 +254,7 @@ const ITEMS = [
     type: 'activity',
     course: 'English',
     file: 'activities/rhetoric-cockpit-sort.html',
+    engine: 'sort', variant: 'rhetoric', version: 1, updated: '2026-08-25',
     title: 'Rhetoric Cockpit Sort',
     tag: 'drag & drop',
     desc: 'Six lines from a real argument, sorted into trust, feeling and facts \u2014 then matched to what each one actually does to the reader. Two of the effect cards are decoys.',
@@ -226,6 +266,7 @@ const ITEMS = [
     type: 'activity',
     course: 'English',
     file: 'activities/second-take.html',
+    engine: 'commit-revise', variant: 'raymonds-run', version: 1, updated: '2026-08-26',
     title: 'Second Take',
     tag: 'commit & revise',
     desc: 'The student locks in a reading before any conversation, builds the strongest case against themselves, argues it out loud with three named discussion moves, then answers the same questions again \u2014 and the page shows first take against second take, generated from what they actually did.',
@@ -237,6 +278,7 @@ const ITEMS = [
     type: 'activity',
     course: 'English',
     file: 'activities/dread-dial.html',
+    engine: 'dial', variant: 'gothic', version: 1, updated: '2026-08-25',
     title: 'The Dread Dial',
     tag: 'tap to sort',
     desc: 'Six one-line Gothic scenes sorted into terror or horror, four lines matched to the device doing the work, then two captions and a personification of their own. Line 6 is deliberately arguable.',
@@ -283,6 +325,7 @@ const ITEMS = [
     type: 'activity',
     course: 'Korean 1A',
     file: 'activities/hangul-stage-two.html',
+    engine: 'stage', variant: 'hangul-2', version: 1, updated: '2026-08-26',
     title: 'Hangul Stage II',
     tag: 'click to build',
     desc: 'The second consonant set. Match each new letter to the one hiding inside it, pick its sound against the near-miss English reaches for, build five real words — including two idol names — then read three blocks cold.',
@@ -294,6 +337,7 @@ const ITEMS = [
     type: 'activity',
     course: 'Korean 1A',
     file: 'activities/hangul-stage.html',
+    engine: 'stage', variant: 'hangul-1', version: 1, updated: '2026-08-21',
     title: 'Hangul Stage',
     tag: 'click to build',
     desc: 'Match consonants to where they happen in your mouth, build vowels from two strokes and a dot, then assemble real syllable blocks — including two K-pop idol names.',
@@ -305,6 +349,7 @@ const ITEMS = [
     type: 'activity',
     course: 'English',
     file: 'activities/mood-sort.html',
+    engine: 'sort', variant: 'mood', version: 1, updated: '2026-08-21',
     title: 'Mood Sort',
     tag: 'drag & drop',
     desc: 'Six words describing ordinary actions. Sort them into Calm or Creepy, then find out why each one lands where it does.',
@@ -315,6 +360,7 @@ const ITEMS = [
     type: 'activity',
     course: 'English',
     file: 'activities/meter-wraith.html',
+    engine: 'boss', variant: 'meter', version: 1, updated: '2026-08-20',
     title: 'The Meter Wraith',
     tag: 'boss battle',
     desc: 'Read the verse, answer to attack, then dodge the scythe. Correct answers unlock a shield; wrong ones intensify the next round.',
@@ -333,6 +379,19 @@ const ITEMS = [
     height: 800
   }
 ];
+
+/* An engine is a mechanic: the code that does the cognitive work. A variant is
+   one content set poured into it. Two variants of one engine are the same
+   activity taught about different things — group them, and rejigger rather
+   than rebuild. Bump `version` when the mechanic itself changes; `updated` is
+   the date of the last real edit. */
+const ENGINES = {
+  'sort':          'Sort into categories',
+  'dial':          'Tap-sort, match, then write',
+  'stage':         'Build it piece by piece',
+  'commit-revise': 'Commit, argue, revise',
+  'boss':          'Boss battle'
+};
 
 const base = location.href.replace(/index\.html$/, '').replace(/[?#].*$/, '').replace(/\/?$/, '/');
 document.getElementById('baseurl').textContent = base;
@@ -369,7 +428,13 @@ function matches(it){
   if (it.type !== tab) return false;
   if (course !== 'All' && it.course !== course) return false;
   if (!query) return true;
-  const hay = [it.title, it.id, it.tag, it.skills, it.course, it.desc]
+  /* "engine:sort" is an exact match on the mechanic, not a text search — that
+     is what the engine chip sends, so clicking it shows every variant of that
+     engine and nothing that merely mentions the word. */
+  const eq = query.trim().toLowerCase().match(/^engine:(\S+)$/);
+  if (eq) return (it.engine || '').toLowerCase() === eq[1];
+  const hay = [it.title, it.id, it.tag, it.skills, it.course, it.desc,
+               it.engine, it.variant, ENGINES[it.engine]]
                 .filter(Boolean).join(' ').toLowerCase();
   return query.toLowerCase().split(/\s+/).every(t => hay.includes(t));
 }
@@ -402,15 +467,19 @@ function card(it, i){
       ${it.id ? `<span class="chip id">${it.id}</span>` : ''}
       <span class="chip tag">${esc(it.tag)}</span>
       <span class="chip">${esc(it.course)}</span>
+      ${it.engine ? `<button class="chip eng" onclick="filterEngine('${esc(it.engine)}')" title="${esc(ENGINES[it.engine] || it.engine)} — click to see every variant">${esc(it.engine)} · ${esc(it.variant || '')}</button>` : ''}
+      ${it.version ? `<span class="chip ver">v${it.version}</span>` : ''}
     </div>
     <h3>${esc(it.title)}</h3>
     <p class="desc">${esc(it.desc)}</p>
     <p class="skills">${esc(it.skills)}</p>
     ${it.note ? `<p class="note">${esc(it.note)}</p>` : ''}
     <p class="path">${esc(it.file)}</p>
+    ${it.updated ? `<p class="stamp">last edited ${esc(it.updated)}${it.engine ? ` · ${esc(ENGINES[it.engine] || it.engine)}` : ''}</p>` : ''}
     <div class="foot">
       <a class="b ghost" href="${it.file}" target="_blank" rel="noopener">Open</a>
       <button class="b" onclick="togglePanel(${i})">Embed${parts ? ' ▾' : ''}</button>
+      <button class="b ghost" onclick="showQuestions(${i})">Questions</button>
     </div>
     <div class="parts" id="panel-${i}">
       ${parts ? `<p class="lab">In run order — one per Canvas assignment</p>` + parts.map((pt,k) => `
@@ -446,6 +515,78 @@ function render(){
   });
 }
 
+/* ---------------------------------------------------------------------------
+   THE QUESTION DRAWER
+
+   Everything shown here comes from assets/questions.json, which is generated
+   by scripts/extract_questions.py straight out of the lesson and activity
+   files. Nothing in it is typed by hand, so it cannot drift from what the
+   student actually sees — but it is a snapshot: re-run the script after
+   editing a lesson.
+   --------------------------------------------------------------------------- */
+let QDATA = null;
+
+async function showQuestions(i){
+  const it = ITEMS[i];
+  const body = document.getElementById('qbody');
+  const draw = document.getElementById('qdrawer');
+  draw.classList.add('show');
+  draw.setAttribute('aria-hidden','false');
+  document.body.classList.add('qopen');
+  body.innerHTML = `<h3>${esc(it.title)}</h3><p class="qsub">reading the question list…</p>`;
+
+  if (!QDATA){
+    try { QDATA = await fetch('assets/questions.json').then(r => r.json()); }
+    catch(e){
+      body.innerHTML = `<h3>${esc(it.title)}</h3>` +
+        `<p class="qempty">Couldn't load <code>assets/questions.json</code>. ` +
+        `If you opened this page straight off your disk, that's expected — a browser ` +
+        `won't fetch a local file. Open the hub on the live site instead. ` +
+        `If it's missing on the site, run <code>python3 scripts/extract_questions.py</code> ` +
+        `and push it.</p>`;
+      return;
+    }
+  }
+
+  const rec = QDATA[it.file];
+  if (!rec || !rec.groups.length){
+    body.innerHTML = `<h3>${esc(it.title)}</h3>` +
+      `<p class="qempty">${rec && rec.note ? esc(rec.note) :
+        'No questions found in this file yet. Re-run scripts/extract_questions.py, or give the activity a qsummary block.'}</p>`;
+    return;
+  }
+
+  const PART = { intro:'Introduce the Concept', guided:'Guided Practice',
+                 mastery:'Independent Mastery', homework:'Homework', activity:'' };
+  body.innerHTML = `<h3>${esc(it.title)}</h3>` +
+    `<p class="qsub">${rec.total} question${rec.total === 1 ? '' : 's'} the student will meet` +
+    `${rec.declared === false ? ' · read from the activity\u2019s content' : ''}</p>` +
+    rec.groups.map(g => `
+      <div class="qgroup">
+        <h4>${esc(g.title)}</h4>
+        ${PART[g.part] ? `<p class="qpart">${esc(PART[g.part])}</p>` : ''}
+        <ol>${g.questions.map(q => `<li>${esc(q)}</li>`).join('')}</ol>
+      </div>`).join('');
+}
+
+function closeQuestions(){
+  const d = document.getElementById('qdrawer');
+  d.classList.remove('show');
+  d.setAttribute('aria-hidden','true');
+  document.body.classList.remove('qopen');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeQuestions(); });
+
+/* Show every variant built on one engine — the answer to "which sort did I
+   already make?". It is a search, so the box shows what is being filtered and
+   clearing it puts everything back. */
+function filterEngine(eng){
+  const box = document.getElementById('q');
+  box.value = 'engine:' + eng;
+  box.dispatchEvent(new Event('input'));
+  box.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
 function setTab(k){ tab = k; renderTabs(); renderSubs(); render(); }
 function setCourse(c){ course = c; renderSubs(); render(); }
 function togglePanel(i){ document.getElementById('panel-' + i).classList.toggle('show'); }
@@ -472,5 +613,10 @@ document.getElementById('q').addEventListener('input', e => {
 
 renderTabs(); renderSubs(); render();
 </script>
+<div class="qdrawer" id="qdrawer" role="dialog" aria-label="Questions in this item" aria-hidden="true">
+  <button class="qclose" type="button" onclick="closeQuestions()">Close</button>
+  <div id="qbody"></div>
+</div>
+
 </body>
 </html>
