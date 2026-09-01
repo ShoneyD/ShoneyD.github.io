@@ -237,6 +237,54 @@
 ------------------------------------------------------------------ */
 const ITEMS = [
   {
+    type: 'activity',
+    course: 'English',
+    file: 'activities/repaint.html',
+    engine: 'repaint', variant: 'mood-connotation', version: 1, updated: '2026-09-01',
+    title: 'Repaint',
+    tag: 'tap to swap',
+    desc: 'A flat sentence with four tap-to-cycle words and a calm-to-dread meter. Paint an ordinary hallway into dread, then paint the same hallway back to calm without deleting a single event \u2014 which is the moment the whole idea lands. Third round is a new sentence with the target zone chosen by the student.',
+    skills: 'Word choice \u00b7 connotation \u00b7 mood \u00b7 tone \u00b7 authorial choice \u00b7 composition',
+    note: 'The synthesis engine: every other activity here goes text \u2192 label, this one goes target \u2192 text. Text-swappable: SENTENCES and AXIS at the top of the script are the only content-specific parts, and a reachability check warns in the console if a rejigger makes a zone unreachable. No drag, no typing until the last part, and no numbers anywhere the student can see \u2014 the meter is a position and a zone name, the word-weight reveal is bar length. A panel is never allowed to open already inside its target zone. Option order shuffles per slot on load.',
+    height: 1250
+  },
+  {
+    type: 'activity',
+    course: 'English',
+    file: 'activities/cold-open.html',
+    engine: 'case', variant: 'the-house', version: 1, updated: '2026-09-01',
+    title: 'Cold Open',
+    tag: 'commit under uncertainty',
+    desc: 'A woman lets herself into a house at night and tells you five true things, none of which is the whole truth. Four possible answers, five clues released one at a time, and the student calls it whenever they like. Calling early is worth more; calling wrong is diagnosed rather than punished.',
+    skills: 'Inference \u00b7 evidence \u00b7 elimination \u00b7 revising a reading \u00b7 close reading \u00b7 narrator reliability',
+    note: 'The only activity here that withholds information \u2014 everything else is fully visible on load. When the case closes it replays every clue with what it ruled out, and if the student was wrong it names the clue that should have changed their mind and whether they had already seen it. Text-swappable: CASE at the top of the script is the only content-specific part. Clue four accepts either reading on purpose; that is where the discussion is. Dark theme, taps only. Suspect order shuffles; clue order is authored and deliberately fixed.',
+    height: 1400
+  },
+  {
+    type: 'activity',
+    course: 'English',
+    file: 'activities/sixty-seconds.html',
+    engine: 'sprint', variant: 'mixed-v1', version: 1, updated: '2026-09-01',
+    title: 'Sixty Seconds',
+    tag: 'retrieval sprint',
+    desc: 'One minute, one prompt at a time, three options, tap and move on. Wrong cards go to the back and come round again. Ends with a row of ticks, the ones that got away, and a run-it-again button.',
+    skills: 'Retrieval practice \u00b7 recall \u00b7 fluency \u00b7 warm-up',
+    note: 'Ships with FOUR decks and is meant to be opened in every course rather than rejiggered per course \u2014 Gothic devices, ethos/pathos/logos, Hangul letter-to-sound (so it works in Korean 1A too, despite the course tag), and discussion moves. Add a deck to DECKS and the picker builds itself. The only activity that tests without teaching; two minutes at the top of a lesson. The clock ends the round, never the stage. No arithmetic on screen \u2014 scores are ticks and words. Cards and options both shuffle.',
+    height: 1000
+  },
+  {
+    type: 'activity',
+    course: 'English',
+    file: 'activities/the-room.html',
+    engine: 'room', variant: 'airfield', version: 1, updated: '2026-09-01',
+    title: 'The Room',
+    tag: 'consequence',
+    desc: 'Six people vote tonight on a second runway and not one of them wants the same thing. Three chances to speak, and every choice moves every face \u2014 permanently. Push someone all the way to against you and no argument reaches them again; only a move that concedes something can.',
+    skills: 'Audience \u00b7 ethos, pathos, logos \u00b7 rhetorical effect \u00b7 counterargument \u00b7 concession \u00b7 second-order consequences',
+    note: 'The only activity here where a choice has a cost that carries forward. Appeal names are withheld until all three turns are done \u2014 the student watches six faces react first and finds out what the move was called afterwards. Faces are drawn as inline SVG with a written state label as well as colour, so nothing depends on imagining a reaction or on seeing a hue. Text-swappable: ROOM at the top of the script is the only content-specific part; keep at least one repair:true option or the dug-in rule has no exit. Q3 in part two is a deliberate challenge:+1 item and says so.',
+    height: 1600
+  },
+  {
     type: 'lesson',
     id:   'ENG12A-L01',
     course: 'English 12A',
@@ -445,7 +493,11 @@ const ENGINES = {
   'stage':         'Build it piece by piece',
   'commit-revise': 'Commit, argue, revise',
   'boss':          'Boss battle',
-  'chain':         'Name it, say what it does, aim it'
+  'chain':         'Name it, say what it does, aim it',
+  'repaint':       'Hit a target by word choice alone',
+  'case':          'Commit under uncertainty',
+  'sprint':        'Sixty-second retrieval drill',
+  'room':          'Persuade a room that remembers'
 };
 
 const base = location.href.replace(/index\.html$/, '').replace(/[?#].*$/, '').replace(/\/?$/, '/');

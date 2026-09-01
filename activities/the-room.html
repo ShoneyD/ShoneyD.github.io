@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<!--
+  THE ROOM — engine: room, variant: airfield
+
+  THE MECHANIC (this is the reusable part)
+    Six people with different reasons to care. The student makes three
+    rhetorical choices in sequence. After each one every face in the room
+    changes, and the change PERSISTS — so the third choice is made in a room
+    the first two choices built.
+
+    The rule that makes it teach rather than just react: a person pushed all
+    the way to "against you" is DUG IN, and no ordinary move can recover them.
+    Only a move flagged `repair` — a concession, a cost accepted, a limit put
+    in writing — reaches somebody who has stopped listening. That is the whole
+    second-order lesson and it is the only thing in the library that models it.
+
+    The appeal names (ethos / pathos / logos) are withheld until the end on
+    purpose. The student feels what each move did to six real people first,
+    and only then finds out what the move was called.
+
+  TO REJIGGER
+    Swap ROOM at the top of the script: the scenario, six people with their
+    starting positions and three reaction lines each, and three turns of three
+    options with per-person deltas. Nothing else is content-specific. Keep at
+    least one `repair:true` option or the dug-in rule has no exit.
+
+  DESIGN CONSTRAINTS HONOURED
+    - Faces are drawn on the page as SVG. Nothing asks the student to imagine
+      or picture anything — the reaction is visible, which is the point.
+    - Every state carries a written label as well as a colour and a face, so it
+      survives greyscale and colour-blindness.
+    - Taps only. Option order shuffles per turn.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Room</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --against:#a33a3a; --against-soft:#fbeaea; --gold:#c68a1a; --neutral:#7a828d; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:48rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  /* ---------- the scenario ---------- */
+  .scen{ background:var(--card); border:1px solid var(--line);
+        border-left:5px solid var(--accent); border-radius:10px;
+        padding:1rem 1.25rem; margin:0 0 1.25rem }
+  .scen .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin:0 0 .25rem }
+  .scen h3{ margin:0 0 .4rem; font-size:1.15rem }
+  .scen p{ margin:0 0 .4rem; font-size:.98rem }
+  .scen p:last-child{ margin-bottom:0; color:var(--soft); font-size:.92rem }
+
+  /* ---------- the room ---------- */
+  .roomgrid{ display:grid; gap:.7rem; grid-template-columns:repeat(2,1fr); margin:0 0 1.1rem }
+  @media(min-width:40rem){ .roomgrid{ grid-template-columns:repeat(3,1fr) } }
+  .person{ background:var(--card); border:2px solid var(--line); border-radius:12px;
+        padding:.75rem .6rem .8rem; text-align:center }
+  .person svg{ display:block; margin:0 auto .35rem }
+  .person .pname{ font-weight:700; font-size:.95rem; line-height:1.3 }
+  .person .prole{ font-size:.78rem; color:var(--soft); line-height:1.35; margin:.1rem 0 .4rem }
+  .person .pstate{ font-size:.72rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; border-radius:999px; padding:.12rem .55rem;
+        display:inline-block; border:1px solid }
+  .person .preact{ font-size:.82rem; color:var(--soft); margin:.45rem 0 0; min-height:2.4em;
+        line-height:1.4; font-style:italic }
+  .person.dug{ border-color:var(--against) }
+
+  .st-2{ color:var(--against); border-color:var(--against); background:var(--against-soft) }
+  .st-1{ color:var(--warn); border-color:#ddbf94; background:var(--warn-soft) }
+  .st0 { color:var(--neutral); border-color:var(--line); background:#f2efe9 }
+  .st1 { color:var(--calm); border-color:#c4e0d2; background:var(--calm-soft) }
+  .st2 { color:var(--calm); border-color:var(--calm); background:var(--calm-soft) }
+
+  .roomline{ font-size:.95rem; color:var(--soft); margin:0 0 1.1rem; text-align:center }
+  .roomline strong{ color:var(--ink) }
+
+  /* ---------- the turn ---------- */
+  .turnhead{ font-size:.75rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+        color:var(--accent); margin:1.4rem 0 .3rem }
+  .moves{ display:grid; gap:.6rem; grid-template-columns:1fr; margin:0 0 1rem }
+  .move{ text-align:left; font:inherit; font-size:1.02rem; cursor:pointer; color:var(--ink);
+        background:var(--card); border:2px solid var(--line); border-radius:10px;
+        padding:.85rem 1.05rem; line-height:1.5 }
+  .move:hover{ border-color:var(--accent); background:var(--accent-soft) }
+  .move .said{ display:block }
+  .move .kind{ display:none; font-size:.72rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--accent); margin-top:.4rem }
+  .move.revealed .kind{ display:block }
+  .move.chosen{ border-color:var(--accent); background:var(--accent-soft) }
+  .move[disabled]{ cursor:default; opacity:.65 }
+  .move.chosen[disabled]{ opacity:1 }
+
+  .log{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.85rem 1.1rem; margin:0 0 1.1rem }
+  .log .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .4rem }
+  .log ol{ margin:0; padding-left:1.3rem; font-size:.95rem }
+  .log li{ margin-bottom:.35rem }
+  .log .tag{ font-size:.72rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+        color:var(--accent); margin-left:.35rem }
+
+  .debrief{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.1rem 1.35rem; margin:1.25rem 0 }
+  .debrief h3{ margin:0 0 .5rem; font-size:1.15rem }
+  .debrief p{ margin:0 0 .7rem } .debrief p:last-child{ margin-bottom:0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The Room</h1>
+  <p class="sub">Six people. Three things you get to say. Nobody in here changes their mind for the same reason.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Read who is in the room and what each of them actually cares about.</li>
+      <li>Choose what you say. Watch every face — you will move some people and lose others with the same sentence.</li>
+      <li>The room does not reset between turns. What you say second lands in the room your first choice made.</li>
+    </ol>
+  </div>
+
+  <!-- ============ STAGE 1 — the room ============ -->
+  <section class="stage active" id="s1" data-title="Part 1 — The room">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1 — The room</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <div class="scen">
+        <p class="lab">Tonight</p>
+        <h3 id="scenTitle"></h3>
+        <p id="scenBody"></p>
+        <p id="scenGoal"></p>
+      </div>
+
+      <div class="roomgrid" id="room" aria-live="polite"></div>
+      <p class="roomline" id="roomline"></p>
+
+      <div id="turnHost"></div>
+
+      <div id="debriefHost"></div>
+
+      <div class="row" id="s1next" style="display:none">
+        <button class="btn go" onclick="RM.finishRoom()">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — written ============ -->
+  <section class="stage" id="s2" data-title="Part 2 — Read the room back">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2 — Read the room back</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — Read the room back</h2>
+      <p>The room is still above you — scroll up and look at it while you answer.</p>
+
+      <p class="q"><strong>Q1.</strong> Who was hardest to win over? Write the <strong>exact sentence</strong> you would have said to that one person. Not a description of it — the actual words.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q1. Who was hardest to win over, and what exact sentence would you have said to them?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q2.</strong> At least one thing you said helped somebody and cost you somebody else. Name both people, name the line, and say whether it was worth it.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q2. Which line helped one person and cost another? Name both, and say whether it was worth it." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q3.</strong> <em>This one is meant to be hard.</em> One of your three moves worked differently from the other two — it did not try to win the argument. What was it doing instead, and why does that reach somebody the other kind cannot?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. One move did not try to win the argument. What was it doing instead, and why does that reach somebody the other kind cannot?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="stems"><p class="lab">Sentence starters — use them if you want</p>
+        <p>• The hardest person was ____, because what they actually care about is ____.<br>
+           • Saying ____ brought ____ over, but it lost me ____.<br>
+           • That move was not arguing, it was ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">Don't worry about spelling here. Say it out loud first if that's easier.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s2')">Done with this part →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects what you said, where every person in the room ended up, and your three answers.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Part 1 — The room",
+    "questions": [
+      "Three turns of persuasion in front of six stakeholders with different starting positions and different reasons to care. Every choice changes every face and the state carries forward, so a person driven to 'against you' is dug in and only a concession-type move can reach them. Appeal names (ethos / pathos / logos) are revealed only after all three turns."
+    ] },
+  { "title": "Part 2 — Read the room back",
+    "questions": [
+      "Q1. Who was hardest to win over, and what exact sentence would you have said to them?",
+      "Q2. Which line helped one person and cost another? Name both, and say whether it was worth it.",
+      "Q3. One move did not try to win the argument. What was it doing instead, and why does that reach somebody the other kind cannot? (challenge:+1 item — flagged as meant to be hard)"
+    ] }
+]
+</script>
+
+<script>
+/* ==================================================================
+   CONTENT — the only text-specific part of this file.
+
+   PEOPLE: `start` is where they sit before you open your mouth (-2..+2).
+   `react` gives their voice for a move that helped them, hurt them, or did
+   nothing — three lines each, so six people cost eighteen lines, not fifty.
+
+   TURNS: each option carries per-person deltas. `repair:true` marks a move
+   that concedes something; it is the ONLY kind that can reach a person who
+   has been pushed all the way to "against you". Keep at least one.
+
+   `kind` is revealed at the end, never before.
+   ================================================================== */
+
+const ROOM = {
+  title: 'The second runway',
+  body: 'The council votes tonight on whether the airfield can add a second runway. You are for it. Six people in the room have a vote and not one of them wants the same thing.',
+  goal: 'You get three chances to speak. Choose carefully — nobody forgets what you said first.',
+
+  people: [
+    { id:'marisol', name:'Marisol Vega', role:'Flight instructor. Teaches teenagers to fly. Has been waiting nine years for this.',
+      start: 1,
+      react:{ up:'Marisol sits forward.', down:'Marisol looks down at her hands.', flat:'Marisol waits.' } },
+
+    { id:'dale', name:'Dale Brenner', role:'Lives under the approach. Works nights, sleeps days, and the circuit goes over his roof at eleven in the morning.',
+      start: -1,
+      react:{ up:'Dale stops shaking his head.', down:'Dale folds his arms.', flat:'Dale has not moved.' } },
+
+    { id:'priya', name:'Priya Raman', role:'Owns the diner out on the highway. Thinks about who comes through the door in February.',
+      start: 0,
+      react:{ up:'Priya writes something down.', down:'Priya sits back.', flat:'Priya is still listening. Just.' } },
+
+    { id:'curtis', name:'Curtis Okoye', role:'Teaches at the high school. Has watched three good students leave town in two years.',
+      start: 0,
+      react:{ up:'Mr Okoye nods, slowly.', down:'Mr Okoye looks at the ceiling.', flat:'Mr Okoye is waiting for the part that matters.' } },
+
+    { id:'june', name:'June Halloran', role:'Birder. The wetland is at the north end of the field. She has counted the herons every spring for thirty years.',
+      start: -1,
+      react:{ up:'June uncaps her pen.', down:'June shakes her head. Once.', flat:'June is unreadable.' } },
+
+    { id:'tom', name:'Tom Bevan', role:'Town budget officer. Wants to know what it costs and who is paying for it.',
+      start: 0,
+      react:{ up:'Tom asks how soon.', down:'Tom taps his pen twice.', flat:'Tom is waiting for a figure.' } }
+  ],
+
+  turns: [
+    { label: 'Your opening',
+      options: [
+        { id:'a', kind:'Ethos — who you are',
+          text:'"I have been flying out of this field since I was sixteen. I know every one of you by name."',
+          deltas:{ marisol:1, curtis:1, priya:0, dale:-1, june:-1, tom:0 } },
+        { id:'b', kind:'Logos — the numbers',
+          text:'"Two more jobs a year for ten years. Fuel, maintenance, training."',
+          deltas:{ tom:2, priya:1, marisol:1, dale:-1, june:-1, curtis:0 } },
+        { id:'c', kind:'Pathos — what it costs us',
+          text:'"Three of my students left town last year because there was nothing here for them."',
+          deltas:{ curtis:2, priya:1, marisol:1, tom:-1, dale:0, june:0 } }
+      ] },
+
+    { label: 'Somebody in the room is not with you. Your second move',
+      options: [
+        { id:'d', kind:'Concession — you give something up', repair:true,
+          text:'"The circuit can be moved north of the ridge. It costs more, and I think it is worth it."',
+          deltas:{ dale:2, june:1, tom:-1, marisol:0, priya:0, curtis:0 } },
+        { id:'e', kind:'Logos — the evidence',
+          text:'"The wetland survey was done last spring. Heron numbers were unchanged at the two nearest fields."',
+          deltas:{ june:2, tom:1, dale:-1, marisol:0, priya:0, curtis:0 } },
+        { id:'f', kind:'Pathos — the bigger picture',
+          text:'"Nobody in this room wants to be the town that let its last young people leave."',
+          deltas:{ curtis:2, priya:1, marisol:1, dale:-1, june:-1, tom:0 } }
+      ] },
+
+    { label: 'Last thing you get to say',
+      options: [
+        { id:'g', kind:'Logos — the figure, finally',
+          text:'"Four hundred thousand. None of it from the town — it is a state grant, and we are already approved."',
+          deltas:{ tom:2, priya:1, curtis:1, dale:0, june:0, marisol:0 } },
+        { id:'h', kind:'Concession — in writing', repair:true,
+          text:'"I will put the noise limits in writing, and I will sign it tonight."',
+          deltas:{ dale:2, june:1, marisol:-1, tom:0, priya:0, curtis:0 } },
+        { id:'i', kind:'Pathos — the long view',
+          text:'"Ask yourselves what this town looks like in ten years with it, and without it."',
+          deltas:{ curtis:1, priya:1, marisol:1, tom:-1, dale:-1, june:-1 } }
+      ] }
+  ]
+};
+
+const STATES = {
+  '-2': { label:'Against you', cls:'st-2' },
+  '-1': { label:'Doubtful',    cls:'st-1' },
+   '0': { label:'Undecided',   cls:'st0'  },
+   '1': { label:'Listening',   cls:'st1'  },
+   '2': { label:'With you',    cls:'st2'  }
+};
+
+/* ================= END OF CONTENT ================= */
+
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const NUMWORD = ['Nobody','One person','Two people','Three people','Four people',
+  'Five people','Six people','Seven people','Eight people'];
+
+/* A face drawn from the state, so the reaction is on the page rather than in
+   the student's head. Mouth curve and brow angle both move; the written label
+   underneath carries the same information for anyone who cannot see either. */
+function faceSvg(state, name){
+  const curve = state * 3.2;                 /* +ve control point sits lower = smile */
+  const brow  = -state * 1.9;                /* inner brow end drops when hostile */
+  const ring  = { '-2':'#a33a3a', '-1':'#a8641b', '0':'#7a828d', '1':'#2e7d5b', '2':'#2e7d5b' }[String(state)];
+  const width = state === 2 ? 3 : 2;
+  return '' +
+  '<svg viewBox="0 0 50 50" width="58" height="58" role="img" aria-label="' +
+      name + ': ' + STATES[String(state)].label + '">' +
+    '<circle cx="25" cy="25" r="18" fill="#fffdfa" stroke="' + ring + '" stroke-width="' + width + '"/>' +
+    '<circle cx="19" cy="22" r="1.9" fill="#22252a"/>' +
+    '<circle cx="31" cy="22" r="1.9" fill="#22252a"/>' +
+    '<line x1="15" y1="' + (17 - brow) + '" x2="22" y2="' + (17 + brow) + '" ' +
+        'stroke="#22252a" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="35" y1="' + (17 - brow) + '" x2="28" y2="' + (17 + brow) + '" ' +
+        'stroke="#22252a" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<path d="M 17 33 Q 25 ' + (33 + curve) + ' 33 33" fill="none" ' +
+        'stroke="#22252a" stroke-width="2" stroke-linecap="round"/>' +
+  '</svg>';
+}
+
+const RM = {
+  state: {},        /* personId -> -2..2 */
+  reaction: {},     /* personId -> line shown under the face */
+  turn: 0,
+  chosen: [],       /* option objects, in order */
+  done: false,
+
+  init(){
+    document.getElementById('scenTitle').textContent = ROOM.title;
+    document.getElementById('scenBody').textContent  = ROOM.body;
+    document.getElementById('scenGoal').textContent  = ROOM.goal;
+    ROOM.people.forEach(p => { RM.state[p.id] = p.start; RM.reaction[p.id] = ''; });
+    RM.renderRoom();
+    RM.renderTurn();
+  },
+
+  renderRoom(){
+    document.getElementById('room').innerHTML = ROOM.people.map(p => {
+      const s = RM.state[p.id];
+      const st = STATES[String(s)];
+      const dug = (s <= -2) ? ' dug' : '';
+      return '<div class="person' + dug + '">' +
+        faceSvg(s, p.name) +
+        '<p class="pname">' + p.name + '</p>' +
+        '<p class="prole">' + p.role + '</p>' +
+        '<span class="pstate ' + st.cls + '">' + st.label + '</span>' +
+        '<p class="preact">' + (RM.reaction[p.id] || '') + '</p>' +
+      '</div>';
+    }).join('');
+
+    const withYou = ROOM.people.filter(p => RM.state[p.id] >= 1).length;
+    const against = ROOM.people.filter(p => RM.state[p.id] <= -2).length;
+    let line = '<strong>' + NUMWORD[withYou] + '</strong> ' +
+      (withYou === 1 ? 'is' : 'are') + ' with you or listening.';
+    if (against) line += ' <strong>' + NUMWORD[against] + '</strong> ' +
+      (against === 1 ? 'has' : 'have') + ' stopped listening altogether.';
+    document.getElementById('roomline').innerHTML = line;
+  },
+
+  renderTurn(){
+    if (RM.turn >= ROOM.turns.length){ RM.close(); return; }
+    const t = ROOM.turns[RM.turn];
+    const opts = shuffle(t.options);
+    document.getElementById('turnHost').innerHTML =
+      RM.logHtml() +
+      '<p class="turnhead">' + t.label + '</p>' +
+      '<div class="moves" id="moves">' +
+        opts.map(o => '<button type="button" class="move" data-id="' + o.id + '">' +
+          '<span class="said">' + o.text + '</span>' +
+          '<span class="kind">' + o.kind + '</span></button>').join('') +
+      '</div>';
+
+    document.getElementById('moves').addEventListener('click', e => {
+      const b = e.target.closest('.move'); if (!b) return;
+      RM.play(t.options.find(o => o.id === b.dataset.id));
+    });
+  },
+
+  logHtml(){
+    if (!RM.chosen.length) return '';
+    return '<div class="log"><p class="lab">What you have said so far</p><ol>' +
+      RM.chosen.map(o => '<li>' + o.text +
+        (RM.done ? '<span class="tag">' + o.kind + '</span>' : '') + '</li>').join('') +
+      '</ol></div>';
+  },
+
+  play(opt){
+    ROOM.people.forEach(p => {
+      let d = opt.deltas[p.id] || 0;
+      const before = RM.state[p.id];
+
+      /* THE RULE: somebody at "against you" has stopped listening. Only a
+         move that concedes something can reach them. Ordinary moves can still
+         make it worse, never better. */
+      const dugIn = before <= -2;
+      if (dugIn && !opt.repair && d > 0) d = 0;
+
+      const after = Math.max(-2, Math.min(2, before + d));
+      RM.state[p.id] = after;
+
+      if (after > before)      RM.reaction[p.id] = p.react.up;
+      else if (after < before) RM.reaction[p.id] = p.react.down;
+      else if (dugIn && !opt.repair && (opt.deltas[p.id] || 0) > 0)
+        RM.reaction[p.id] = p.react.flat + ' Whatever that was, it did not reach them.';
+      else                     RM.reaction[p.id] = p.react.flat;
+    });
+
+    RM.chosen.push(opt);
+    RM.turn++;
+    RM.renderRoom();
+    RM.renderTurn();
+    document.getElementById('roomline').scrollIntoView({behavior:'smooth', block:'center'});
+  },
+
+  close(){
+    RM.done = true;
+
+    const withYou = ROOM.people.filter(p => RM.state[p.id] >= 1);
+    const lost    = ROOM.people.filter(p => RM.state[p.id] <= -2);
+    const hardest = ROOM.people.slice().sort((a, b) => RM.state[a.id] - RM.state[b.id])[0];
+    const usedRepair = RM.chosen.some(o => o.repair);
+
+    document.getElementById('turnHost').innerHTML = RM.logHtml();
+
+    let body =
+      '<p>Those three lines have names, and they are showing now beside each one above. ' +
+      'You did not need the names while you were choosing — you could see what each one did to six faces, ' +
+      'which is the thing the names are only a shorthand for.</p>';
+
+    if (lost.length){
+      body += '<p><strong>' + lost.map(p => p.name.split(' ')[0]).join(' and ') + '</strong> ' +
+        (lost.length === 1 ? 'stopped' : 'stopped') + ' listening. ' +
+        (usedRepair
+          ? 'You did try giving something up, which is the only move that reaches somebody once they are there. It did not go far enough here — but it was the right kind of move.'
+          : 'Once somebody is there, no argument reaches them, however good it is. Look back at the three things you said: <strong>none of them gave anything up.</strong> That is the move that was missing.') +
+        '</p>';
+    } else {
+      body += '<p>You did not lose anybody completely, which is harder than it looks in a room this mixed.</p>';
+    }
+
+    body += '<p>The hardest person in the room was <strong>' + hardest.name + '</strong>. ' +
+      'Before you answer the next part, read their line again — what they care about is written right there, ' +
+      'and it is not what you were arguing about.</p>';
+
+    document.getElementById('debriefHost').innerHTML =
+      '<div class="debrief"><h3>The vote is called.</h3>' + body +
+      '<p style="color:var(--soft);font-size:.93rem">' + NUMWORD[withYou.length] + ' ' +
+      (withYou.length === 1 ? 'is' : 'are') + ' with you or listening.</p></div>';
+
+    RM.recordEvidence();
+    document.getElementById('s1next').style.display = 'flex';
+  },
+
+  recordEvidence(){
+    const said = RM.chosen.map((o, i) => '  ' + (i + 1) + '. ' + o.text + '   [' + o.kind + ']').join('\n');
+    const ends = ROOM.people.map(p =>
+      '  ' + p.name + ': ' + STATES[String(RM.state[p.id])].label).join('\n');
+    LL.extra.s1 = 'THE ROOM — ' + ROOM.title + '\nWHAT THEY SAID:\n' + said +
+      '\nWHERE THE ROOM ENDED UP:\n' + ends;
+    const withYou = ROOM.people.filter(p => RM.state[p.id] >= 1).length;
+    LL.summary.s1 = NUMWORD[withYou].toLowerCase() + ' with them at the vote';
+  },
+
+  finishRoom(){ LL.finish('s1'); }
+};
+
+/* ================= SHARED STAGE ENGINE ================= */
+const ACTIVITY_TITLE = 'The Room — Audience, Appeal and What a Choice Costs';
+const ORDER = ['s1','s2'];
+const REWARDS = {
+  s1: { star:'★', msg:'You worked a room where nobody wanted the same thing.' },
+  s2: { star:'★', msg:'All done — go turn it in.' }
+};
+
+const LL = {
+  extra: {}, summary: {}, done: new Set(),
+
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
+RM.init();
+</script>
+</body>
+</html>
