@@ -45,6 +45,15 @@
 
   --gold:#f2c75c;        /* earned stars                               */
   --hl:#4a3d12;          /* highlighted words inside running text      */
+
+  /* Type. Atkinson Hyperlegible is the dyslexia-friendly face and is loaded
+     from Google Fonts by every page; the two system Korean faces sit next in
+     line so Hangul renders offline, with Noto Sans KR as the web fallback.
+     Latin glyphs still come from Atkinson — fallback is per glyph, not per
+     stack. Change the stack here, not in a page. */
+  --font-body:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo",
+              "Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+  --font-mono:Consolas,"Courier New",monospace;
 }
 
 :root[data-theme="light"]{
@@ -59,7 +68,7 @@
 *{box-sizing:border-box}
 
 body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
-        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-family:var(--font-body);
         font-size:19px; line-height:1.7 }
 
 .wrap{ max-width:46rem; margin:0 auto }
@@ -105,9 +114,9 @@ h3{ font-size:1rem; margin:1.25rem 0 .5rem }
 
 .outcomes li{ margin-bottom:.3rem }
 
-.outcomes .oid{ font-family:Consolas,monospace; font-size:.8rem; color:var(--soft) }
+.outcomes .oid{ font-family:var(--font-mono); font-size:.8rem; color:var(--soft) }
 
-.lessonid{ font-family:Consolas,monospace; font-size:.8rem; color:var(--soft);
+.lessonid{ font-family:var(--font-mono); font-size:.8rem; color:var(--soft);
         letter-spacing:.03em }
 
 .partsep{ margin:2.5rem 0 1.25rem; padding-top:1.25rem; border-top:2px solid var(--line);
@@ -204,7 +213,7 @@ details.sheet table{ width:100%; border-collapse:collapse; margin:.75rem 0 0; fo
 
 .preview.show{ display:block }
 
-.preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+.preview textarea{ width:100%; min-height:12rem; font-family:var(--font-mono);
         font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
         border:1px solid var(--line); background:var(--field); color:var(--ink); resize:vertical }
 

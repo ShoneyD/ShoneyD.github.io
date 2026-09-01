@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<!--
+  KOREAN JOURNAL — hosted reference sheet. Student-neutral, public repo.
+  No student name, no student ID, no teacher notes.
+
+  This is a RESOURCE, not a lesson: there is nothing to type into it. The
+  writing happens on paper, on purpose. It links lesson.css for the palette
+  and theme.js for the light/dark button, and deliberately does NOT load
+  lesson.js, which is the lesson engine and needs PARTS to exist.
+
+  THE BANKS ARE THE ONLY THING THAT CHANGES. Bank A, Bank B and Bank C below
+  are the content; everything else is the routine and stays put. When a lesson
+  unlocks new letters, words move up a bank and the page is current again.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Korean Journal</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+/* Rules specific to this resource. The shared sheet is linked above. */
+
+.why{ background:var(--accent-soft); border:1px solid var(--accent-line);
+      border-radius:10px; padding:.9rem 1.15rem; margin:0 0 1.75rem }
+.why p{ margin:0 }
+
+.move{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+       padding:1rem 1.2rem; margin:0 0 .8rem; display:grid;
+       grid-template-columns:2.6rem 1fr; gap:0 1rem; align-items:start }
+.move .n{ grid-row:1 / span 3; font-size:1.5rem; font-weight:700;
+          color:var(--accent); line-height:1.2 }
+.move h3{ margin:0; font-size:1.02rem }
+.move .mins{ font-size:.8rem; color:var(--soft); font-weight:400 }
+.move p{ margin:.35rem 0 0; font-size:.95rem }
+.move .say{ margin:.5rem 0 0; font-size:.92rem; color:var(--soft);
+            border-left:3px solid var(--warn-line); padding-left:.7rem }
+
+.bank{ border:1px solid var(--line); border-radius:10px; padding:1rem 1.2rem;
+       margin:0 0 1rem; background:var(--card) }
+.bank .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft); margin:0 0 .2rem }
+.bank .note{ margin:0 0 .8rem; font-size:.88rem; color:var(--soft) }
+.bank.locked{ opacity:.55 }
+.bank.locked .w{ border-style:dashed }
+
+.words{ display:flex; flex-wrap:wrap; gap:.5rem; margin:0 }
+.w{ border:1px solid var(--line); border-radius:8px; padding:.45rem .7rem;
+    background:var(--field); min-width:5.5rem }
+.w .kr{ display:block; font-size:1.35rem; font-weight:700; line-height:1.3 }
+.w .en{ display:block; font-size:.78rem; color:var(--soft) }
+
+.dots{ background:var(--warn-soft); border:1px dashed var(--warn-line);
+       border-radius:8px; padding:.9rem 1.15rem; margin:1.5rem 0 }
+.dots .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--warn); margin:0 0 .35rem }
+.dots p{ margin:0 0 .4rem }
+.dots p:last-child{ margin:0 }
+
+figure{ margin:1.5rem 0 }
+figcaption{ font-size:.85rem; color:var(--soft); margin-top:.5rem; line-height:1.45 }
+svg{ max-width:100%; height:auto; display:block }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The Korean Journal</h1>
+<p class="sub">Ten minutes. One page. Every day.</p>
+
+<div class="why">
+  <p><strong>Why on paper.</strong> Every Korean word you have written so far, you
+  built by clicking blocks that were already made. That proves you can
+  <em>recognise</em> a syllable. It does not prove you can <em>make</em> one — and
+  making one is the thing a keyboard will never teach you. Your hand has to learn
+  the shape. So this one is a pen and a notebook, and it is the fastest ten
+  minutes in the week.</p>
+</div>
+
+<h2>The page</h2>
+
+<figure>
+<svg viewBox="0 0 640 300" role="img"
+     aria-labelledby="pagetitle pagedesc">
+  <title id="pagetitle">One day's journal page, divided into four numbered sections</title>
+  <desc id="pagedesc">A notebook page split into four blocks. Block one, top left,
+  holds five Korean words copied out with the English beside them, one marked with
+  a small dot. Block two, top right, holds the same five words with the English
+  covered. Block three, bottom left, holds three Korean words written from sound
+  alone. Block four, bottom right, is blank apart from one line of the writer's own
+  Korean.</desc>
+
+  <rect x="8" y="8" width="624" height="284" rx="10"
+        fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+  <line x1="320" y1="20" x2="320" y2="280" stroke="var(--line)" stroke-width="2"/>
+  <line x1="20" y1="150" x2="620" y2="150" stroke="var(--line)" stroke-width="2"/>
+
+  <!-- 1 -->
+  <text x="34" y="44" font-size="19" font-weight="700" fill="var(--accent)">1</text>
+  <text x="56" y="44" font-size="14" font-weight="700" fill="var(--ink)">Copy 5</text>
+  <text x="34" y="72" font-size="18" fill="var(--ink)">가수</text>
+  <text x="92" y="72" font-size="12" fill="var(--soft)">singer</text>
+  <text x="34" y="98" font-size="18" fill="var(--ink)">노래</text>
+  <text x="92" y="98" font-size="12" fill="var(--soft)">song</text>
+  <text x="34" y="124" font-size="18" fill="var(--ink)">바다</text>
+  <text x="92" y="124" font-size="12" fill="var(--soft)">sea</text>
+  <circle cx="150" cy="119" r="4" fill="var(--warn)"/>
+
+  <!-- 2 -->
+  <text x="346" y="44" font-size="19" font-weight="700" fill="var(--accent)">2</text>
+  <text x="368" y="44" font-size="14" font-weight="700" fill="var(--ink)">Read 5 out loud</text>
+  <text x="346" y="72" font-size="18" fill="var(--ink)">가수</text>
+  <rect x="400" y="60" width="70" height="15" rx="3" fill="var(--line)"/>
+  <text x="346" y="98" font-size="18" fill="var(--ink)">노래</text>
+  <rect x="400" y="86" width="70" height="15" rx="3" fill="var(--line)"/>
+  <text x="346" y="124" font-size="18" fill="var(--ink)">바다</text>
+  <rect x="400" y="112" width="70" height="15" rx="3" fill="var(--line)"/>
+  <circle cx="490" cy="119" r="4" fill="var(--warn)"/>
+  <text x="504" y="124" font-size="11" fill="var(--soft)">didn't come straight away</text>
+
+  <!-- 3 -->
+  <text x="34" y="186" font-size="19" font-weight="700" fill="var(--accent)">3</text>
+  <text x="56" y="186" font-size="14" font-weight="700" fill="var(--ink)">Write 3 from sound</text>
+  <text x="34" y="216" font-size="12" fill="var(--soft)">heard "u-ri"</text>
+  <text x="140" y="218" font-size="18" fill="var(--ink)">우리</text>
+  <text x="34" y="244" font-size="12" fill="var(--soft)">heard "a-i-yu"</text>
+  <text x="140" y="246" font-size="18" fill="var(--ink)">아이유</text>
+  <text x="34" y="272" font-size="12" fill="var(--soft)">heard "ha-na"</text>
+  <text x="140" y="274" font-size="18" fill="var(--ink)">하나</text>
+
+  <!-- 4 -->
+  <text x="346" y="186" font-size="19" font-weight="700" fill="var(--accent)">4</text>
+  <text x="368" y="186" font-size="14" font-weight="700" fill="var(--ink)">One line of your own</text>
+  <text x="346" y="220" font-size="18" fill="var(--ink)">지수 노래</text>
+  <line x1="346" y1="248" x2="600" y2="248" stroke="var(--line)" stroke-width="1"/>
+  <line x1="346" y1="272" x2="600" y2="272" stroke="var(--line)" stroke-width="1"/>
+</svg>
+<figcaption>One page, four blocks, ten minutes. The dot in blocks 1 and 2 is the
+whole memory system — see below. Block 4 is the only one with no right answer,
+and it is the one that makes this a journal instead of a worksheet.</figcaption>
+</figure>
+
+<h2>The four moves</h2>
+
+<div class="move">
+  <span class="n">1</span>
+  <h3>Copy five <span class="mins">· about 2 minutes</span></h3>
+  <p>Five words from the bank, Korean and English, in your own handwriting. Say
+  each one out loud <em>as you write it</em> — not before, not after. Sound and
+  hand at the same time is the whole trick.</p>
+  <p class="say">Start with any word carrying dots from earlier pages. Those are
+  the ones your brain has flagged.</p>
+</div>
+
+<div class="move">
+  <span class="n">2</span>
+  <h3>Read five out loud <span class="mins">· about 2 minutes</span></h3>
+  <p>Cover the English with your hand. Read the five Korean words aloud. Any word
+  that did not come to you <strong>instantly</strong> gets a small dot beside it.
+  Not wrong — just slow. Slow is the thing worth catching.</p>
+  <p class="say">Instantly means instantly. If you had to work it out letter by
+  letter, that is a dot, even though you got it right.</p>
+</div>
+
+<div class="move">
+  <span class="n">3</span>
+  <h3>Write three from sound <span class="mins">· about 3 minutes</span></h3>
+  <p>Three words you are <em>not</em> looking at. Pick them from yesterday's page,
+  or have someone say them to you. Hear the sounds, build the blocks, write it.
+  Then check.</p>
+  <p class="say">This is the only move that can actually go wrong, and that is the
+  point of it — the other three you can do half asleep. Getting one wrong here is
+  worth more than getting five right in move 1.</p>
+</div>
+
+<div class="move">
+  <span class="n">4</span>
+  <h3>One line of your own <span class="mins">· about 3 minutes</span></h3>
+  <p>Anything, as long as you chose it and it is in Hangul. A name. Two words that
+  sound good together. A lyric you can spell. A list of the things in your room
+  you have letters for. It does <strong>not</strong> have to be correct Korean and
+  it does not have to be a sentence.</p>
+  <p class="say">If you are stuck, write the name of something you watched or
+  listened to this week. There is almost always one you can spell.</p>
+</div>
+
+<div class="dots">
+  <p class="lab">The dot system</p>
+  <p>A dot means <em>that one was slow</em>. Dots are the only record you keep and
+  they run the whole thing.</p>
+  <p><strong>Three dots on one word</strong> → it goes to the front of tomorrow's
+  copy-five, and it stays there until it stops collecting them.</p>
+  <p><strong>No dots for a week</strong> → that word is done. Stop writing it.</p>
+</div>
+
+<div class="done-look">
+  <p class="lab">Done looks like</p>
+  <p>One dated page. Five words copied, five read aloud, three written without
+  looking, one line that was your idea. If it took more than about twelve minutes,
+  you did too much — cut move 1 to three words, not move 4.</p>
+</div>
+
+<h2>Word bank</h2>
+<p class="sub">Everything here is built only from letters you have, with no
+consonant at the bottom of the block. Pick your five from Bank A and Bank B.</p>
+
+<div class="bank">
+  <p class="lab">Bank A — you have had these a while</p>
+  <p class="note">Every letter in these words was taught in your first two lessons.</p>
+  <div class="words">
+    <span class="w"><span class="kr">가수</span><span class="en">singer</span></span>
+    <span class="w"><span class="kr">가사</span><span class="en">lyrics</span></span>
+    <span class="w"><span class="kr">나무</span><span class="en">tree</span></span>
+    <span class="w"><span class="kr">아기</span><span class="en">baby</span></span>
+    <span class="w"><span class="kr">오이</span><span class="en">cucumber</span></span>
+    <span class="w"><span class="kr">고기</span><span class="en">meat</span></span>
+    <span class="w"><span class="kr">어머니</span><span class="en">mother</span></span>
+    <span class="w"><span class="kr">미소</span><span class="en">a smile</span></span>
+    <span class="w"><span class="kr">우리</span><span class="en">we / our</span></span>
+    <span class="w"><span class="kr">바다</span><span class="en">sea</span></span>
+    <span class="w"><span class="kr">하나</span><span class="en">one</span></span>
+    <span class="w"><span class="kr">머리</span><span class="en">head, hair</span></span>
+    <span class="w"><span class="kr">다리</span><span class="en">leg, bridge</span></span>
+    <span class="w"><span class="kr">바지</span><span class="en">trousers</span></span>
+    <span class="w"><span class="kr">하루</span><span class="en">one day</span></span>
+    <span class="w"><span class="kr">나비</span><span class="en">butterfly</span></span>
+    <span class="w"><span class="kr">두부</span><span class="en">tofu</span></span>
+    <span class="w"><span class="kr">라디오</span><span class="en">radio</span></span>
+    <span class="w"><span class="kr">드라마</span><span class="en">drama</span></span>
+    <span class="w"><span class="kr">지수</span><span class="en">Jisoo</span></span>
+    <span class="w"><span class="kr">리노</span><span class="en">Lee Know</span></span>
+    <span class="w"><span class="kr">그리다</span><span class="en">to draw</span></span>
+  </div>
+</div>
+
+<div class="bank">
+  <p class="lab">Bank B — the new vowels</p>
+  <p class="note">ㅑ ㅕ ㅛ ㅠ and ㅐ ㅔ. You met these in class rather than in a
+  lesson, so they are the ones most worth putting on the page. Take at least two
+  of your five from here.</p>
+  <div class="words">
+    <span class="w"><span class="kr">노래</span><span class="en">song</span></span>
+    <span class="w"><span class="kr">아이유</span><span class="en">IU</span></span>
+    <span class="w"><span class="kr">제니</span><span class="en">Jennie</span></span>
+    <span class="w"><span class="kr">여자</span><span class="en">woman</span></span>
+    <span class="w"><span class="kr">야구</span><span class="en">baseball</span></span>
+    <span class="w"><span class="kr">개</span><span class="en">dog</span></span>
+    <span class="w"><span class="kr">새</span><span class="en">bird</span></span>
+    <span class="w"><span class="kr">배</span><span class="en">pear, boat</span></span>
+    <span class="w"><span class="kr">우유</span><span class="en">milk</span></span>
+    <span class="w"><span class="kr">요리</span><span class="en">cooking</span></span>
+    <span class="w"><span class="kr">교수</span><span class="en">professor</span></span>
+    <span class="w"><span class="kr">여기</span><span class="en">here</span></span>
+    <span class="w"><span class="kr">저기</span><span class="en">over there</span></span>
+    <span class="w"><span class="kr">유리</span><span class="en">glass</span></span>
+    <span class="w"><span class="kr">네</span><span class="en">yes</span></span>
+    <span class="w"><span class="kr">아니요</span><span class="en">no</span></span>
+  </div>
+</div>
+
+<div class="bank locked">
+  <p class="lab">Bank C — locked</p>
+  <p class="note">Not yet. These need the next set of consonants — the ones made
+  by pushing air, and the ones made by tightening. One lesson away. This bank is
+  here so you can see what it buys you.</p>
+  <div class="words">
+    <span class="w"><span class="kr">커피</span><span class="en">coffee</span></span>
+    <span class="w"><span class="kr">코</span><span class="en">nose</span></span>
+    <span class="w"><span class="kr">토마토</span><span class="en">tomato</span></span>
+    <span class="w"><span class="kr">차</span><span class="en">tea, car</span></span>
+    <span class="w"><span class="kr">치마</span><span class="en">skirt</span></span>
+    <span class="w"><span class="kr">오빠</span><span class="en">older brother</span></span>
+    <span class="w"><span class="kr">아빠</span><span class="en">dad</span></span>
+    <span class="w"><span class="kr">짜다</span><span class="en">salty</span></span>
+  </div>
+</div>
+
+<h2>Once a week</h2>
+<p>On the last page of the week, take the five words with the most dots and write
+them from sound alone, with the notebook closed on every other page. That is the
+only test in the whole system, you set it yourself, and it is over in two minutes.</p>
+
+<div class="done-look">
+  <p class="lab">Bring to the lesson</p>
+  <p>The notebook, open at the week's pages. The first two minutes of class are
+  the dotted words, out loud.</p>
+</div>
+
+<script type="application/json" id="qsummary">
+{
+  "title": "The Korean Journal",
+  "kind": "resource — paper homework routine, nothing typed here",
+  "prompts": [
+    "Copy five words from the bank, saying each aloud as you write it.",
+    "Cover the English and read the same five aloud. Dot any that were slow.",
+    "Write three words from sound alone, without looking.",
+    "Write one line of your own Hangul — anything you chose.",
+    "Weekly: write the five most-dotted words from sound, notebook closed."
+  ]
+}
+</script>
+
+<script src="../assets/theme.js"></script>
+</body>
+</html>
