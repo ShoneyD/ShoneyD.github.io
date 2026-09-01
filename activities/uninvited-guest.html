@@ -6,7 +6,8 @@
   Lines seed the two texts read after it (Dickinson; Poe's masquerade) without
   giving either away. RAW_LINES and RAW_DEVICES are the only text-specific parts.
   Built from templates/activity-shell.html — stages, earned stars, turn-in panel.
-  Everything inline. No localStorage. No drag (tap/keyboard only).
+  Everything inline. No drag (tap/keyboard only). Saving/restoring is
+  handled centrally by assets/student.js - never add localStorage here.
 -->
 <html lang="en">
 <head>
@@ -725,5 +726,6 @@ document.getElementById('showPrev').addEventListener('click', () => {
   document.getElementById('preview').classList.toggle('show');
 });
 </script>
+<script src="../assets/student.js"></script>
 </body>
 </html>

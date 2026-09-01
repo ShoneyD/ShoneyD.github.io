@@ -3,7 +3,8 @@
   LESSON LAB — hosted activity (tier 3). Dark gothic theme.
   Terror vs. Horror + four Gothic literary devices.
   Built from templates/activity-shell.html — stages, earned stars, turn-in panel.
-  Everything inline. No localStorage. No drag (tap/keyboard only).
+  Everything inline. No drag (tap/keyboard only). Saving/restoring is
+  handled centrally by assets/student.js - never add localStorage here.
 -->
 <html lang="en">
 <head>
@@ -612,5 +613,6 @@ document.getElementById('showPrev').addEventListener('click', () => {
   document.getElementById('preview').classList.toggle('show');
 });
 </script>
+<script src="../assets/student.js"></script>
 </body>
 </html>
