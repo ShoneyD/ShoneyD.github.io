@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage — state lives in JS variables.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG11A-L02 · Two Sides, Three Witnesses</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:1rem 0 }
+
+.abox select{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink);
+        width:100%; max-width:100% }
+
+.abox select:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+/* pre-taught words, always BEFORE the passage, never a glossary after it */
+.vocab{ background:var(--warn-soft); border:1px solid var(--warn-line);
+        border-radius:10px; padding:.85rem 1.1rem; margin:1.25rem 0 }
+
+.vocab .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .5rem }
+
+.vocab dl{ margin:0; display:grid; grid-template-columns:auto 1fr; gap:.35rem 1rem }
+
+.vocab dt{ font-weight:700; color:var(--warn) }
+
+.vocab dd{ margin:0; font-size:.96rem }
+
+@media (max-width:560px){ .vocab dl{ grid-template-columns:1fr } .vocab dd{ margin:0 0 .5rem } }
+
+/* the research question, boxed so it never scrolls out of mind */
+.rq{ background:var(--accent-soft); border:1px solid var(--accent-line);
+        border-radius:10px; padding:.85rem 1.1rem; margin:1.25rem 0 }
+
+.rq .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin:0 0 .25rem }
+
+.rq p.big{ font-size:1.05rem; font-weight:700; margin:0 }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+/* a source card. The kind is written in words as well as coloured. */
+.srcs{ display:grid; gap:.7rem; margin:1.25rem 0 }
+
+.src{ background:var(--card); border:1px solid var(--line); border-left:5px solid var(--line);
+        border-radius:10px; padding:.8rem 1rem }
+
+.src .kind{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .3rem }
+
+.src p.txt{ margin:0; font-size:.97rem }
+
+.src p.does{ margin:.45rem 0 0; font-size:.88rem; color:var(--soft) }
+
+.src.primary{ border-left-color:var(--warn) }      .src.primary .kind{ color:var(--warn) }
+
+.src.secondary{ border-left-color:var(--accent) }  .src.secondary .kind{ color:var(--accent) }
+
+.src.commentary{ border-left-color:var(--calm) }   .src.commentary .kind{ color:var(--calm) }
+
+.worked{ background:var(--calm-soft); border:1px solid var(--calm-line);
+        border-radius:10px; padding:.85rem 1.1rem; margin:1.25rem 0 }
+
+.worked .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--calm); margin:0 0 .35rem }
+
+.worked p{ margin:0 0 .5rem; font-size:.97rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+/* the three thesis options in the homework */
+.choices{ display:grid; gap:.75rem; margin:1.25rem 0 }
+
+.choice{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.85rem 1.05rem }
+
+.choice .tag{ display:block; font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin:0 0 .25rem }
+
+.choice h3{ font-size:1.02rem; margin:0 0 .35rem; line-height:1.45 }
+
+.choice p.push{ margin:0; font-size:.9rem; color:var(--soft) }
+
+details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1.5rem 0 }
+
+details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.sheet table{ width:100%; border-collapse:collapse; margin:.85rem 0 0; font-size:.93rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.45rem .65rem; vertical-align:top }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG11A-L02</p>
+  <h1 id="pagetitle">English 11A · Lesson 2</h1>
+  <p class="sub" id="pagesub">Two sides, three witnesses.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Three kinds of witness">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Three kinds of witness</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Three kinds of witness</h2>
+
+      <div class="vocab">
+        <p class="lab">Four words, before we start</p>
+        <dl>
+          <dt>claim</dt><dd>a sentence somebody could argue with</dd>
+          <dt>refute</dt><dd>to push against a claim &mdash; to say it is wrong</dd>
+          <dt>thesis</dt><dd>the one claim your whole essay is trying to prove</dd>
+          <dt>source</dt><dd>where a piece of evidence came from, and who it came from</dd>
+        </dl>
+      </div>
+
+      <p>Every source you will ever use got what it knows in one of three ways. That is the
+         whole system, and it is worth having in your head before you go looking for anything.</p>
+
+      <figure class="dia">
+      <svg viewBox="0 0 700 215" role="img" aria-label="Three kinds of source in a chain, left to right. First: from the moment itself, a primary source, made while it was happening. An arrow labelled later, someone studies it, leads to the second: someone who looked into it, a secondary source, which reports what they found. A second arrow labelled later still, someone argues about it, leads to the third: someone arguing about what it means, called commentary, which adds no new facts and argues about the meaning." style="width:100%;height:auto;display:block">
+        <text x="229" y="22" text-anchor="middle" font-size="12.5" fill="var(--soft)">later, someone studies it</text>
+        <text x="471" y="22" text-anchor="middle" font-size="12.5" fill="var(--soft)">later still, someone argues about it</text>
+
+        <rect x="8" y="40" width="200" height="120" rx="10" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="2"/>
+        <text x="108" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="var(--warn)">FROM THE MOMENT</text>
+        <text x="108" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="var(--warn)">ITSELF</text>
+        <text x="108" y="109" text-anchor="middle" font-size="12.5" fill="var(--soft)">(primary source)</text>
+        <text x="108" y="133" text-anchor="middle" font-size="12.5" fill="var(--ink)">made while it was</text>
+        <text x="108" y="149" text-anchor="middle" font-size="12.5" fill="var(--ink)">happening</text>
+
+        <path d="M214 100 H240" stroke="var(--soft)" stroke-width="3"/>
+        <path d="M248 100 l-12 -8 v16 z" fill="var(--soft)"/>
+
+        <rect x="250" y="40" width="200" height="120" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="350" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)">SOMEONE WHO</text>
+        <text x="350" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)">LOOKED INTO IT</text>
+        <text x="350" y="109" text-anchor="middle" font-size="12.5" fill="var(--soft)">(secondary source)</text>
+        <text x="350" y="133" text-anchor="middle" font-size="12.5" fill="var(--ink)">studied it afterwards,</text>
+        <text x="350" y="149" text-anchor="middle" font-size="12.5" fill="var(--ink)">reports what it found</text>
+
+        <path d="M456 100 H482" stroke="var(--soft)" stroke-width="3"/>
+        <path d="M490 100 l-12 -8 v16 z" fill="var(--soft)"/>
+
+        <rect x="492" y="40" width="200" height="120" rx="10" fill="var(--calm-soft)" stroke="var(--calm)" stroke-width="2"/>
+        <text x="592" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="var(--calm)">SOMEONE ARGUING</text>
+        <text x="592" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="var(--calm)">ABOUT IT</text>
+        <text x="592" y="109" text-anchor="middle" font-size="12.5" fill="var(--soft)">(commentary)</text>
+        <text x="592" y="133" text-anchor="middle" font-size="12.5" fill="var(--ink)">adds no new facts &mdash;</text>
+        <text x="592" y="149" text-anchor="middle" font-size="12.5" fill="var(--ink)">argues what they mean</text>
+      </svg>
+      <figcaption>The third one is the kind you meet in English class as <strong>literary criticism</strong>: someone arguing about what a book or a poem means. Same job, different subject.</figcaption>
+      </figure>
+
+      <div class="rq">
+        <p class="lab">Here is one done for you &mdash; the research question</p>
+        <p class="big">Did the 1938 radio broadcast really cause a mass panic?</p>
+      </div>
+
+      <p><em>I'll read this out loud &mdash; just follow along.</em></p>
+
+      <p>On the night of 30 October 1938, a radio play told listeners that Martians had landed
+         in New Jersey. It was written to sound like a real news broadcast. The next morning,
+         newspapers all over America reported that the country had panicked. People have been
+         arguing ever since about how much of that panic actually happened.</p>
+
+      <figure class="photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Orson_Welles_War_of_the_Worlds_1938.jpg?width=760"
+             alt="Orson Welles standing among a group of newspaper reporters on 31 October 1938, explaining the broadcast to them.">
+        <figcaption>Orson Welles explaining the broadcast to reporters, 31 October 1938 &mdash; the morning after.
+          The photograph is itself a primary source: taken at the time, of the man at the centre of it.
+          Acme News Photos, public domain, <a href="https://commons.wikimedia.org/wiki/File:Orson_Welles_War_of_the_Worlds_1938.jpg">via Wikimedia Commons</a>.</figcaption>
+      </figure>
+
+      <p>Three real sources argue about that question. Here they are, already sorted:</p>
+
+      <div class="srcs">
+        <div class="src primary">
+          <p class="kind">Source 1 &middot; from the moment itself (primary)</p>
+          <p class="txt">The front page of a newspaper printed on 31 October 1938:
+             <strong>"Radio Listeners in Panic, Taking War Drama as Fact."</strong></p>
+          <p class="does">Written the next morning by people who were there. <strong>Pushes for:</strong> yes, there was a panic.</p>
+        </div>
+        <div class="src secondary">
+          <p class="kind">Source 2 &middot; someone who looked into it (secondary)</p>
+          <p class="txt">Hadley Cantril, a Princeton researcher, interviewed listeners afterwards and published a
+             book about it in 1940. He worked out that roughly one in six of the people listening were frightened.</p>
+          <p class="does">Looked into it later and reported what he found. <strong>Complicates it:</strong> frightened is not the same as a nation in panic.</p>
+        </div>
+        <div class="src commentary">
+          <p class="kind">Source 3 &middot; someone arguing about it (commentary)</p>
+          <p class="txt">In 2013, two media researchers argued that the panic was mostly invented by newspapers,
+             who wanted radio to look dangerous because radio was taking their advertising money.</p>
+          <p class="does">No new facts about that night &mdash; an argument about what the known facts mean. <strong>Pushes against:</strong> no, America did not panic.</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <p><mark>The source made at the time is the one that turns out to be least reliable here.</mark>
+           Being there does not make you right &mdash; and that is why an essay needs more than one kind of source.</p>
+      </div>
+
+      <p class="q"><strong>Q1.</strong> Source 1 is a newspaper printed the morning after. What kind of source is that?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Source 1 is a newspaper printed the morning after. What kind of source is that?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Someone who looked into it (secondary source)">Someone who looked into it (secondary source)</option>
+          <option value="From the moment itself (primary source)">From the moment itself (primary source)</option>
+          <option value="Someone arguing about it (commentary)">Someone arguing about it (commentary)</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> The two researchers in 2013 discovered no new facts about that night.
+         So what were they actually doing?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. The two researchers in 2013 discovered no new facts about that night. What were they actually doing?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Reporting new measurements they took">Reporting new measurements they took</option>
+          <option value="Describing what they saw that night">Describing what they saw that night</option>
+          <option value="Arguing about what the known facts mean">Arguing about what the known facts mean</option>
+        </select></div>
+
+      <p class="q"><strong>Q3.</strong> Does Cantril's 1940 book defend the claim <em>"America panicked"</em>, or push against it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. Does Cantril's 1940 book defend the claim that America panicked, or push against it?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Pushes against it - being frightened is not the same as panicking">Pushes against it &mdash; being frightened is not the same as panicking</option>
+          <option value="Defends it - it proves the whole country panicked">Defends it &mdash; it proves the whole country panicked</option>
+          <option value="Neither - it is about a different night">Neither &mdash; it is about a different night</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked. And if you can say out loud <strong>why the 1938 newspaper is not
+           the most trustworthy source here</strong>, you have got the whole idea.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="Fact or claim?">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Fact or claim?</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Fact or claim?</h2>
+
+      <p>A thesis is not a true sentence. A thesis is a sentence <strong>somebody could argue back at</strong>.
+         That is the whole test, and it is the one most people skip.</p>
+
+      <figure class="dia">
+      <svg viewBox="0 0 660 200" role="img" aria-label="Two panels side by side. On the left, labelled FACT: the sentence the broadcast aired on 30 October 1938, with a single arrow leaving it and nothing coming back, so nobody can push back and you cannot write an essay about it. On the right, labelled CLAIM, a thesis: the sentence newspapers invented the panic to damage radio, with arrows pushing at it from both sides, so someone can argue back and this one you can write." style="width:100%;height:auto;display:block">
+        <text x="158" y="20" text-anchor="middle" font-size="15" font-weight="700" fill="var(--soft)">FACT</text>
+        <rect x="20" y="34" width="276" height="54" rx="9" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+        <text x="158" y="57" text-anchor="middle" font-size="13" fill="var(--ink)">"The broadcast aired on</text>
+        <text x="158" y="76" text-anchor="middle" font-size="13" fill="var(--ink)">30 October 1938."</text>
+        <path d="M60 120 H240" stroke="var(--soft)" stroke-width="5"/>
+        <path d="M256 120 l-18 -11 v22 z" fill="var(--soft)"/>
+        <text x="158" y="155" text-anchor="middle" font-size="13" fill="var(--soft)">One direction. Nothing comes back.</text>
+        <text x="158" y="176" text-anchor="middle" font-size="13" font-weight="700" fill="var(--soft)">You cannot write an essay about it.</text>
+
+        <line x1="330" y1="8" x2="330" y2="192" stroke="var(--line)" stroke-width="2"/>
+
+        <text x="502" y="20" text-anchor="middle" font-size="15" font-weight="700" fill="var(--accent)">CLAIM &mdash; a thesis</text>
+        <rect x="364" y="34" width="276" height="54" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="502" y="57" text-anchor="middle" font-size="13" fill="var(--ink)">"Newspapers invented the</text>
+        <text x="502" y="76" text-anchor="middle" font-size="13" fill="var(--ink)">panic to damage radio."</text>
+        <path d="M368 120 H472" stroke="var(--calm)" stroke-width="5"/>
+        <path d="M488 120 l-18 -11 v22 z" fill="var(--calm)"/>
+        <path d="M636 120 H532" stroke="var(--warn)" stroke-width="5"/>
+        <path d="M516 120 l18 -11 v22 z" fill="var(--warn)"/>
+        <text x="502" y="155" text-anchor="middle" font-size="13" fill="var(--soft)">Two directions. Someone can argue back.</text>
+        <text x="502" y="176" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent)">This one you can write.</text>
+      </svg>
+      <figcaption>Same night, same evidence. Only one of these two sentences is worth an essay.</figcaption>
+      </figure>
+
+      <div class="note">
+        <p><mark>If nobody can disagree with your sentence, you have written a fact &mdash; and you
+           cannot write an essay defending a fact.</mark></p>
+      </div>
+
+      <p>Three sentences about that same night:</p>
+
+      <div class="srcs">
+        <div class="src"><p class="kind">Sentence A</p>
+          <p class="txt">The broadcast aired on 30 October 1938.</p></div>
+        <div class="src"><p class="kind">Sentence B</p>
+          <p class="txt">Newspapers exaggerated the panic because radio was taking their advertising money.</p></div>
+        <div class="src"><p class="kind">Sentence C</p>
+          <p class="txt">About six million people were listening.</p></div>
+      </div>
+
+      <p class="q"><strong>Q4.</strong> Which one of the three is a thesis?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. Which of the three sentences is a thesis? (A: the broadcast aired on 30 Oct 1938. B: newspapers exaggerated the panic because radio was taking their advertising money. C: about six million people were listening.)">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="A - the broadcast aired on 30 October 1938">Sentence A</option>
+          <option value="B - newspapers exaggerated the panic because radio was taking their advertising money">Sentence B</option>
+          <option value="C - about six million people were listening">Sentence C</option>
+        </select></div>
+
+      <p class="q"><strong>Q5.</strong> Pick <strong>one</strong> of the other two. Say why it cannot be a thesis.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q5. Pick one of the other two sentences and say why it cannot be a thesis." rows="3">Sentence ___ cannot be a thesis because </textarea></div>
+
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; Sentence ___ cannot be a thesis because ____.<br>
+           &bull; Nobody could argue with it, since ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You can type this or say it out loud and I'll type &mdash; your call, and don't worry about spelling. One or two sentences is plenty.</p></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked, and <strong>one sentence</strong> that finishes the starter.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Five sources, one new question">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Five sources, one new question</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Five sources, one new question</h2>
+
+      <div class="rq">
+        <p class="lab">A brand-new research question</p>
+        <p class="big">Should city police be allowed to use facial recognition cameras in public places?</p>
+      </div>
+
+      <p>Five sources. Nothing is labelled this time.</p>
+
+      <div class="srcs">
+        <div class="src"><p class="kind">Source 1</p>
+          <p class="txt">Body-camera footage and the arrest log from the day a city's system flagged the wrong man.</p></div>
+        <div class="src"><p class="kind">Source 2</p>
+          <p class="txt">A 2023 report by a university team that reviewed three years of police records from four cities
+             and counted how often the system's match was wrong.</p></div>
+        <div class="src"><p class="kind">Source 3</p>
+          <p class="txt">An opinion essay by a law professor arguing that the real problem is not accuracy &mdash;
+             it is that nobody ever voted for these cameras.</p></div>
+        <div class="src"><p class="kind">Source 4</p>
+          <p class="txt">The city council's own written policy, adopted the week the cameras were switched on,
+             listing what they may and may not be used for.</p></div>
+        <div class="src"><p class="kind">Source 5</p>
+          <p class="txt">A police department's published figures showing reported shoplifting fell by about a third
+             in the year after the cameras went in.</p></div>
+      </div>
+
+      <p class="q"><strong>Q1.</strong> What kind of source is <strong>Source 2</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. What kind of source is Source 2 (the 2023 university report reviewing three years of police records)?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Someone arguing about it (commentary)">Someone arguing about it (commentary)</option>
+          <option value="Someone who looked into it (secondary source)">Someone who looked into it (secondary source)</option>
+          <option value="From the moment itself (primary source)">From the moment itself (primary source)</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> What kind of source is <strong>Source 3</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. What kind of source is Source 3 (the law professor's opinion essay)?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Someone arguing about it (commentary)">Someone arguing about it (commentary)</option>
+          <option value="From the moment itself (primary source)">From the moment itself (primary source)</option>
+          <option value="Someone who looked into it (secondary source)">Someone who looked into it (secondary source)</option>
+        </select></div>
+
+      <p>Now the claim you are arguing:</p>
+      <div class="rq">
+        <p class="lab">Your claim, for Q3 and Q4</p>
+        <p class="big">Cities should not be allowed to use facial recognition without a judge's permission.</p>
+      </div>
+
+      <p class="q"><strong>Q3.</strong> Which single source is the <strong>strongest evidence for</strong> that claim?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. Which source is the strongest evidence FOR the claim that cities should not use facial recognition without a judge's permission?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Source 1 - the body-camera footage and arrest log">Source 1</option>
+          <option value="Source 2 - the 2023 university report">Source 2</option>
+          <option value="Source 3 - the law professor's opinion essay">Source 3</option>
+          <option value="Source 4 - the city council's written policy">Source 4</option>
+          <option value="Source 5 - the shoplifting figures">Source 5</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> Which single source would <strong>the other side</strong> use against you?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. Which source would the other side use against that claim?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Source 1 - the body-camera footage and arrest log">Source 1</option>
+          <option value="Source 2 - the 2023 university report">Source 2</option>
+          <option value="Source 3 - the law professor's opinion essay">Source 3</option>
+          <option value="Source 4 - the city council's written policy">Source 4</option>
+          <option value="Source 5 - the shoplifting figures">Source 5</option>
+        </select></div>
+
+      <figure class="dia">
+      <svg viewBox="0 0 620 318" role="img" aria-label="Five blocks stacked with arrows running down between them: CLAIM, the sentence you are trying to prove. BECAUSE, your reason. EVIDENCE, a source that shows it and what kind of source it is. BUT SOMEONE SAYS, the strongest thing the other side has. AND STILL, why you hold your claim anyway." style="width:100%;height:auto;display:block">
+        <rect x="10" y="8" width="600" height="44" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="26" y="36" font-size="14" font-weight="700" fill="var(--accent)">CLAIM</text>
+        <text x="200" y="36" font-size="13.5" fill="var(--ink)">the sentence you are trying to prove</text>
+        <path d="M60 54 v10" stroke="var(--soft)" stroke-width="3"/><path d="M60 70 l-7 -8 h14 z" fill="var(--soft)"/>
+
+        <rect x="10" y="72" width="600" height="44" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="26" y="100" font-size="14" font-weight="700" fill="var(--accent)">BECAUSE</text>
+        <text x="200" y="100" font-size="13.5" fill="var(--ink)">your reason &mdash; why it is true</text>
+        <path d="M60 118 v10" stroke="var(--soft)" stroke-width="3"/><path d="M60 134 l-7 -8 h14 z" fill="var(--soft)"/>
+
+        <rect x="10" y="136" width="600" height="44" rx="9" fill="var(--calm-soft)" stroke="var(--calm)" stroke-width="2"/>
+        <text x="26" y="164" font-size="14" font-weight="700" fill="var(--calm)">EVIDENCE</text>
+        <text x="200" y="164" font-size="13.5" fill="var(--ink)">a source that shows it &mdash; and what kind it is</text>
+        <path d="M60 182 v10" stroke="var(--soft)" stroke-width="3"/><path d="M60 198 l-7 -8 h14 z" fill="var(--soft)"/>
+
+        <rect x="10" y="200" width="600" height="44" rx="9" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="2"/>
+        <text x="26" y="228" font-size="14" font-weight="700" fill="var(--warn)">BUT SOMEONE SAYS</text>
+        <text x="245" y="228" font-size="13.5" fill="var(--ink)">the strongest thing the other side has</text>
+        <path d="M60 246 v10" stroke="var(--soft)" stroke-width="3"/><path d="M60 262 l-7 -8 h14 z" fill="var(--soft)"/>
+
+        <rect x="10" y="264" width="600" height="44" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="26" y="292" font-size="14" font-weight="700" fill="var(--accent)">AND STILL</text>
+        <text x="200" y="292" font-size="13.5" fill="var(--ink)">why you hold your claim anyway</text>
+      </svg>
+      <figcaption>This is the spine of the essay you are building. Q5 is the first three blocks of it.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q5.</strong> Write the first three blocks: your <strong>claim</strong>, your
+         <strong>reason</strong>, and the <strong>source</strong> you would put behind it.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q5. Write the claim, the reason, and the source you would put behind it." rows="4">Cities should not be allowed to use facial recognition without a judge's permission, because </textarea></div>
+
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; ... because ____.<br>
+           &bull; The evidence for this is Source ___, which is a ____ source.</p></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Four dropdowns picked, and an answer to Q5 with <strong>a reason</strong> and
+           <strong>a numbered source</strong> in it. Two or three sentences is plenty.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="mastery" id="m2" data-title="One more source">
+    <button class="donebar" onclick="LL.toggle('m2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; One more source</strong>
+      <span class="sum" id="sum-m2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; One more source</h2>
+
+      <p>No starters on this one. I want to see what you do with it on your own.</p>
+
+      <div class="rq">
+        <p class="lab">The claim</p>
+        <p class="big">Cities should not be allowed to use facial recognition without a judge's permission.</p>
+      </div>
+
+      <div class="srcs">
+        <div class="src"><p class="kind">A source you have not seen</p>
+          <p class="txt">A 2024 survey found that most people cannot tell a real photograph from an
+             AI-generated one.</p></div>
+      </div>
+
+      <p class="q"><strong>Q6.</strong> Does this source defend the claim, refute it, or neither?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. Does the 2024 survey source defend the claim, refute it, or neither?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="It refutes the claim">It refutes the claim</option>
+          <option value="Neither">Neither</option>
+          <option value="It defends the claim">It defends the claim</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> In one sentence &mdash; why?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q7. In one sentence, why?" placeholder="Type here&hellip;" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown and one sentence. <strong>The sentence is the part I'm reading</strong> &mdash;
+           the dropdown on its own does not tell me much.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="Pick your thesis">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Pick your thesis</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Pick your thesis</h2>
+
+      <p>This is the claim your essay will spend its whole life defending. Three to choose from.
+         <strong>Pick one. All three work.</strong> Every one of them already has somebody
+         waiting to argue back &mdash; that is what makes it a thesis and not a fact.</p>
+
+      <div class="choices">
+        <div class="choice">
+          <span class="tag">Option A &middot; 1938</span>
+          <h3>The <em>War of the Worlds</em> panic was mostly invented by newspapers, not caused by the broadcast.</h3>
+          <p class="push"><strong>Somebody will answer:</strong> there are real reports of people fleeing their homes that night. You cannot wave those away.</p>
+        </div>
+        <div class="choice">
+          <span class="tag">Option B &middot; schools</span>
+          <h3>Middle and high schools should be required to start after 8:30 a.m., even when it costs the district money.</h3>
+          <p class="push"><strong>Somebody will answer:</strong> bus routes, jobs and practice times are real constraints, not excuses.</p>
+        </div>
+        <div class="choice">
+          <span class="tag">Option C &middot; scams and security</span>
+          <h3>Every high school should be required to teach students how to spot a scam message.</h3>
+          <p class="push"><strong>Somebody will answer:</strong> the school day is already full. Name what comes out to make room for it.</p>
+        </div>
+      </div>
+
+      <p class="q"><strong>Q1.</strong> Which one are you writing?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Which thesis are you writing?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="A - the War of the Worlds panic was mostly invented by newspapers">Option A &mdash; the 1938 panic</option>
+          <option value="B - schools should be required to start after 8:30 a.m.">Option B &mdash; school start times</option>
+          <option value="C - every high school should teach students to spot a scam message">Option C &mdash; teaching students to spot scams</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> Now write it in <strong>your own words</strong>, with the word
+         <em>because</em> and one reason.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q2. Write your thesis in your own words, with the word 'because' and one reason." rows="3">I think </textarea></div>
+
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; I think ____, because ____.</p></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One option picked, and <strong>one sentence with the word <em>because</em> in it</strong>.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="homework" id="h2" data-title="Find the two sources">
+    <button class="donebar" onclick="LL.toggle('h2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Find the two sources</strong>
+      <span class="sum" id="sum-h2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Find the two sources</h2>
+
+      <p>Two sources. <strong>One that defends your thesis, one that refutes it.</strong>
+         We find the first one together before you go, so you are not starting from nothing.</p>
+
+      <figure class="dia">
+      <svg viewBox="0 0 660 175" role="img" aria-label="Your thesis sits in a box in the middle. To its left, an empty dashed box labelled a source that DEFENDS, with an arrow pointing in. To its right, an empty dashed box labelled a source that REFUTES, with an arrow pointing in. Your job is to fill the two empty boxes." style="width:100%;height:auto;display:block">
+        <rect x="10" y="52" width="180" height="66" rx="10" fill="none" stroke="var(--calm)" stroke-width="2.5" stroke-dasharray="8 6"/>
+        <text x="100" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="var(--calm)">DEFENDS</text>
+        <text x="100" y="82" text-anchor="middle" font-size="13" fill="var(--soft)">a source that</text>
+        <text x="100" y="100" text-anchor="middle" font-size="13" fill="var(--soft)">pushes for it</text>
+        <path d="M194 85 H222" stroke="var(--calm)" stroke-width="5"/>
+        <path d="M238 85 l-18 -11 v22 z" fill="var(--calm)"/>
+
+        <rect x="242" y="52" width="176" height="66" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="330" y="80" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)">YOUR</text>
+        <text x="330" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)">THESIS</text>
+
+        <path d="M446 85 H430" stroke="var(--warn)" stroke-width="5"/>
+        <path d="M414 85 l18 -11 v22 z" fill="var(--warn)"/>
+        <rect x="450" y="52" width="180" height="66" rx="10" fill="none" stroke="var(--warn)" stroke-width="2.5" stroke-dasharray="8 6"/>
+        <text x="540" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="var(--warn)">REFUTES</text>
+        <text x="540" y="82" text-anchor="middle" font-size="13" fill="var(--soft)">a source that</text>
+        <text x="540" y="100" text-anchor="middle" font-size="13" fill="var(--soft)">pushes against it</text>
+
+        <text x="330" y="152" text-anchor="middle" font-size="13" fill="var(--soft)">Your job tonight is the two empty boxes. The middle one is already done.</text>
+      </svg>
+      <figcaption>An essay with only the left-hand box is not an argument. It is an advertisement.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q3.</strong> The source that <strong>defends</strong> your thesis &mdash; what kind is it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. The source that DEFENDS your thesis - what kind of source is it?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Someone who looked into it (secondary source)">Someone who looked into it (secondary source)</option>
+          <option value="Someone arguing about it (commentary)">Someone arguing about it (commentary)</option>
+          <option value="From the moment itself (primary source)">From the moment itself (primary source)</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> Where is it from, and <strong>one thing it says</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q4. The DEFENDING source: where is it from, and one thing it says?" rows="3">It is from </textarea></div>
+
+      <p class="q"><strong>Q5.</strong> The source that <strong>refutes</strong> your thesis &mdash; what kind is it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. The source that REFUTES your thesis - what kind of source is it?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Someone arguing about it (commentary)">Someone arguing about it (commentary)</option>
+          <option value="From the moment itself (primary source)">From the moment itself (primary source)</option>
+          <option value="Someone who looked into it (secondary source)">Someone who looked into it (secondary source)</option>
+        </select></div>
+
+      <p class="q"><strong>Q6.</strong> Where is it from, and <strong>one thing it says</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q6. The REFUTING source: where is it from, and one thing it says?" rows="3">It is from </textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p><strong>Two sources in the boxes.</strong> One pushes for your thesis, one pushes against it,
+           and each one is labelled with what kind of source it is. A link or a title is enough &mdash;
+           you do not need a full citation yet.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The three kinds, and the thesis test &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">From the moment itself<br><span style="font-weight:400;color:var(--soft)">(primary)</span></td>
+          <td>Made while it was happening, by someone who was there. Records, transcripts, footage, letters, the thing itself.</td></tr>
+      <tr><td class="h">Someone who looked into it<br><span style="font-weight:400;color:var(--soft)">(secondary)</span></td>
+          <td>Studied it afterwards and reports what they found. Studies, reports, textbooks, news write-ups.</td></tr>
+      <tr><td class="h">Someone arguing about it<br><span style="font-weight:400;color:var(--soft)">(commentary &middot; in English, criticism)</span></td>
+          <td>Adds no new facts. Takes facts everyone has and argues about what they mean. Opinion essays, reviews, literary criticism.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>The thesis test:</strong> can somebody argue back at
+       your sentence? If no &mdash; it is a fact, and you cannot write an essay defending it.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">Being an expert does not make a source primary.
+       What decides it is the job the source is doing, never the job the author has.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = 'English 11A \u00b7 Lesson 2';
+const LESSON_ID = 'ENG11A-L02';
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber \u2014 if an outcome changes
+   meaning, retire it and add a new one. */
+const OUTCOMES = {
+  'O1': 'Tell a primary source, a secondary source and commentary apart by how each one got its information.',
+  'O2': 'Say whether a source defends a research question, refutes it, or does neither \u2014 and why.',
+  'O3': 'Tell a fact from a claim, and recognise a thesis as a claim somebody could argue back at.',
+  'O4': 'Support a claim with a reason and a named source, and name what the other side would answer.'
+};
+
+/* One source of truth for the times \u2014 same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:'Catch up & get set',            mins:5                    },
+  { label:'Two sides, three witnesses',    mins:12, part:'intro'      },
+  { label:'The Source Table',              mins:12                   },
+  { label:'Prove it on a new question',    mins:15, part:'mastery'    },
+  { label:'Pick your thesis, start the hunt', mins:6, part:'homework' }
+];
+
+/* One entry per Canvas assignment. `sheet` is false for mastery on purpose:
+   recall is part of what that section checks, and nothing here needs the sheet
+   as an input method. */
+const PARTS = {
+  intro:    { title: 'Introduce the Concept', sub: 'Two sides of a question, and the three kinds of witness who show up.', sheet: true,  outcomes: ['O1','O2','O3'] },
+  mastery:  { title: 'Independent Mastery',   sub: 'A brand-new question and five sources you have not seen.',            sheet: false, outcomes: ['O1','O2','O4'] },
+  homework: { title: 'Homework',              sub: 'Pick your thesis, then find the two sources that fight over it.',     sheet: true,  outcomes: ['O3','O4'] }
+};
+
+const REWARDS = {
+  i1:{star:'\u2605',msg:'You can tell the three kinds apart. That is the hard part done.'},
+  i2:{star:'\u2605',msg:'Fact or claim \u2014 that test is now yours.'},
+  m1:{star:'\u2605',msg:'New question, no labels, and you still placed them.'},
+  m2:{star:'\u2605',msg:'That one had no starters. Nice.'},
+  h1:{star:'\u2605',msg:'You have a thesis. Now go find who disagrees with it.'},
+  h2:{star:'\u2605',msg:'Two sources, two directions. That is an argument.'}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson \u2014 nothing here needs a character the student's
+   keyboard cannot type. */
+
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+</body>
+</html>

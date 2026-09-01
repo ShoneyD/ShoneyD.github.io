@@ -314,6 +314,36 @@ const ITEMS = [
   },
   {
     type: 'lesson',
+    id:   'ENG11A-L02',
+    course: 'English 11A',
+    file: 'lessons/english-11a/ENG11A-L02-two-sides-three-witnesses.html',
+    title: 'Two Sides, Three Witnesses',
+    tag: 'lesson 2',
+    desc: 'Every source got what it knows in one of three ways \u2014 and a sentence is only a thesis if somebody can argue back at it. Taught on the 1938 War of the Worlds panic, practised on school start times, then proved cold on facial recognition cameras. Ends by picking a thesis and going to find the two sources that fight over it.',
+    skills: 'Primary, secondary and commentary sources \u00b7 literary criticism \u00b7 defend vs. refute \u00b7 fact vs. claim \u00b7 thesis statements \u00b7 counterargument \u00b7 argumentative essay',
+    note: 'Three different subjects on purpose, one per section \u2014 the skill is the constant and the topic is what changes, which is what makes \u00a73 a real transfer check rather than a repeat. Every answer route is a dropdown except three short writes, and the sentence stems are pre-filled inside those boxes, so the page\'s \u201cleft blank\u201d warning will not fire for them \u2014 check them by eye. \u00a73 Part 2 (Q6\u2013Q7) is deliberately pitched a notch above the rest of the lesson: no stems, no chain on screen, an unseen source, and the answer is \u201cneither\u201d.',
+    height: 2000,
+    parts: [
+      { key: 'intro',    label: 'Introduce the Concept' },
+      { file: 'activities/source-table-sort.html', label: 'The Source Table', height: 1000 },
+      { key: 'mastery',  label: 'Independent Mastery' },
+      { key: 'homework', label: 'Homework' }
+    ]
+  },
+  {
+    type: 'activity',
+    course: 'English',
+    file: 'activities/source-table-sort.html',
+    engine: 'sort', variant: 'sources', version: 1, updated: '2026-09-01',
+    title: 'The Source Table',
+    tag: 'drag & drop',
+    desc: 'One research question \u2014 should schools start later than 8:30 \u2014 and six real sources about it, sorted by how each one got what it knows: from the moment itself, from someone who looked into it, or from someone arguing about what it means. Then the harder half: what each source does to the question, with two decoys.',
+    skills: 'Primary, secondary and commentary sources \u00b7 literary criticism \u00b7 defend vs. refute \u00b7 evidence \u00b7 research questions \u00b7 argument',
+    note: 'Rejiggered from the Rhetoric Cockpit Sort \u2014 same sort engine, second content set, so it works as a first pass on sourcing or as practice after that one. Text-swappable: SOURCE, QUOTES, IMPACTS and IMPACT_SLOTS at the top of the script, plus the research-question banner in Stage 1. The three panels are the taxonomy and are meant to stay put. The trap card is the pediatrician\'s blog post \u2014 expert author, but commentary; being an expert never makes a source primary, and the feedback says exactly that. Cards and options shuffle on load, so quote a card rather than naming its letter.',
+    height: 1000
+  },
+  {
+    type: 'lesson',
     id:   'ENG11A-L01',
     course: 'English 11A',
     file: 'lessons/english-11a/ENG11A-L01-impact-of-rhetoric.html',
