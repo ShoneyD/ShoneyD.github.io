@@ -102,6 +102,21 @@
   /* ----------------------------------------------------------- restoring */
   var origAward  = LL.award.bind(LL);
   var origFinish = LL.finish.bind(LL);
+  var origNext   = LL.next.bind(LL);
+
+  /* LL.finish() calls award() and then next(), and next() scrolls 120ms later
+     — which drags the viewport away from the celebration while it is still
+     animating in. Hold the advance until the card has finished, then let it
+     run. The student reads the card, THEN the page moves. */
+  var celebrating = false, pendingNext = false;
+  LL.next = function () {
+    if (celebrating) { pendingNext = true; return; }
+    origNext();
+  };
+  function releaseNext() {
+    celebrating = false;
+    if (pendingNext) { pendingNext = false; origNext(); }
+  }
 
   LL.finish = function (id, extraEvidence) { origFinish(id, extraEvidence); save(); };
 
@@ -133,7 +148,8 @@
     STAGES.forEach(function (id) {
       if (saved.d && saved.d.indexOf(id) !== -1) silentComplete(id);
     });
-    if (LL.next) LL.next();                         /* lands them on the part they were on */
+    celebrating = false; pendingNext = false;
+    origNext();                                     /* lands them on the part they were on */
   }
 
   function whenWord(t) {
@@ -212,6 +228,7 @@
     card.style.left = Math.max(8, x) + 'px';
     card.style.top  = Math.max(8, y) + 'px';
 
+    celebrating = true;
     requestAnimationFrame(function () { card.classList.add('in'); });
 
     setTimeout(function () {
@@ -229,8 +246,9 @@
       setTimeout(function () {
         dock();                                     /* the star appears in #earned */
         if (card.parentNode) card.parentNode.removeChild(card);
-      }, REDUCED ? 380 : 470);
-    }, REDUCED ? 1200 : 780);
+        releaseNext();                              /* now the page may move */
+      }, REDUCED ? 420 : 560);
+    }, REDUCED ? 1900 : 1600);
   }
 
   /* ---------------------------------------------------------------- CSS
@@ -253,9 +271,9 @@
       'flex-direction:column;align-items:center;gap:.45rem;padding:1.15rem 1.7rem;',
       'border-radius:16px;background:var(--card,#1d2128);border:2px solid var(--gold,#f2c75c);',
       'box-shadow:0 14px 38px rgba(0,0,0,.45);opacity:0;transform:scale(.4);',
-      'transition:opacity .26s ease,transform .34s cubic-bezier(.2,1.5,.4,1)}',
+      'transition:opacity .3s ease,transform .42s cubic-bezier(.2,1.5,.4,1)}',
     '.ll-cel.in{opacity:1;transform:scale(1)}',
-    '.ll-cel.fly{transition:opacity .44s ease,transform .47s cubic-bezier(.5,0,.75,.4)}',
+    '.ll-cel.fly{transition:opacity .5s ease,transform .55s cubic-bezier(.5,0,.75,.4)}',
     '.ll-cel.out{opacity:0;transition:opacity .36s ease}',
     '.ll-cel-star{font-size:2.7rem;line-height:1;color:var(--gold,#f2c75c)}',
     '.ll-cel-msg{font-size:1.05rem;font-weight:800;line-height:1.3;text-align:center;',
