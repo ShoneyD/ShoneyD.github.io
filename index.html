@@ -426,6 +426,36 @@ const ITEMS = [
   },
   {
     type: 'lesson',
+    id:   'KOR1A-L03',
+    course: 'Korean 1A',
+    file: 'lessons/korean-1a/KOR1A-L03-one-letter-three-ways.html',
+    title: 'One Letter, Three Ways',
+    tag: 'lesson 3',
+    desc: 'Every Korean consonant is really three consonants \u2014 plain, one stroke added, or written twice \u2014 and the only difference is what the air does, which a strip of paper settles in five seconds. Nine letters taught as one idea, the four joined vowels as two vowels sliding together, then the Korean Journal opened and its first entry written in class.',
+    skills: 'Hangul \u00b7 aspirated \u314b \u314c \u314d \u314a \u00b7 tensed \u3132 \u3138 \u3143 \u3146 \u3149 \u00b7 compound vowels \u3158 \u315d \u315a \u315f \u00b7 reading unseen blocks \u00b7 spelling from sound \u00b7 first journal entry',
+    note: 'Merges the planned lessons 3 and 4, so the whole alphabet except batchim lands here. Independent Mastery runs cold in both directions \u2014 three unseen blocks read, three words written from dictation with nothing on screen to help \u2014 and ends on one line of the student\u2019s own, built from a phrase bank of batchim-free -\uc694 sentences. \uc788\uc5b4\uc694 and \uc5c6\uc5b4\uc694 are seeded as memorised chunks with no explanation, deliberately: they carry the batchim that L04 opens on. The click-to-insert key bank stays on throughout as an input method, not a scaffold.',
+    height: 1500,
+    parts: [
+      { key: 'intro',    label: 'Introduce the Concept' },
+      { file: 'activities/hangul-stage-three.html', label: 'Hangul Stage III', height: 1400 },
+      { key: 'mastery',  label: 'Independent Mastery' },
+      { key: 'homework', label: 'Homework' }
+    ]
+  },
+  {
+    type: 'activity',
+    course: 'Korean 1A',
+    file: 'activities/hangul-stage-three.html',
+    engine: 'stage', variant: 'hangul-3', version: 1, updated: '2026-09-02',
+    title: 'Hangul Stage III',
+    tag: 'click to build',
+    desc: 'The third and last consonant set, taught as one idea rather than two: match four letters to the base they gained a stroke from and spot the fifth that was doubled instead, split each family three ways against the sound English reaches for, build five words including what Stray Kids fans call the group, then read three blocks cold \u2014 one aspirated, one tensed, one with a compound vowel.',
+    skills: 'Hangul \u00b7 aspirated \u314b \u314c \u314d \u314a \u00b7 tensed \u3132 \u3138 \u3143 \u3146 \u3149 \u00b7 the three-way family \u00b7 syllable blocks \u00b7 reading unseen blocks',
+    note: 'Rejiggered from Hangul Stage II \u2014 same engine, third letter set. Text-swappable: M_RAW, V_RAW, WORDS and READS at the top of each stage\u2019s script are the only content-specific parts. Stage 2 carries THREE options per card, not two, because the cognitive move is a three-way discrimination \u2014 dropping to two turns it back into a binary and loses exactly the contrast that matters. Assumes the first two consonant sets, \u314f\u3153\u3157\u315c\u3161\u3163, \u3151\u3155\u315b\u3160 and \u3150\u3154. Stage 4 reads one compound vowel (\u3158). No batchim. Item and option order shuffle on load.',
+    height: 1400
+  },
+  {
+    type: 'lesson',
     id:   'KOR1A-L02',
     course: 'Korean 1A',
     file: 'lessons/korean-1a/KOR1A-L02-five-more-letters.html',
@@ -495,7 +525,7 @@ const ITEMS = [
     file: 'resources/korean-journal.html',
     title: 'The Korean Journal',
     tag: 'paper homework',
-    desc: 'A ten-minute daily page done by hand: copy five words, read five aloud, write three from sound alone, then one line of your own. A dot marks anything that came slowly, three dots put a word at the front of tomorrow, and a week with no dots retires it.',
+    desc: 'A ten-minute daily page done by hand: copy five words, read five aloud, write three from sound alone, then one line of your own. A dot marks anything that came slowly, three dots put a word at the front of tomorrow, and a week with no dots retires it. Four word banks, a phrase bank of complete batchim-free sentences for the line of your own, and one bank still locked so the map always runs ahead of you.',
     skills: 'Hangul \u00b7 reading fluency \u00b7 producing syllable blocks by hand \u00b7 spaced review \u00b7 independent practice',
     note: 'Paper on purpose. A click-to-insert letter bank proves a student can RECOGNISE a block; only handwriting proves they can make one, and a beginner without a Korean keyboard will otherwise never produce a single syllable unaided. Nothing is typed into this page \u2014 it is a reference sheet, so it links lesson.css and theme.js and deliberately not lesson.js. Content-swappable: the three .bank blocks are the only part that changes. Bank A is secure, Bank B is the letters met but not yet drilled, Bank C is locked and visible on purpose so the next lesson has something to buy. Every word is batchim-free and uses only letters taught. Move words up a bank as lessons unlock them.',
     height: 1900

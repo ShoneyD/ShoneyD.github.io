@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOR1A-L03 · One Letter, Three Ways</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">KOR1A-L03</p>
+  <h1 id="pagetitle">Korean 1A · Lesson 3</h1>
+  <p class="sub" id="pagesub">One Letter, Three Ways.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Six words you already own">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Six words you already own</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Six words you already own</h2>
+
+      <p>Before anything new: six words, out loud. You have every letter in all of them.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;font-size:1.05rem">
+  <tr>
+    <td style="padding:.55rem .4rem;text-align:center;font-size:2rem">아이유</td>
+    <td style="padding:.55rem .4rem;text-align:center;font-size:2rem">노래</td>
+    <td style="padding:.55rem .4rem;text-align:center;font-size:2rem">여자</td>
+  </tr>
+  <tr>
+    <td style="padding:0 .4rem .8rem;text-align:center;color:var(--soft);font-size:.9rem">IU</td>
+    <td style="padding:0 .4rem .8rem;text-align:center;color:var(--soft);font-size:.9rem">song</td>
+    <td style="padding:0 .4rem .8rem;text-align:center;color:var(--soft);font-size:.9rem">woman</td>
+  </tr>
+  <tr>
+    <td style="padding:.55rem .4rem;text-align:center;font-size:2rem">야구</td>
+    <td style="padding:.55rem .4rem;text-align:center;font-size:2rem">제니</td>
+    <td style="padding:.55rem .4rem;text-align:center;font-size:2rem">요리</td>
+  </tr>
+  <tr>
+    <td style="padding:0 .4rem .8rem;text-align:center;color:var(--soft);font-size:.9rem">baseball</td>
+    <td style="padding:0 .4rem .8rem;text-align:center;color:var(--soft);font-size:.9rem">Jennie</td>
+    <td style="padding:0 .4rem .8rem;text-align:center;color:var(--soft);font-size:.9rem">cooking</td>
+  </tr>
+</table>
+      <figcaption>Six words that use the vowels you picked up on the fly last time. Read them across, not down.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q1.</strong> Which of those six came slowest? Just name it — this is not a test, it tells me what to put in next week's warm-up.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q1. Which of those six came slowest? Just name it — this is not a test, it tells me what to put in next week&#x27;s warm-up." placeholder="One word is fine"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Six words read out loud, no writing. If two of them come slowly, say so — that is useful information, not a wrong answer.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="One letter, three ways">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; One letter, three ways</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; One letter, three ways</h2>
+
+      <p>English has two settings for most consonants. Korean has <strong>three</strong>, and the third one is the reason Korean has letters that look like they are stuttering.</p>
+
+      <p>Take ㄱ. Add one stroke and you get ㅋ. Write it twice and you get ㄲ. Three letters, one mouth position, and the only thing that changes is <strong>what the air does</strong>.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 620 200" width="100%" style="max-width:39rem;display:block;margin:1rem auto" role="img" aria-label="Three letters from one family. 가 is plain and moves a paper strip a little. 카 has an added stroke and makes the strip jump. 까 is doubled and does not move the strip at all.">
+  <g font-family="Verdana,'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif" text-anchor="middle">
+    <text x="103" y="58" font-size="52" fill="var(--ink)">가</text>
+    <text x="310" y="58" font-size="52" fill="var(--ink)">카</text>
+    <text x="517" y="58" font-size="52" fill="var(--ink)">까</text>
+    <text x="103" y="82" font-size="13.5" fill="var(--soft)">plain — “ga”</text>
+    <text x="310" y="82" font-size="13.5" fill="var(--soft)">one stroke added — “kah”</text>
+    <text x="517" y="82" font-size="13.5" fill="var(--soft)">written twice — “kka”</text>
+  </g>
+  <g stroke-linecap="round">
+    <line x1="42" y1="108" x2="42" y2="140" stroke="var(--soft)" stroke-opacity=".45" stroke-width="3"/>
+    <line x1="249" y1="108" x2="249" y2="140" stroke="var(--soft)" stroke-opacity=".45" stroke-width="3"/>
+    <line x1="456" y1="108" x2="456" y2="140" stroke="var(--soft)" stroke-opacity=".45" stroke-width="3"/>
+    <line x1="42" y1="124" x2="88" y2="124" stroke="var(--warn)" stroke-width="7"/>
+    <line x1="249" y1="124" x2="372" y2="124" stroke="var(--warn)" stroke-width="7"/>
+    <line x1="456" y1="124" x2="464" y2="124" stroke="var(--soft)" stroke-width="7"/>
+  </g>
+  <g font-family="Verdana,'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif" text-anchor="middle">
+    <text x="103" y="164" font-size="13.5" fill="var(--ink)">paper moves a little</text>
+    <text x="310" y="164" font-size="13.5" fill="var(--ink)">paper jumps</text>
+    <text x="517" y="164" font-size="13.5" fill="var(--ink)">paper does not move</text>
+    <text x="103" y="186" font-size="12" fill="var(--soft)">a little air</text>
+    <text x="310" y="186" font-size="12" fill="var(--soft)">a lot of air</text>
+    <text x="517" y="186" font-size="12" fill="var(--soft)">no air — said tight</text>
+  </g>
+</svg>
+      <figcaption>The gold bar is how far a strip of paper moves. That is the entire difference between the three letters, and it is why the doubled ones feel like they have no English name — they don't.</figcaption>
+      </figure>
+
+      <p>Every family works the same way, and there are only four of them, plus one that never got a third member:</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;font-size:1.5rem;text-align:center">
+  <tr style="font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--soft)">
+    <td style="padding:.4rem">plain</td><td style="padding:.4rem">+ a stroke</td><td style="padding:.4rem">written twice</td>
+  </tr>
+  <tr><td style="padding:.35rem">ㄱ</td><td style="padding:.35rem">ㅋ</td><td style="padding:.35rem">ㄲ</td></tr>
+  <tr><td style="padding:.35rem">ㄷ</td><td style="padding:.35rem">ㅌ</td><td style="padding:.35rem">ㄸ</td></tr>
+  <tr><td style="padding:.35rem">ㅂ</td><td style="padding:.35rem">ㅍ</td><td style="padding:.35rem">ㅃ</td></tr>
+  <tr><td style="padding:.35rem">ㅈ</td><td style="padding:.35rem">ㅊ</td><td style="padding:.35rem">ㅉ</td></tr>
+  <tr><td style="padding:.35rem">ㅅ</td><td style="padding:.35rem;color:var(--soft);font-size:1rem">—</td><td style="padding:.35rem">ㅆ</td></tr>
+</table>
+      <figcaption>Four full families and one pair. Nine new letters, and every one of them is a letter you already had.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q2.</strong> 파 and 빠. One of them makes the paper jump and one leaves it still. Which is which, and how do you know from looking at the letters alone?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 파 is the one that ___, because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q2. 파 and 빠. One of them makes the paper jump and one leaves it still. Which is which, and how do you know from looking at the letters alone?" placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>파 makes the paper jump — it is ㅂ with a stroke added, and an added stroke always means more air. 빠 is ㅂ written twice, and doubled always means no air at all. You never have to remember which is which: the shape tells you.</p>
+      </details>
+
+      <p class="q"><strong>Q3.</strong> Say 자, 차, 짜 out loud with the paper up. Which one moved it most?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. Say 자, 차, 짜 out loud with the paper up. Which one moved it most?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="자">자</option>
+          <option value="차">차</option>
+          <option value="짜">짜</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Both questions answered, and you can hold up a strip of paper and make it jump on one sound and stay perfectly still on the next.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i3" data-title="Two vowels holding hands">
+    <button class="donebar" onclick="LL.toggle('i3')">
+      <span class="tick">&#10003;</span> <strong>Part 3 &mdash; Two vowels holding hands</strong>
+      <span class="sum" id="sum-i3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 &mdash; Two vowels holding hands</h2>
+
+      <p>Four vowels left, and none of them are new either. Each one is <strong>two vowels you already know, squashed into one</strong>.</p>
+
+      <p>The round-mouth vowel goes first, and it turns into a <strong>w</strong>:</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;font-size:1.1rem;text-align:center">
+  <tr>
+    <td style="padding:.5rem">ㅗ <span style="color:var(--soft)">+</span> ㅏ <span style="color:var(--soft)">=</span> <strong style="font-size:1.7rem">ㅘ</strong><br><span style="font-size:.9rem;color:var(--soft)">wa</span></td>
+    <td style="padding:.5rem">ㅜ <span style="color:var(--soft)">+</span> ㅓ <span style="color:var(--soft)">=</span> <strong style="font-size:1.7rem">ㅝ</strong><br><span style="font-size:.9rem;color:var(--soft)">wo</span></td>
+    <td style="padding:.5rem">ㅗ <span style="color:var(--soft)">+</span> ㅣ <span style="color:var(--soft)">=</span> <strong style="font-size:1.7rem">ㅚ</strong><br><span style="font-size:.9rem;color:var(--soft)">we</span></td>
+    <td style="padding:.5rem">ㅜ <span style="color:var(--soft)">+</span> ㅣ <span style="color:var(--soft)">=</span> <strong style="font-size:1.7rem">ㅟ</strong><br><span style="font-size:.9rem;color:var(--soft)">wi</span></td>
+  </tr>
+</table>
+      <figcaption>Two vowels joined. Say the first one, then slide straight into the second without stopping — that slide is the w.</figcaption>
+      </figure>
+
+      <p>The trap is reading them as <strong>two syllables</strong>. 와 is one beat, <em>wa</em>, not <em>o-a</em>. Say the first vowel and slide.</p>
+
+      <p class="q"><strong>Q4.</strong> 사과 is an apple. Read it out loud, then write how it sounds in English letters.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q4. 사과 is an apple. Read it out loud, then write how it sounds in English letters." placeholder="e.g. ha-na"></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>sa-gwa. Two blocks, two beats — 사 and 과 — even though 과 has three letters in it. ㅗ+ㅏ slides into one sound.</p>
+      </details>
+
+      <p class="q"><strong>Q5.</strong> 취미 means <em>hobby</em>, and it uses one new vowel and one letter you learned today. What does it sound like?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q5. 취미 means hobby, and it uses one new vowel and one letter you learned today. What does it sound like?" placeholder="e.g. ha-na"></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>chwi-mi. ㅊ is the aspirated one — the paper jumps — and ㅟ is ㅜ sliding into ㅣ.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two blocks read correctly, and you can say what the little ㅗ or ㅜ at the front is doing.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i3')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Read three you have never seen">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Read three you have never seen</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Read three you have never seen</h2>
+
+      <p>Three blocks. You have not built these and you have not seen them. Say each one out loud first — your mouth will get there before your eyes do.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;text-align:center">
+  <tr>
+    <td style="padding:.6rem;font-size:2.6rem">쳐</td>
+    <td style="padding:.6rem;font-size:2.6rem">또</td>
+    <td style="padding:.6rem;font-size:2.6rem">퀴</td>
+  </tr>
+</table>
+      <figcaption>One aspirated, one tensed, one with a joined vowel. Nothing here has a bottom consonant.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q6.</strong> Write all three the way they sound, in English letters, in order.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q6. Write all three the way they sound, in English letters, in order." placeholder="three words, separated by spaces"></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>chyeo · tto · kwi. If you got the letter right but the air wrong — “jeo” for 쳐, or “to” for 또 — that is the normal place to be one lesson in, and the journal is what fixes it.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three blocks romanised, on your own, with the reference sheet closed if you can manage it.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="mastery" id="m2" data-title="Write three you only hear">
+    <button class="donebar" onclick="LL.toggle('m2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Write three you only hear</strong>
+      <span class="sum" id="sum-m2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Write three you only hear</h2>
+
+      <div class="keys">
+        <p class="lab">No keyboard for these characters? Click one to drop it into your answer.</p>
+        <div class="keyrow" id="keys-m2"></div>
+        <p class="tip">Click inside the box you want first.</p>
+      </div>
+
+      <p>I say a word. You write it. Nothing on the screen will help you and that is the point.</p>
+
+      <p class="q"><strong>Q7.</strong> The first word.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q7. The first word." placeholder="Type it, or click the letters below"></div>
+
+      <p class="q"><strong>Q8.</strong> The second word.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q8. The second word." placeholder="Type it, or click the letters below"></div>
+
+      <p class="q"><strong>Q9.</strong> The third word.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q9. The third word." placeholder="Type it, or click the letters below"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three words written in Hangul, spelled from hearing them and nothing else.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m2')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="mastery" id="m3" data-title="One line that is yours">
+    <button class="donebar" onclick="LL.toggle('m3')">
+      <span class="tick">&#10003;</span> <strong>Part 3 &mdash; One line that is yours</strong>
+      <span class="sum" id="sum-m3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 &mdash; One line that is yours</h2>
+
+      <div class="keys">
+        <p class="lab">No keyboard for these characters? Click one to drop it into your answer.</p>
+        <div class="keyrow" id="keys-m3"></div>
+        <p class="tip">Click inside the box you want first.</p>
+      </div>
+
+      <p>Everything above was mine. This one is yours.</p>
+
+      <p>Write <strong>one line</strong> using the phrase bank on the reference sheet. Mix Korean and English freely — that is not cheating, it is what every learner does and it is how the Korean part gets bigger week by week.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;font-size:1rem">
+  <tr style="font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--soft)">
+    <td style="padding:.4rem .5rem">Lines other people wrote on day one</td>
+  </tr>
+  <tr><td style="padding:.3rem .5rem;font-size:1.15rem">오늘 나는 바빠요. <span style="color:var(--soft);font-size:.9rem">— today I'm busy</span></td></tr>
+  <tr><td style="padding:.3rem .5rem;font-size:1.15rem">커피 마셔요 and then homework. <span style="color:var(--soft);font-size:.9rem">— I drink coffee, and then homework</span></td></tr>
+  <tr><td style="padding:.3rem .5rem;font-size:1.15rem">Stray Kids 노래해요. 좋아! <span style="color:var(--soft);font-size:.9rem">— Stray Kids sings. Good!</span></td></tr>
+</table>
+      <figcaption>Three real day-one lines. Two of the three are mostly English, and all three count.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q10.</strong> Your line.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 오늘 ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q10. Your line." placeholder="Korean, English, or both — type it or click the letters" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One line, at least three words long, with at least two of them in Korean. English fills the gaps — that is allowed and it will be allowed for a while.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m3')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="Ten minutes, on paper, every day">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Ten minutes, on paper, every day</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Ten minutes, on paper, every day</h2>
+
+      <div class="keys">
+        <p class="lab">No keyboard for these characters? Click one to drop it into your answer.</p>
+        <div class="keyrow" id="keys-h1"></div>
+        <p class="tip">Click inside the box you want first.</p>
+      </div>
+
+      <p>The journal starts tonight, and it is the same four moves every day. Ten minutes, by hand, in the notebook — not typed, even though you have the keyboard now. Your hand has to build the blocks itself.</p>
+
+      <ol>
+        <li><strong>Copy five</strong> words from the banks on the journal page. Bank C is unlocked today.</li>
+        <li><strong>Read five</strong> out loud from the older banks.</li>
+        <li><strong>Write three</strong> from sound alone — cover the page and spell them from your ear.</li>
+        <li><strong>Write one line of your own.</strong> Korean, English, or both.</li>
+      </ol>
+
+      <p>A dot next to anything that came slowly. Three dots and it goes to the front of tomorrow's list. A week with no dots and it retires.</p>
+
+      <p>Two extra words to copy every single day, and no explanation for either of them:</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;text-align:center">
+  <tr>
+    <td style="padding:.5rem;font-size:2.2rem">있어요<br><span style="font-size:.9rem;color:var(--soft)">there is · I have</span></td>
+    <td style="padding:.5rem;font-size:2.2rem">없어요<br><span style="font-size:.9rem;color:var(--soft)">there isn't · I don't have</span></td>
+  </tr>
+</table>
+      <figcaption>Copy these two every day. They are spelled in a way that will not make sense yet — on purpose. Next week they will, and they are the entire next lesson.</figcaption>
+      </figure>
+
+      <p><strong>Once a week, on Sunday:</strong> take one photo of the week's pages and upload it here. It is graded on <strong>pages done</strong>, not on whether the Korean is right. A page with mistakes on it counts exactly as much as a clean one.</p>
+
+      <p class="q"><strong>Q11.</strong> Which of the two freebies looks stranger to you — 있어요 or 없어요 — and what is it about it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q11. Which of the two freebies looks stranger to you — 있어요 or 없어요 — and what is it about it?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="있어요">있어요</option>
+          <option value="없어요">없어요</option>
+          <option value="they both look normal to me">they both look normal to me</option>
+        </select></div>
+
+      <p class="q"><strong>Q12.</strong> Tomorrow's line of your own — the one we wrote together just now. Type it here so I can see it went in the notebook.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q12. Tomorrow&#x27;s line of your own — the one we wrote together just now. Type it here so I can see it went in the notebook." placeholder="The line you just wrote by hand"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One page a day: five words copied, five read out loud, three written from sound, and one line of your own. Ten minutes. A photo of the week's pages, once, on Sunday.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The three-way families, the four joined vowels, and the phrase bank &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">ㄱ → ㅋ → ㄲ</td><td><strong>g</strong> → <strong>k</strong> with a puff → tight <strong>k</strong>, no air &amp;nbsp;·&amp;nbsp; 가 · 카 · 까</td></tr>
+      <tr><td class="h">ㄷ → ㅌ → ㄸ</td><td><strong>d</strong> → <strong>t</strong> with a puff → tight <strong>t</strong>, no air &amp;nbsp;·&amp;nbsp; 다 · 타 · 따</td></tr>
+      <tr><td class="h">ㅂ → ㅍ → ㅃ</td><td><strong>b</strong> → <strong>p</strong> with a puff → tight <strong>p</strong>, no air &amp;nbsp;·&amp;nbsp; 바 · 파 · 빠</td></tr>
+      <tr><td class="h">ㅈ → ㅊ → ㅉ</td><td><strong>j</strong> → <strong>ch</strong> with a puff → tight <strong>ch</strong>, no air &amp;nbsp;·&amp;nbsp; 자 · 차 · 짜</td></tr>
+      <tr><td class="h">ㅅ → ㅆ</td><td><strong>s</strong> → tight <strong>s</strong> &amp;nbsp;·&amp;nbsp; 사 · 싸. This family has only two — ㅅ never got an aspirated partner.</td></tr>
+      <tr><td class="h">ㅘ ㅝ ㅚ ㅟ</td><td>ㅗ+ㅏ = <strong>ㅘ</strong> (wa) &amp;nbsp;·&amp;nbsp; ㅜ+ㅓ = <strong>ㅝ</strong> (wo) &amp;nbsp;·&amp;nbsp; ㅗ+ㅣ = <strong>ㅚ</strong> (we) &amp;nbsp;·&amp;nbsp; ㅜ+ㅣ = <strong>ㅟ</strong> (wi)</td></tr>
+      <tr><td class="h">Phrase bank</td><td>네 <em>yes</em> &amp;nbsp;·&amp;nbsp; 아니요 <em>no</em> &amp;nbsp;·&amp;nbsp; 저기요 <em>excuse me</em> &amp;nbsp;·&amp;nbsp; 커피 마셔요 <em>I drink coffee</em> &amp;nbsp;·&amp;nbsp; 노래해요 <em>I sing</em> &amp;nbsp;·&amp;nbsp; 바빠요 <em>I'm busy</em> &amp;nbsp;·&amp;nbsp; 짜요 <em>it's salty</em> &amp;nbsp;·&amp;nbsp; 싸요 <em>it's cheap</em> &amp;nbsp;·&amp;nbsp; 커요 <em>it's big</em> &amp;nbsp;·&amp;nbsp; 아파요 <em>it hurts</em></td></tr>
+      <tr><td class="h">Two freebies</td><td>있어요 <em>there is / I have</em> &amp;nbsp;·&amp;nbsp; 없어요 <em>there isn't / I don't have</em>. Copy these. Do not try to work out why they are spelled that way — that is next week, and it is the whole lesson.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>The paper test.</strong> Hold a strip of paper in front of your mouth. Plain moves it a little. Added stroke makes it jump. Doubled does not move it at all.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">Everything in the phrase bank is a whole sentence on its own. Korean does not need the <em>I</em> — 바빠요 by itself already means <em>I'm busy</em>.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Korean 1A · Lesson 3";
+const LESSON_ID = "KOR1A-L03";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Read and write the aspirated consonants ㅋ ㅌ ㅍ ㅊ.",
+  "O2": "Read and write the tensed consonants ㄲ ㄸ ㅃ ㅆ ㅉ.",
+  "O3": "Tell all three members of a consonant family apart — plain, aspirated, tensed.",
+  "O4": "Read the compound vowels ㅘ ㅝ ㅚ ㅟ as two vowels joined into one.",
+  "O5": "Write a first journal entry — words read cold, words written from sound alone, and one line of your own."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up, and the notebook", mins:5 },
+  { label:"One letter, three ways", mins:12, part:"intro" },
+  { label:"Two vowels holding hands", mins:5 },
+  { label:"Hangul Stage III", mins:13 },
+  { label:"The Korean Journal — entry one", mins:12, part:"mastery" },
+  { label:"Tomorrow's first line, together", mins:3, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Every Korean consonant is really three consonants, and the difference is a puff of air.", sheet: true, outcomes: ["O1", "O2", "O3", "O4"] },
+  mastery: { title: "Independent Mastery", sub: "Read three you have never seen, write three you only hear, then write one line that is yours.", sheet: true, outcomes: ["O1", "O2", "O5"] },
+  homework: { title: "Homework", sub: "The journal. Ten minutes a day, on paper, starting tonight.", sheet: true, outcomes: ["O5"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"Warm. Every one of those was a letter you picked up on the fly."},
+  i2:{star:"★",msg:"You have the whole system now. Nine letters, one idea."},
+  i3:{star:"★",msg:"That is the whole alphabet. Every letter Korean has, you now have."},
+  m1:{star:"★",msg:"Cold reading, brand new letters, no help. That is the real thing."},
+  m2:{star:"★",msg:"Written from sound alone. No bank, no picture, no letters given to you."},
+  m3:{star:"★",msg:"You wrote a line of Korean that nobody gave you. That is the journal, and it started today."},
+  h1:{star:"★",msg:"Page one is written. Now it just has to happen again tomorrow."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* Click-to-insert keys — an input method, not a scaffold. */
+const BANK_HANGUL3 = ["ㄱ", "ㄲ", "ㅋ", "ㄴ", "ㄷ", "ㄸ", "ㅌ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅍ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅎ", "ㅏ", "ㅑ", "ㅓ", "ㅕ", "ㅗ", "ㅛ", "ㅜ", "ㅠ", "ㅡ", "ㅣ", "ㅐ", "ㅔ", "ㅘ", "ㅝ", "ㅚ", "ㅟ"];
+
+const KEYS = [
+  { host: "keys-m2", chars: BANK_HANGUL3, field: "textarea[data-q], input[data-q]" },
+  { host: "keys-m3", chars: BANK_HANGUL3, field: "textarea[data-q], input[data-q]" },
+  { host: "keys-h1", chars: BANK_HANGUL3, field: "textarea[data-q], input[data-q]" }
+];
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
