@@ -132,6 +132,11 @@ figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
 
 details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
 
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
 .scroller{ overflow-x:auto }
 </style>
 </head>
@@ -395,7 +400,7 @@ details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
       <h2>Part 2 &mdash; Write three you only hear</h2>
 
       <div class="keys">
-        <p class="lab">No keyboard for these characters? Click one to drop it into your answer.</p>
+        <p class="lab">Click any of these to drop it straight into your answer &mdash; or just type.</p>
         <div class="keyrow" id="keys-m2"></div>
         <p class="tip">Click inside the box you want first.</p>
       </div>
@@ -430,7 +435,7 @@ details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
       <h2>Part 3 &mdash; One line that is yours</h2>
 
       <div class="keys">
-        <p class="lab">No keyboard for these characters? Click one to drop it into your answer.</p>
+        <p class="lab">Click any of these to drop it straight into your answer &mdash; or just type.</p>
         <div class="keyrow" id="keys-m3"></div>
         <p class="tip">Click inside the box you want first.</p>
       </div>
@@ -477,7 +482,7 @@ details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
       <h2>Part 1 &mdash; Ten minutes, on paper, every day</h2>
 
       <div class="keys">
-        <p class="lab">No keyboard for these characters? Click one to drop it into your answer.</p>
+        <p class="lab">Click any of these to drop it straight into your answer &mdash; or just type.</p>
         <div class="keyrow" id="keys-h1"></div>
         <p class="tip">Click inside the box you want first.</p>
       </div>
@@ -531,14 +536,14 @@ details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
   <details class="sheet" id="sheet">
     <summary>The three-way families, the four joined vowels, and the phrase bank &mdash; open this any time</summary>
     <table>
-      <tr><td class="h">ㄱ → ㅋ → ㄲ</td><td><strong>g</strong> → <strong>k</strong> with a puff → tight <strong>k</strong>, no air &amp;nbsp;·&amp;nbsp; 가 · 카 · 까</td></tr>
-      <tr><td class="h">ㄷ → ㅌ → ㄸ</td><td><strong>d</strong> → <strong>t</strong> with a puff → tight <strong>t</strong>, no air &amp;nbsp;·&amp;nbsp; 다 · 타 · 따</td></tr>
-      <tr><td class="h">ㅂ → ㅍ → ㅃ</td><td><strong>b</strong> → <strong>p</strong> with a puff → tight <strong>p</strong>, no air &amp;nbsp;·&amp;nbsp; 바 · 파 · 빠</td></tr>
-      <tr><td class="h">ㅈ → ㅊ → ㅉ</td><td><strong>j</strong> → <strong>ch</strong> with a puff → tight <strong>ch</strong>, no air &amp;nbsp;·&amp;nbsp; 자 · 차 · 짜</td></tr>
-      <tr><td class="h">ㅅ → ㅆ</td><td><strong>s</strong> → tight <strong>s</strong> &amp;nbsp;·&amp;nbsp; 사 · 싸. This family has only two — ㅅ never got an aspirated partner.</td></tr>
-      <tr><td class="h">ㅘ ㅝ ㅚ ㅟ</td><td>ㅗ+ㅏ = <strong>ㅘ</strong> (wa) &amp;nbsp;·&amp;nbsp; ㅜ+ㅓ = <strong>ㅝ</strong> (wo) &amp;nbsp;·&amp;nbsp; ㅗ+ㅣ = <strong>ㅚ</strong> (we) &amp;nbsp;·&amp;nbsp; ㅜ+ㅣ = <strong>ㅟ</strong> (wi)</td></tr>
-      <tr><td class="h">Phrase bank</td><td>네 <em>yes</em> &amp;nbsp;·&amp;nbsp; 아니요 <em>no</em> &amp;nbsp;·&amp;nbsp; 저기요 <em>excuse me</em> &amp;nbsp;·&amp;nbsp; 커피 마셔요 <em>I drink coffee</em> &amp;nbsp;·&amp;nbsp; 노래해요 <em>I sing</em> &amp;nbsp;·&amp;nbsp; 바빠요 <em>I'm busy</em> &amp;nbsp;·&amp;nbsp; 짜요 <em>it's salty</em> &amp;nbsp;·&amp;nbsp; 싸요 <em>it's cheap</em> &amp;nbsp;·&amp;nbsp; 커요 <em>it's big</em> &amp;nbsp;·&amp;nbsp; 아파요 <em>it hurts</em> &amp;nbsp;·&amp;nbsp; 최고 <em>the best</em></td></tr>
-      <tr><td class="h">Two freebies</td><td>있어요 <em>there is / I have</em> &amp;nbsp;·&amp;nbsp; 없어요 <em>there isn't / I don't have</em>. Copy these. Do not try to work out why they are spelled that way — that is next week, and it is the whole lesson.</td></tr>
+      <tr><td class="h">ㄱ → ㅋ → ㄲ</td><td><strong>g</strong> → <strong>k</strong> with a puff → tight <strong>k</strong>, no air  ·  가 · 카 · 까</td></tr>
+      <tr><td class="h">ㄷ → ㅌ → ㄸ</td><td><strong>d</strong> → <strong>t</strong> with a puff → tight <strong>t</strong>, no air  ·  다 · 타 · 따</td></tr>
+      <tr><td class="h">ㅂ → ㅍ → ㅃ</td><td><strong>b</strong> → <strong>p</strong> with a puff → tight <strong>p</strong>, no air  ·  바 · 파 · 빠</td></tr>
+      <tr><td class="h">ㅈ → ㅊ → ㅉ</td><td><strong>j</strong> → <strong>ch</strong> with a puff → tight <strong>ch</strong>, no air  ·  자 · 차 · 짜</td></tr>
+      <tr><td class="h">ㅅ → ㅆ</td><td><strong>s</strong> → tight <strong>s</strong>  ·  사 · 싸. This family has only two — ㅅ never got an aspirated partner.</td></tr>
+      <tr><td class="h">ㅘ ㅝ ㅚ ㅟ</td><td>ㅗ+ㅏ = <strong>ㅘ</strong> (wa)  ·  ㅜ+ㅓ = <strong>ㅝ</strong> (wo)  ·  ㅗ+ㅣ = <strong>ㅚ</strong> (we)  ·  ㅜ+ㅣ = <strong>ㅟ</strong> (wi)</td></tr>
+      <tr><td class="h">Phrase bank</td><td>네 <em>yes</em>  ·  아니요 <em>no</em>  ·  저기요 <em>excuse me</em>  ·  커피 마셔요 <em>I drink coffee</em>  ·  노래해요 <em>I sing</em>  ·  바빠요 <em>I'm busy</em>  ·  짜요 <em>it's salty</em>  ·  싸요 <em>it's cheap</em>  ·  커요 <em>it's big</em>  ·  아파요 <em>it hurts</em>  ·  최고 <em>the best</em></td></tr>
+      <tr><td class="h">Two freebies</td><td>있어요 <em>there is / I have</em>  ·  없어요 <em>there isn't / I don't have</em>. Copy these. Do not try to work out why they are spelled that way — that is next week, and it is the whole lesson.</td></tr>
     </table>
     <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>The paper test.</strong> Hold a strip of paper in front of your mouth. Plain moves it a little. Added stroke makes it jump. Doubled does not move it at all.</p>
     <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">Everything in the phrase bank is a whole sentence on its own. Korean does not need the <em>I</em> — 바빠요 by itself already means <em>I'm busy</em>.</p>
@@ -611,11 +616,12 @@ const REWARDS = {
 
 /* Click-to-insert keys — an input method, not a scaffold. */
 const BANK_HANGUL3 = ["ㄱ", "ㄲ", "ㅋ", "ㄴ", "ㄷ", "ㄸ", "ㅌ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅍ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅎ", "ㅏ", "ㅑ", "ㅓ", "ㅕ", "ㅗ", "ㅛ", "ㅜ", "ㅠ", "ㅡ", "ㅣ", "ㅐ", "ㅔ", "ㅘ", "ㅝ", "ㅚ", "ㅟ"];
+const BANK_PHRASES = ["네", "아니요", "저기요", "최고", "커피 마셔요", "노래해요", "바빠요", "짜요", "싸요", "커요", "아파요", "있어요", "없어요", "커피", "노래", "드라마", "스키즈", "아이유", "토끼", "오빠"];
 
 const KEYS = [
   { host: "keys-m2", chars: BANK_HANGUL3, field: "textarea[data-q], input[data-q]" },
-  { host: "keys-m3", chars: BANK_HANGUL3, field: "textarea[data-q], input[data-q]" },
-  { host: "keys-h1", chars: BANK_HANGUL3, field: "textarea[data-q], input[data-q]" }
+  { host: "keys-m3", chars: BANK_PHRASES, field: "textarea[data-q], input[data-q]" },
+  { host: "keys-h1", chars: BANK_PHRASES, field: "textarea[data-q], input[data-q]" }
 ];
 </script>
 <script src="../../assets/theme.js"></script>

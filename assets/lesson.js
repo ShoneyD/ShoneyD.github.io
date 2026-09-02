@@ -220,8 +220,21 @@ document.getElementById('showPrev').addEventListener('click', () => {
 
 /* ---------- letter keys: an input method for a machine with no Korean
    keyboard. Inserts at the caret of the last focused answer field, so it
-   behaves like typing rather than like a chart to copy from. Backspace works
-   normally. Pages with no KEYS get nothing and cost nothing. ---------- */
+   behaves like typing rather than like a chart to copy from.
+
+   SINGLE JAMO ARE COMPOSED, not pasted. Clicking ㅇ then ㅔ has to produce 에,
+   not ㅇㅔ — a bank that leaves the jamo uncombined is not an input method, it
+   is a wall of characters that makes the student's answer look wrong. The
+   composer below is a minimal Hangul IME: it looks at the character before the
+   caret and rewrites it, exactly as a real keyboard does.
+
+   A bank entry longer than one character (a word or a whole phrase) is inserted
+   verbatim with a trailing space and never composed.
+
+   Backspace deletes the whole composed block rather than stepping back through
+   its jamo. That is the one place this differs from a real IME, and it is fine:
+   retyping a two-letter block is cheaper than the code to undo one.
+   Pages with no KEYS get nothing and cost nothing. ---------- */
 let lastField = null;
 document.addEventListener('focusin', e => {
   if (e.target.dataset && e.target.dataset.q !== undefined) lastField = e.target;
@@ -230,12 +243,71 @@ function fieldInScope(f){
   const st = f.closest('.stage');
   return st && !st.hidden;
 }
+
+/* ---------- Hangul composition ---------- */
+const HG_I = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const HG_M = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const HG_F = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+/* two vowels that fuse into one, and two final consonants that stack */
+const HG_MM = {'ㅗㅏ':'ㅘ','ㅗㅐ':'ㅙ','ㅗㅣ':'ㅚ','ㅜㅓ':'ㅝ','ㅜㅔ':'ㅞ','ㅜㅣ':'ㅟ','ㅡㅣ':'ㅢ'};
+const HG_FF = {'ㄱㅅ':'ㄳ','ㄴㅈ':'ㄵ','ㄴㅎ':'ㄶ','ㄹㄱ':'ㄺ','ㄹㅁ':'ㄻ','ㄹㅂ':'ㄼ',
+               'ㄹㅅ':'ㄽ','ㄹㅌ':'ㄾ','ㄹㅍ':'ㄿ','ㄹㅎ':'ㅀ','ㅂㅅ':'ㅄ'};
+const HG_FSPLIT = Object.fromEntries(Object.entries(HG_FF).map(([k,v]) => [v,[k[0],k[1]]]));
+/* A bank entry is a LETTER only if it is a lone jamo. 네 is one character but it
+   is a finished syllable, so it pastes like a word rather than composing. */
+function hgIsJamo(ch){
+  return ch.length === 1 && (HG_I.includes(ch) || HG_M.includes(ch) || HG_F.includes(ch));
+}
+
+function hgSyl(ch){                                  /* 가 → {i,m,f}, else null */
+  const c = ch ? ch.charCodeAt(0) : 0;
+  if (c < 0xAC00 || c > 0xD7A3) return null;
+  const n = c - 0xAC00;
+  return { i: HG_I[Math.floor(n / 588)], m: HG_M[Math.floor((n % 588) / 28)], f: HG_F[n % 28] };
+}
+function hgMake(i, m, f){
+  return String.fromCharCode(0xAC00 + (HG_I.indexOf(i) * 21 + HG_M.indexOf(m)) * 28 + HG_F.indexOf(f || ''));
+}
+/* Returns [charsToDeleteBeforeCaret, textToInsert]. */
+function hgCompose(prev, ch){
+  const isV = HG_M.includes(ch), isC = HG_I.includes(ch) || HG_F.includes(ch);
+  if (!isV && !isC) return [0, ch];
+  const syl = hgSyl(prev);
+
+  if (isC){
+    if (syl){
+      if (!syl.f && HG_F.includes(ch))        return [1, hgMake(syl.i, syl.m, ch)];
+      if (syl.f && HG_FF[syl.f + ch])         return [1, hgMake(syl.i, syl.m, HG_FF[syl.f + ch])];
+    }
+    return [0, ch];
+  }
+
+  /* a vowel */
+  if (syl){
+    if (!syl.f){
+      const fused = HG_MM[syl.m + ch];
+      if (fused)                              return [1, hgMake(syl.i, fused, '')];
+      return [0, ch];
+    }
+    /* the final consonant slides forward and starts the next block: 각 + ㅏ → 가가 */
+    const split = HG_FSPLIT[syl.f];
+    const keep  = split ? split[0] : '';
+    const moved = split ? split[1] : syl.f;
+    if (!HG_I.includes(moved))                return [0, ch];
+    return [1, hgMake(syl.i, syl.m, keep) + hgMake(moved, ch, '')];
+  }
+  if (HG_I.includes(prev))                    return [1, hgMake(prev, ch, '')];
+  if (HG_M.includes(prev) && HG_MM[prev + ch]) return [1, HG_MM[prev + ch]];
+  return [0, ch];
+}
+
 function buildKeys(hostId, chars, fallbackSelector){
   const host = document.getElementById(hostId);
   if (!host) return;
   chars.forEach(ch => {
     const b = document.createElement('button');
     b.type = 'button'; b.textContent = ch;
+    if (!hgIsJamo(ch)) b.classList.add('wide');
     b.setAttribute('aria-label', 'Insert ' + ch);
     b.addEventListener('click', () => {
       const inStage = host.closest('.stage');
@@ -243,10 +315,18 @@ function buildKeys(hostId, chars, fallbackSelector){
               ? lastField
               : inStage.querySelector(fallbackSelector);
       if (!f) return;
-      const a = f.selectionStart ?? f.value.length, z = f.selectionEnd ?? f.value.length;
-      f.value = f.value.slice(0, a) + ch + f.value.slice(z);
+      let a = f.selectionStart ?? f.value.length;
+      const z = f.selectionEnd ?? f.value.length;
+      let ins = ch, back = 0;
+      if (hgIsJamo(ch)){
+        [back, ins] = hgCompose(a > 0 && a === z ? f.value[a - 1] : '', ch);
+      } else {
+        ins = ch + ' ';                       /* a word or phrase, pasted whole */
+      }
+      a -= back;
+      f.value = f.value.slice(0, a) + ins + f.value.slice(z);
       f.focus();
-      f.setSelectionRange(a + ch.length, a + ch.length);
+      f.setSelectionRange(a + ins.length, a + ins.length);
       f.dispatchEvent(new Event('input', { bubbles: true }));
       lastField = f;
     });
