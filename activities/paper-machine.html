@@ -147,6 +147,24 @@
   .look ul{ margin:0; padding-left:1.2rem } .look li{ margin-bottom:.25rem }
   .look a{ color:var(--accent) }
 
+  /* done looks like */
+  .donelooks{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+        border-radius:8px; padding:.8rem 1.1rem; margin:1.2rem 0 .9rem; font-size:.93rem }
+  .donelooks .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .45rem }
+  .donelooks ul{ list-style:none; margin:0; padding:0 }
+  .donelooks li{ display:flex; gap:.55rem; align-items:flex-start; margin:0 0 .3rem; line-height:1.5 }
+  .donelooks li .mk{ flex:0 0 1.2rem; font-weight:700; color:#b3aca0 }
+  .donelooks li.ok .mk{ color:var(--calm) }
+  .donelooks li.ok{ color:var(--soft) }
+
+  /* restored-work notice */
+  .restored{ background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:8px;
+        padding:.7rem 1rem; margin:0 0 1rem; font-size:.9rem; display:flex; gap:.7rem;
+        align-items:center; flex-wrap:wrap }
+  .restored button{ font:inherit; font-size:.82rem; background:none; border:0;
+        color:var(--accent); text-decoration:underline; cursor:pointer; padding:0 }
+
   /* chips used when writing */
   .chips{ display:flex; flex-direction:column; gap:.45rem; margin:.5rem 0 1rem }
   .chip{ text-align:left; font:inherit; font-size:.92rem; cursor:pointer; background:#fff;
@@ -319,7 +337,11 @@
           </div>
         </div>
 
-        <div class="row" id="s1next" style="display:none">
+        <!-- DONE LOOKS LIKE. This is visible from the first second and updates on
+             every change. The button is never hidden: a requirement a student
+             can't see is a requirement he can only discover by failing. -->
+        <div class="donelooks" id="donelooks"></div>
+        <div class="row" id="s1next">
           <button class="btn go" onclick="LL.finish('s1')">I've got enough — start writing →</button>
         </div>
       </div>
@@ -687,9 +709,23 @@ function renderBank(){
   const used = new Set(FACTS.map(f => f.srcId));
   $('bankcount').textContent = FACTS.length + (FACTS.length === 1 ? ' fact' : ' facts') +
     ' · ' + used.size + (used.size === 1 ? ' source' : ' sources');
-  $('s1next').style.display = FACTS.length >= 2 ? 'flex' : 'none';
   LL.summary.s1 = FACTS.length + ' facts · ' + used.size + ' sources';
+  renderDoneLooks();
   renderChips();
+  saveBank();
+}
+
+/* The two requirements, on screen and live, from the first second. */
+function renderDoneLooks(){
+  const n = FACTS.length;
+  const outside = FACTS.some(f => f.srcId !== 'primary');
+  const li = (ok, txt) => '<li class="' + (ok ? 'ok' : '') + '"><span class="mk" aria-hidden="true">' +
+        (ok ? '✓' : '☐') + '</span><span>' + txt + '</span></li>';
+  $('donelooks').innerHTML = '<p class="lab">Done looks like</p><ul>' +
+    li(n >= 3, '<strong>At least 3 facts</strong> in the bank — you have ' + n + '.') +
+    li(outside, '<strong>At least one fact from somewhere other than the reading itself.</strong>' +
+       (outside ? '' : ' Use the links above.')) +
+    '</ul>';
 }
 
 $('factSrc').addEventListener('change', e => {
@@ -752,7 +788,7 @@ function renderChips(){
       const k = b.dataset.t, id = Number(b.dataset.f);
       const i = placed[k].indexOf(id);
       if (i > -1) placed[k].splice(i,1); else placed[k].push(id);
-      renderChips();
+      renderChips(); saveBank();
     }));
   });
 }
@@ -973,9 +1009,81 @@ document.addEventListener('input', e => {
   }
 });
 
+/* ---------------- saving the bank ----------------
+   student.js (linked below) already saves every [data-q] answer, which stages
+   are done, and where he was. It cannot see the fact bank, because the bank
+   lives in JS objects rather than in answer boxes — and the bank is the part
+   it would hurt most to lose. So it gets its own layer, same idea, own key.
+   Every storage call is wrapped: a browser that blocks storage just turns the
+   feature off quietly and everything else on the page still works. */
+const BANK_KEY = 'llbank:' + location.pathname;
+const BANK_MAX_AGE = 45 * 24 * 60 * 60 * 1000;
+const BSTORE = (function(){
+  try { const s = window.localStorage; s.setItem('__bprobe','1'); s.removeItem('__bprobe'); return s; }
+  catch(e){ return null; }
+})();
+let bankTimer = null;
+function saveBank(){
+  if (!BSTORE || !T) return;
+  clearTimeout(bankTimer);
+  bankTimer = setTimeout(() => {
+    try {
+      BSTORE.setItem(BANK_KEY, JSON.stringify({
+        t: Date.now(), key: T.key, sources: SOURCES, facts: FACTS,
+        placed: placed, nextId: nextId,
+        year: $('ytyear') ? $('ytyear').value : '',
+        name: $('mName').value, teacher: $('mTeacher').value, course: $('mCourse').value
+      }));
+    } catch(e){}
+  }, 300);
+}
+function dropBank(){ if (BSTORE){ try { BSTORE.removeItem(BANK_KEY); } catch(e){} } }
+function restoreBank(){
+  if (!BSTORE) return;
+  let s = null;
+  try { s = JSON.parse(BSTORE.getItem(BANK_KEY) || 'null'); } catch(e){ return; }
+  if (!s || !s.key || !TEXTS[s.key]) return;
+  if (Date.now() - (s.t || 0) > BANK_MAX_AGE){ dropBank(); return; }
+  if (!(s.facts || []).length) return;
+
+  choose(s.key);
+  SOURCES = s.sources || SOURCES;
+  FACTS   = s.facts   || [];
+  placed  = Object.assign({context:[],author:[],purpose:[]}, s.placed || {});
+  nextId  = s.nextId || (FACTS.length + 10);
+  if ($('ytyear') && s.year) $('ytyear').value = s.year;
+  if (s.name)    $('mName').value    = s.name;
+  if (s.teacher) $('mTeacher').value = s.teacher;
+  if (s.course)  $('mCourse').value  = s.course;
+  renderSrcSelect(); renderBank();
+
+  const note = document.createElement('div');
+  note.className = 'restored';
+  note.innerHTML = '<span>✓ Your fact bank came back — <strong>' + FACTS.length +
+    ' facts</strong> from last time.</span>';
+  const btn = document.createElement('button');
+  btn.textContent = 'Start a fresh bank instead';
+  btn.addEventListener('click', () => {
+    if (!confirm('Delete all ' + FACTS.length + ' facts and start over?')) return;
+    dropBank(); FACTS = []; placed = {context:[],author:[],purpose:[]};
+    SOURCES = SOURCES.filter(x => x.id === 'primary');
+    renderSrcSelect(); renderBank(); note.remove();
+  });
+  note.appendChild(btn);
+  $('pickedbox').insertBefore(note, $('pickedbox').firstChild);
+}
+
+['mName','mTeacher','mCourse'].forEach(i => $(i).addEventListener('input', saveBank));
+if ($('ytyear')) $('ytyear').addEventListener('input', saveBank);
+
 /* ---------------- go ---------------- */
 $('mDate').value = new Date().toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'});
 renderPicks();
+restoreBank();
 </script>
+
+<!-- Loaded LAST, after the engine, exactly as every other activity does it:
+     save/restore of answers and finished parts, plus the celebration card. -->
+<script src="../assets/student.js"></script>
 </body>
 </html>
