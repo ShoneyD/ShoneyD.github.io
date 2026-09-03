@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — activity: The Paper Machine
+  engine: builder · variant: author-context-paper · v1
+
+  TEXT-SWAPPABLE: the TEXTS constant at the top of the script is the only
+  content-specific part. Add a third key and a third card appears in Stage 1.
+
+  WHAT THIS IS NOT: a fact bank the teacher fills in. The bank starts EMPTY.
+  The student researches, types what he finds, attaches the source, and tags
+  what it is for. The tool's job is the two things that cost him the most and
+  teach him the least — formatting citations, and holding the shape of a whole
+  paper in his head — not the finding and not the thinking.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Paper Machine</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; --paper:#ffffff; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  h3{ font-size:1rem; margin:1.4rem 0 .5rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  /* the page-shape diagram */
+  .shape{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1rem .7rem; margin:0 0 1.25rem; display:flex; gap:1rem; align-items:center }
+  .shape svg{ flex:0 0 auto }
+  .shape .legend{ font-size:.86rem; color:var(--soft); line-height:1.5 }
+  .shape .legend strong{ color:var(--ink) }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.sm{ font-size:.82rem; padding:.35rem .7rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea, .abox input[type=text]{ width:100%; border:0; outline:0; resize:vertical;
+        min-height:2.6rem; font:inherit; font-size:1rem; color:var(--ink);
+        background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .nospell{ color:var(--soft); font-size:.86rem; margin:.4rem 0 1.1rem }
+
+  /* text picker */
+  .picks{ display:grid; gap:.8rem; grid-template-columns:1fr 1fr; margin:0 0 1rem }
+  @media(max-width:640px){ .picks{ grid-template-columns:1fr } }
+  .pick{ text-align:left; font:inherit; cursor:pointer; background:var(--card);
+        border:2px solid var(--line); border-radius:10px; padding:.9rem 1rem; color:var(--ink) }
+  .pick:hover{ border-color:var(--accent) }
+  .pick.on{ border-color:var(--accent); background:var(--accent-soft) }
+  .pick b{ display:block; font-size:1rem; margin-bottom:.15rem }
+  .pick span{ display:block; font-size:.85rem; color:var(--soft) }
+
+  /* fact bank */
+  .bank{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+         padding:1rem 1.1rem; margin:1rem 0 }
+  .bankhead{ display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; margin:0 0 .6rem }
+  .bankhead h3{ margin:0; font-size:1rem }
+  .count{ font-size:.85rem; color:var(--soft); margin-left:auto }
+  .empty{ font-size:.92rem; color:var(--soft); font-style:italic; margin:.4rem 0 }
+
+  .fact{ display:flex; gap:.6rem; align-items:flex-start; background:#fff;
+         border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; margin:0 0 .5rem }
+  .fact .badge{ flex:0 0 auto; margin-top:.15rem }
+  .fact .ft{ flex:1 1 auto; font-size:.95rem; line-height:1.5 }
+  .fact .src{ display:block; font-size:.8rem; color:var(--soft); margin-top:.2rem }
+  .fact .del{ flex:0 0 auto; background:none; border:0; font:inherit; font-size:1rem;
+        color:#9aa5ae; cursor:pointer; padding:0 .2rem }
+  .fact .del:hover{ color:#a33 }
+
+  .tagpick{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.4rem 0 .9rem }
+  .tagbtn{ font:inherit; font-size:.88rem; cursor:pointer; background:#fff; color:var(--ink);
+        border:2px solid var(--line); border-radius:999px; padding:.35rem .85rem;
+        display:inline-flex; align-items:center; gap:.4rem }
+  .tagbtn.on{ border-color:var(--accent); background:var(--accent-soft); font-weight:700 }
+
+  .srcform{ display:none; background:var(--warn-soft); border:1px dashed #ddbf94;
+        border-radius:8px; padding:.9rem 1.1rem; margin:.6rem 0 1rem }
+  .srcform.show{ display:block }
+  .grid2{ display:grid; gap:.6rem; grid-template-columns:1fr 1fr }
+  @media(max-width:640px){ .grid2{ grid-template-columns:1fr } }
+  .fld{ margin:0 0 .6rem }
+  .fld label{ display:block; font-size:.8rem; font-weight:700; color:var(--soft); margin:0 0 .2rem }
+  .fld input, .fld select{ width:100%; font:inherit; font-size:.95rem; padding:.45rem .6rem;
+        border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink) }
+  .hintline{ font-size:.84rem; color:var(--soft); margin:.1rem 0 .6rem }
+
+  .look{ background:var(--accent-soft); border:1px solid #c3dbe7; border-radius:8px;
+         padding:.85rem 1.1rem; margin:.8rem 0 1rem; font-size:.92rem }
+  .look p{ margin:0 0 .35rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent) }
+  .look ul{ margin:0; padding-left:1.2rem } .look li{ margin-bottom:.25rem }
+  .look a{ color:var(--accent) }
+
+  /* chips used when writing */
+  .chips{ display:flex; flex-direction:column; gap:.45rem; margin:.5rem 0 1rem }
+  .chip{ text-align:left; font:inherit; font-size:.92rem; cursor:pointer; background:#fff;
+        border:2px solid var(--line); border-radius:8px; padding:.55rem .8rem;
+        color:var(--ink); display:flex; gap:.55rem; align-items:flex-start; line-height:1.5 }
+  .chip:hover{ border-color:var(--accent) }
+  .chip.on{ border-color:var(--calm); background:var(--calm-soft) }
+  .chip .num{ flex:0 0 1.4rem; font-weight:700; color:var(--calm) }
+  .chip .cite{ color:var(--soft); font-size:.85rem }
+
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  /* the paper */
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .paperbox{ background:var(--paper); border:1px solid var(--line); border-radius:8px;
+        padding:1.25rem 1.4rem; margin:1rem 0; font-size:.95rem; line-height:1.9 }
+  .paperbox[contenteditable]:focus{ outline:3px solid var(--accent); outline-offset:2px }
+  .paperbox .hdr{ font-size:.9rem; line-height:1.6; margin:0 0 .9rem }
+  .paperbox .ttl{ text-align:center; font-weight:700; margin:0 0 .9rem }
+  .paperbox p{ margin:0 0 .9rem; text-indent:1.6rem }
+  .paperbox .wc h4{ margin:1.2rem 0 .5rem; text-align:center; font-size:.95rem }
+  .paperbox .wc p{ text-indent:0; padding-left:1.6rem; margin:0 0 .5rem }
+  .meta{ display:grid; gap:.6rem; grid-template-columns:1fr 1fr; margin:0 0 1rem }
+  @media(max-width:640px){ .meta{ grid-template-columns:1fr } }
+  .wcount{ font-size:.86rem; color:var(--soft); margin:.2rem 0 1rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:14rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The Paper Machine</h1>
+  <p class="sub">You do the finding and the thinking. It holds the shape of the paper and formats every citation for you.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <!-- the shape of the finished paper, filling in as he goes -->
+  <div class="shape">
+    <svg id="pageshape" width="112" height="150" viewBox="0 0 112 150" role="img"
+         aria-label="Diagram of the finished paper: five stacked paragraph blocks and a works cited strip at the bottom. Blocks fill in as each part is finished.">
+      <rect x="1" y="1" width="110" height="148" rx="4" fill="#ffffff" stroke="#d8d2c8"/>
+      <rect x="14" y="10" width="84" height="4" rx="2" fill="#c9c2b6"/>
+      <rect x="14" y="18" width="60" height="4" rx="2" fill="#c9c2b6"/>
+      <g id="blk1"><rect x="14" y="30" width="84" height="15" rx="3" fill="#eee9e0"/></g>
+      <g id="blk2"><rect x="14" y="49" width="84" height="19" rx="3" fill="#eee9e0"/></g>
+      <g id="blk3"><rect x="14" y="72" width="84" height="19" rx="3" fill="#eee9e0"/></g>
+      <g id="blk4"><rect x="14" y="95" width="84" height="19" rx="3" fill="#eee9e0"/></g>
+      <g id="blk5"><rect x="14" y="118" width="84" height="12" rx="3" fill="#eee9e0"/></g>
+      <g id="blkwc"><rect x="14" y="134" width="84" height="7" rx="2" fill="#eee9e0"/></g>
+      <text x="6" y="39" font-size="7" fill="#9aa5ae">1</text>
+      <text x="6" y="60" font-size="7" fill="#9aa5ae">2</text>
+      <text x="6" y="83" font-size="7" fill="#9aa5ae">3</text>
+      <text x="6" y="106" font-size="7" fill="#9aa5ae">4</text>
+      <text x="6" y="127" font-size="7" fill="#9aa5ae">5</text>
+    </svg>
+    <div class="legend">
+      <strong>What you're building.</strong><br>
+      1 — who, what, when, and your point<br>
+      2 — what was going on at the time<br>
+      3 — who this person was, and their lens<br>
+      4 — your critique: with the crowd or against it<br>
+      5 — why it still matters<br>
+      Bottom strip — Works Cited, built for you.
+    </div>
+  </div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li><strong>Research first.</strong> Every fact you find goes in your bank with its source attached.</li>
+      <li>Then you write. Your own facts show up as buttons you tap into each paragraph.</li>
+      <li>Citations and the Works Cited page are built from your bank. You never format one.</li>
+      <li>Nothing is timed. You can add to your bank at any point — just reopen Part 1.</li>
+    </ol>
+  </div>
+
+  <!-- ============ STAGE 1 — pick the text, build the bank ============ -->
+  <section class="stage active" id="s1" data-title="Research and the fact bank">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1 — Research</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 — Which piece, and what did you find?</h2>
+      <p>Pick the one you read. Then go find things out about it, and drop each one in your bank as you go.</p>
+
+      <div class="picks" id="picks"></div>
+      <div id="pickedbox" style="display:none">
+
+        <div class="look" id="look"></div>
+
+        <div id="yearask" style="display:none">
+          <div class="fld" style="max-width:16rem">
+            <label for="ytyear">One thing to check: the year the talk was posted</label>
+            <input type="text" id="ytyear" placeholder="e.g. 2019" maxlength="4">
+          </div>
+          <p class="hintline">It's under the video title on YouTube, next to the view count. Type just the year — it goes straight into your Works Cited.</p>
+        </div>
+
+        <div class="bank">
+          <div class="bankhead">
+            <h3>Your fact bank</h3>
+            <span class="count" id="bankcount">0 facts · 0 sources</span>
+          </div>
+          <div id="factlist"><p class="empty">Empty. Everything you find goes here.</p></div>
+
+          <h3>Add what you just found</h3>
+          <div class="abox"><p class="lab">The fact, in one sentence</p>
+            <textarea id="factText" rows="2"
+              placeholder="Write one thing that is true. A whole sentence."></textarea></div>
+          <p class="nospell">Your words or a short quote — either is fine. Don't worry about spelling.</p>
+
+          <div class="fld">
+            <label for="factSrc">Where did you get it?</label>
+            <select id="factSrc"></select>
+          </div>
+
+          <div class="srcform" id="srcform">
+            <p style="margin:0 0 .5rem;font-weight:700;font-size:.85rem;">New source — six small boxes, then it's saved forever.</p>
+            <div class="fld">
+              <label for="sKind">What kind of thing is it?</label>
+              <select id="sKind">
+                <option value="web">A web page or article</option>
+                <option value="video">A video</option>
+                <option value="book">A book</option>
+              </select>
+            </div>
+            <div class="grid2">
+              <div class="fld"><label for="sFirst">Author — first name</label>
+                <input type="text" id="sFirst" placeholder="leave blank if none"></div>
+              <div class="fld"><label for="sLast">Author — last name</label>
+                <input type="text" id="sLast" placeholder="leave blank if none"></div>
+            </div>
+            <p class="hintline">Lots of web pages have no author. Blank is a real answer, not a mistake.</p>
+            <div class="fld"><label for="sTitle">Title of the page, video, or book</label>
+              <input type="text" id="sTitle"></div>
+            <div class="grid2">
+              <div class="fld"><label for="sCont" id="sContLab">Website it's on</label>
+                <input type="text" id="sCont" placeholder="e.g. History.com"></div>
+              <div class="fld"><label for="sYear">Year</label>
+                <input type="text" id="sYear" placeholder="e.g. 2021 — or n.d."></div>
+            </div>
+            <div class="fld"><label for="sUrl">Link (paste it)</label>
+              <input type="text" id="sUrl" placeholder="paste the address bar"></div>
+            <div class="row" style="margin:0">
+              <button class="btn sm" id="saveSrc">Save this source</button>
+              <button class="btn sm ghost" id="cancelSrc">Cancel</button>
+            </div>
+          </div>
+
+          <p style="margin:.8rem 0 .2rem;font-size:.9rem;font-weight:700;">What is this fact for?</p>
+          <div class="tagpick" id="tagpick"></div>
+
+          <div class="fb" id="fb" role="status" aria-live="polite"></div>
+          <div class="row" style="margin:0">
+            <button class="btn" id="addFact">＋ Add to my bank</button>
+          </div>
+        </div>
+
+        <div class="row" id="s1next" style="display:none">
+          <button class="btn go" onclick="LL.finish('s1')">I've got enough — start writing →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — context ============ -->
+  <section class="stage" id="s2" data-title="Paragraph 2 — the moment">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2 — The moment</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — What was going on at the time</h2>
+      <p>Tap the facts you want in this paragraph, in the order you want them. Two or three is plenty.</p>
+      <div class="chips" id="chips-context"></div>
+      <p class="empty" id="none-context" style="display:none">Nothing tagged <strong>the moment</strong> yet. Reopen Part 1 and add some.</p>
+
+      <p class="q"><strong>Q1.</strong> Why did that moment make this piece necessary? One sentence.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q1. Why did that moment make this piece necessary?" rows="2"></textarea></div>
+      <div class="stems"><p class="lab">Starters — use one if you want</p>
+        <p>• All of this meant that ____.<br>• Somebody had to say ____, because ____.<br>• Nothing was going to change unless ____.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s2')">Done with this part →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 — the person ============ -->
+  <section class="stage" id="s3" data-title="Paragraph 3 — the person and the lens">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3 — The person</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 — Who was talking, and what were they looking through?</h2>
+      <p>Tap the facts about the author's life that actually explain why he's the one saying this.</p>
+      <div class="chips" id="chips-author"></div>
+      <p class="empty" id="none-author" style="display:none">Nothing tagged <strong>the person</strong> yet. Reopen Part 1 and add some.</p>
+
+      <p class="q"><strong>Q2.</strong> Why is <em>this</em> person the one speaking on <em>this</em> topic?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q2. Why is this person the one speaking on this topic?" rows="2"></textarea></div>
+
+      <p class="q"><strong>Q3.</strong> What does his life let him see that someone else would miss?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. What does his life let him see that someone else would miss?" rows="2"></textarea></div>
+
+      <div class="stems"><p class="lab">Starters — use one if you want</p>
+        <p>• He is the one saying this because ____.<br>• Having ____ means he sees ____ that someone who never ____ would miss.<br>• He isn't guessing about ____ — he ____.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s3')">Done with this part →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 4 — the critique ============ -->
+  <section class="stage" id="s4" data-title="Paragraph 4 — the critique">
+    <button class="donebar" onclick="LL.toggle('s4')">
+      <span class="tick">✓</span> <strong>Part 4 — The critique</strong>
+      <span class="sum" id="sum-s4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 4 — Is he with the crowd, or against it?</h2>
+      <p>This is the part your teacher is actually reading for. Facts tagged <strong>the purpose</strong> go here if you have any.</p>
+      <div class="chips" id="chips-purpose"></div>
+
+      <p class="q"><strong>Q4.</strong> Was he agreeing with what most people around him believed, or pushing against it? Say which, and how you can tell.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q4. Was he agreeing with what most people around him believed, or pushing against it, and how can you tell?" rows="2"></textarea></div>
+
+      <p class="q"><strong>Q5.</strong> Where is he biased? Everyone is. What is he close to that would bend how he sees it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q5. Where is he biased? What is he close to that would bend how he sees it?" rows="2"></textarea></div>
+
+      <p class="q"><strong>Q6.</strong> Does his background make him a source you'd trust on this, or an outsider looking in? Pick one and defend it.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q6. Does his background make him credible on this, or an outsider looking in?" rows="2"></textarea></div>
+
+      <div class="stems"><p class="lab">Starters — use one if you want</p>
+        <p>• He is not agreeing with ____; he is telling them ____.<br>• You can tell because he ____ instead of ____.<br>• He is biased toward ____, because ____.<br>• I'd trust him on ____ but not on ____.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s4')">Done with this part →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 5 — the point ============ -->
+  <section class="stage" id="s5" data-title="Paragraph 1 and 5 — the point">
+    <button class="donebar" onclick="LL.toggle('s5')">
+      <span class="tick">✓</span> <strong>Part 5 — The point</strong>
+      <span class="sum" id="sum-s5"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 5 — Now say what you actually think</h2>
+      <p>You know the piece, the person and the moment now. This is the easiest place to write the sentence the whole paper is holding up — and the last line.</p>
+
+      <p class="q"><strong>Q7.</strong> Your thesis. Fill in the blanks and it becomes the last line of your opening paragraph.</p>
+      <div class="abox"><p class="lab">My thesis</p>
+        <textarea data-q="Q7. Thesis." id="thesis" rows="3"></textarea></div>
+      <p class="hintline" id="thesisHint"></p>
+
+      <p class="q"><strong>Q8.</strong> Forget the year it was made. What does it still say to somebody now?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. What does this piece still say to somebody now, outside its own time?" rows="2"></textarea></div>
+      <div class="stems"><p class="lab">Starters — use one if you want</p>
+        <p>• Anyone who has ever ____ knows what he means.<br>• The date changes but ____ doesn't.<br>• He was talking about ____, but he was really talking about ____.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s5')">Build my paper →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ THE PAPER ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Your paper</h2>
+        <p class="lede">Built from your bank. You can click into it and change any word before you copy it.</p>
+
+        <div class="meta">
+          <div class="fld"><label for="mName">Your name</label><input type="text" id="mName"></div>
+          <div class="fld"><label for="mTeacher">Teacher</label><input type="text" id="mTeacher"></div>
+          <div class="fld"><label for="mCourse">Course</label><input type="text" id="mCourse" value="English 11A"></div>
+          <div class="fld"><label for="mDate">Date</label><input type="text" id="mDate"></div>
+        </div>
+        <div class="row" style="margin-bottom:.4rem">
+          <button class="btn" id="rebuild">↻ Build it / rebuild it</button>
+        </div>
+
+        <div class="paperbox" id="paperbox" contenteditable="true" spellcheck="true"
+             aria-label="Your paper — editable"></div>
+        <p class="wcount" id="wcount"></p>
+
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy my paper</button>
+          <button class="btn ghost" id="showPrev">Show me the plain text</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Part 1 — Research and the fact bank",
+    "questions": [
+      "Pick your piece: Douglass's \"What to the Slave Is the Fourth of July?\" or Bill Crawford's TEDxRexburg talk.",
+      "Research it. Every fact you find goes in the bank with its source attached and a tag: the moment / the person / the purpose.",
+      "Add each source once — six small boxes — and the MLA entry writes itself.",
+      "Gate: Part 1 will not close until at least one fact comes from a source other than the reading itself."
+    ] },
+  { "title": "Part 2 — The moment (paragraph 2)",
+    "questions": [
+      "Tap the facts about the moment into this paragraph.",
+      "Q1. Why did that moment make this piece necessary?"
+    ] },
+  { "title": "Part 3 — The person and the lens (paragraph 3)",
+    "questions": [
+      "Tap the facts about the author's life into this paragraph.",
+      "Q2. Why is this person the one speaking on this topic?",
+      "Q3. What does his life let him see that someone else would miss?"
+    ] },
+  { "title": "Part 4 — The critique (paragraph 4)",
+    "questions": [
+      "Q4. Was he agreeing with what most people around him believed, or pushing against it, and how can you tell?",
+      "Q5. Where is he biased? What is he close to that would bend how he sees it?",
+      "Q6. Does his background make him credible on this, or an outsider looking in?"
+    ] },
+  { "title": "Part 5 — The point (paragraphs 1 and 5)",
+    "questions": [
+      "Q7. Your thesis — it becomes the last line of the opening paragraph.",
+      "Q8. What does this piece still say to somebody now, outside its own time?"
+    ] },
+  { "title": "The paper",
+    "questions": [
+      "One page, MLA, in-text citations placed and Works Cited alphabetized. Editable, then one button copies it into a Canvas Text Submission."
+    ] }
+]
+</script>
+
+<script>
+/* ============================================================
+   TEXT-SWAPPABLE CONTENT — the only content-specific part.
+   Add a key here and a third card appears in Part 1.
+   ============================================================ */
+const TEXTS = {
+  douglass: {
+    label: 'What to the Slave Is the Fourth of July?',
+    blurb: 'Frederick Douglass · a speech · 1852',
+    author: 'Frederick Douglass',
+    last: 'Douglass',
+    kindWord: 'speech',
+    delivered: 'on July 5, 1852',
+    where: 'at Corinthian Hall in Rochester, New York, to the Rochester Ladies’ Anti-Slavery Society',
+    thesisStem: 'Because Frederick Douglass had ____, his purpose in “What to the Slave Is the Fourth of July?” was to ____, which went against what most of his audience believed about ____.',
+    works: 'Douglass, Frederick. “What to the Slave Is the Fourth of July?” 5 July 1852. <i>Frederick Douglass Papers Project</i>, Indiana University Indianapolis, frederickdouglasspapersproject.com/s/digitaledition/item/16068.',
+    sortKey: 'douglass',
+    inText: 'Douglass',
+    askYear: false,
+    look: [
+      ['The speech itself, full text', 'https://frederickdouglasspapersproject.com/s/digitaledition/item/16068'],
+      ['Smithsonian NMAAHC — the story behind the speech', 'https://nmaahc.si.edu/explore/stories/nations-story-what-slave-fourth-july'],
+      ['History.com — what was happening in 1852', 'https://www.history.com/this-day-in-history/july-5/frederick-douglass-speech-what-to-the-slave-is-the-fourth-of-july'],
+      ['Bill of Rights Institute — background and analysis', 'https://billofrightsinstitute.org/activities/frederick-douglass-what-to-the-slave-is-the-fourth-of-july-speech-to-rochester-new-york-ladies-anti-slavery-society-july-5-1852/']
+    ],
+    hunt: [
+      'What law had just passed in 1850 that made every free state part of catching people who escaped?',
+      'How did Douglass get free, and how old was he when he did?',
+      'What did he do for a living by 1852 — what was he running in Rochester?',
+      'Who was actually sitting in that hall, and were they for him or against him?'
+    ]
+  },
+  crawford: {
+    label: 'Kill and Survive: A Stealth Pilot’s Secrets of Success',
+    blurb: 'Bill Crawford · a TEDx talk · TEDxRexburg',
+    author: 'Bill Crawford',
+    last: 'Crawford',
+    kindWord: 'talk',
+    delivered: '',
+    where: 'at TEDxRexburg, in front of a college audience at BYU-Idaho',
+    thesisStem: 'Because Bill Crawford had ____, his purpose in “Kill and Survive” was to ____, which ____ what most people believe about how you get good at something.',
+    works: 'Crawford, Bill. “Kill and Survive: A Stealth Pilot’s Secrets of Success.” <i>YouTube</i>, uploaded by TEDx Talks, [[YEAR]], www.youtube.com/watch?v=rF5hDwZa7-0.',
+    sortKey: 'crawford',
+    inText: 'Crawford',
+    askYear: true,
+    look: [
+      ['The talk itself', 'https://www.youtube.com/watch?v=rF5hDwZa7-0'],
+      ['TEDxRexburg — his speaker page and bio', 'https://tedxrexburg.com/bill-crawford-2/'],
+      ['We Are The Mighty — an article about the talk', 'https://www.wearethemighty.com/mighty-culture/stealth-pilot-excellence-ted-talk/']
+    ],
+    hunt: [
+      'What did he fly, and where — what did he actually do in the Air Force?',
+      'What did he do after flying? What does he do now, and who is he talking to?',
+      'What is a debrief, and where does that habit come from?',
+      'What kind of event is a TEDx talk — who goes, and what are they there for?'
+    ]
+  }
+};
+
+const TAGS = [
+  { key:'context', label:'The moment',  icon:'▦', hint:'what was going on at the time' },
+  { key:'author',  label:'The person',  icon:'●', hint:'about the author’s own life' },
+  { key:'purpose', label:'The purpose', icon:'▲', hint:'what he was trying to do' }
+];
+
+/* ---------------- state ---------------- */
+let T = null;
+let SOURCES = [];
+let FACTS = [];
+let pendingTag = null;
+let nextId = 1;
+
+/* ---------------- helpers ---------------- */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $ = id => document.getElementById(id);
+function say(kind, head, body){
+  const fb = $('fb');
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+function clearSay(){ $('fb').className = 'fb'; }
+
+/* ---------------- MLA ---------------- */
+/* A title that already ends in ? or ! keeps its own mark and gets no period —
+   the thing that makes a bibliography look hand-made instead of machine-made. */
+function endPunc(t){ return /[?!]\s*$/.test(t) ? '' : '.'; }
+/* MLA shortens a no-author title for the in-text citation. Cut the subtitle at
+   the colon first, then cap the length — never mid-phrase. */
+function shortTitle(t){
+  let s = String(t).split(':')[0].trim();
+  const w = s.split(/\s+/);
+  if (w.length > 5) s = w.slice(0,4).join(' ');
+  return s.replace(/[.,;]+$/,'');
+}
+function buildWorks(s){
+  const A = (s.last && s.first) ? (s.last + ', ' + s.first + '. ')
+          : (s.last ? s.last + '. ' : '');
+  const yr = s.year ? s.year : 'n.d.';
+  const url = s.url ? s.url.replace(/^https?:\/\//,'') : '';
+  if (s.kind === 'book')
+    return A + '<i>' + s.title + '</i>' + endPunc(s.title) + ' ' +
+           (s.cont ? s.cont + ', ' : '') + yr + '.';
+  const container = s.cont || (s.kind === 'video' ? 'YouTube' : '');
+  return A + '“' + s.title + endPunc(s.title) + '”' +
+         (container ? ' <i>' + container + '</i>,' : '') + ' ' + yr +
+         (url ? ', ' + url : '') + '.';
+}
+function inTextOf(s){
+  if (s.last) return s.last;
+  return '“' + shortTitle(s.title) + '”';
+}
+function sortKeyOf(s){
+  return (s.last || s.title || '').toLowerCase().replace(/^(a|an|the)\s+/,'');
+}
+
+/* ---------------- Part 1 ---------------- */
+function renderPicks(){
+  $('picks').innerHTML = Object.keys(TEXTS).map(k =>
+    '<button class="pick" data-k="' + k + '"><b>' + esc(TEXTS[k].label) + '</b>' +
+    '<span>' + esc(TEXTS[k].blurb) + '</span></button>').join('');
+  $('picks').querySelectorAll('.pick').forEach(b =>
+    b.addEventListener('click', () => choose(b.dataset.k)));
+}
+function choose(k){
+  if (T && T.key !== k && (FACTS.length || SOURCES.length > 1)){
+    if (!confirm('Switching pieces clears your fact bank. Do it?')) return;
+    FACTS = []; SOURCES = [];
+  }
+  T = Object.assign({ key:k }, TEXTS[k]);
+  $('picks').querySelectorAll('.pick').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  $('pickedbox').style.display = 'block';
+  $('yearask').style.display = T.askYear ? 'block' : 'none';
+  $('thesisHint').textContent = 'Starter: ' + T.thesisStem;
+  if (!$('thesis').value.trim()) $('thesis').value = T.thesisStem;
+
+  SOURCES = SOURCES.filter(s => s.id !== 'primary');
+  SOURCES.unshift({ id:'primary', primary:true, kind:'primary',
+    title:T.label, last:T.last, first:'', cont:'', year:'', url:'' });
+
+  $('look').innerHTML = '<p>Where to start looking</p><ul>' +
+    T.look.map(l => '<li><a href="' + l[1] + '" target="_blank" rel="noopener">' + esc(l[0]) + '</a></li>').join('') +
+    '</ul><p style="margin:.7rem 0 .35rem">Four things worth finding out</p><ul>' +
+    T.hunt.map(h => '<li>' + esc(h) + '</li>').join('') + '</ul>';
+
+  renderTags(); renderSrcSelect(); renderBank();
+}
+function renderTags(){
+  $('tagpick').innerHTML = TAGS.map(t =>
+    '<button class="tagbtn" data-t="' + t.key + '"><span aria-hidden="true">' + t.icon +
+    '</span> ' + t.label + '</button>').join('');
+  $('tagpick').querySelectorAll('.tagbtn').forEach(b =>
+    b.addEventListener('click', () => {
+      pendingTag = b.dataset.t;
+      $('tagpick').querySelectorAll('.tagbtn').forEach(x => x.classList.toggle('on', x === b));
+    }));
+}
+function renderSrcSelect(){
+  const sel = $('factSrc');
+  sel.innerHTML = SOURCES.map(s =>
+    '<option value="' + s.id + '">' + esc(s.primary ? s.title + '  (the piece itself)' : shortSrc(s)) + '</option>'
+  ).join('') + '<option value="__new">＋ a source I found…</option>';
+  sel.value = sel.value || SOURCES[0].id;
+}
+function shortSrc(s){ return (s.last ? s.last + ' — ' : '') + s.title; }
+function renderBank(){
+  const list = $('factlist');
+  if (!FACTS.length){ list.innerHTML = '<p class="empty">Empty. Everything you find goes here.</p>'; }
+  else {
+    list.innerHTML = FACTS.map(f => {
+      const s = SOURCES.find(x => x.id === f.srcId) || {title:'?'};
+      const tg = TAGS.find(t => t.key === f.tag) || TAGS[0];
+      return '<div class="fact"><span class="badge" aria-hidden="true">' + tg.icon + '</span>' +
+        '<span class="ft">' + esc(f.text) +
+        '<span class="src">' + esc(tg.label) + ' · ' + esc(s.primary ? 'the piece itself' : shortSrc(s)) + '</span></span>' +
+        '<button class="del" title="Delete this fact" data-d="' + f.id + '">✕</button></div>';
+    }).join('');
+    list.querySelectorAll('.del').forEach(b => b.addEventListener('click', () => {
+      FACTS = FACTS.filter(f => String(f.id) !== b.dataset.d); renderBank(); renderChips();
+    }));
+  }
+  const used = new Set(FACTS.map(f => f.srcId));
+  $('bankcount').textContent = FACTS.length + (FACTS.length === 1 ? ' fact' : ' facts') +
+    ' · ' + used.size + (used.size === 1 ? ' source' : ' sources');
+  $('s1next').style.display = FACTS.length >= 2 ? 'flex' : 'none';
+  LL.summary.s1 = FACTS.length + ' facts · ' + used.size + ' sources';
+  renderChips();
+}
+
+$('factSrc').addEventListener('change', e => {
+  $('srcform').classList.toggle('show', e.target.value === '__new');
+});
+$('sKind').addEventListener('change', e => {
+  $('sContLab').textContent = e.target.value === 'book' ? 'Publisher'
+    : e.target.value === 'video' ? 'Site or channel it’s on' : 'Website it’s on';
+});
+$('cancelSrc').addEventListener('click', () => {
+  $('srcform').classList.remove('show'); $('factSrc').value = SOURCES[0].id;
+});
+$('saveSrc').addEventListener('click', () => {
+  const title = $('sTitle').value.trim();
+  if (!title){ say('hint','It needs a title.','Even just what the page is called at the top. Everything else can be blank.'); return; }
+  const s = { id:'s' + (nextId++), kind:$('sKind').value,
+    first:$('sFirst').value.trim(), last:$('sLast').value.trim(), title:title,
+    cont:$('sCont').value.trim(), year:$('sYear').value.trim(), url:$('sUrl').value.trim() };
+  SOURCES.push(s);
+  ['sFirst','sLast','sTitle','sCont','sYear','sUrl'].forEach(i => $(i).value = '');
+  $('srcform').classList.remove('show');
+  renderSrcSelect(); $('factSrc').value = s.id;
+  say('good','Source saved — and formatted.',
+    'Your Works Cited will say:<br><span style="font-size:.9rem">' + buildWorks(s) + '</span>' +
+    '<br><br>In your paragraph it shows up as <strong>(' + esc(inTextOf(s)) + ')</strong>. You never have to type that.');
+});
+
+$('addFact').addEventListener('click', () => {
+  const text = $('factText').value.trim();
+  if (!T){ say('hint','Pick a piece first.','The two cards at the top.'); return; }
+  if (!text){ say('hint','Nothing to add yet.','Type the fact in the box above — one sentence.'); return; }
+  if ($('factSrc').value === '__new'){ say('hint','Save the source first.','Fill in the yellow box and press <strong>Save this source</strong>.'); return; }
+  if (!pendingTag){ say('hint','One more tap.','Say what the fact is for — the moment, the person, or the purpose. That’s what decides which paragraph it lands in.'); return; }
+  FACTS.push({ id:nextId++, text:text, srcId:$('factSrc').value, tag:pendingTag });
+  $('factText').value = '';
+  pendingTag = null;
+  $('tagpick').querySelectorAll('.tagbtn').forEach(x => x.classList.remove('on'));
+  clearSay();
+  renderBank();
+  $('factText').focus();
+});
+
+/* ---------------- chips in the writing stages ---------------- */
+let placed = { context:[], author:[], purpose:[] };
+function renderChips(){
+  TAGS.forEach(t => {
+    const box = $('chips-' + t.key); if (!box) return;
+    const mine = FACTS.filter(f => f.tag === t.key);
+    const none = $('none-' + t.key);
+    if (none) none.style.display = mine.length ? 'none' : 'block';
+    placed[t.key] = placed[t.key].filter(id => mine.some(f => f.id === id));
+    box.innerHTML = mine.map(f => {
+      const s = SOURCES.find(x => x.id === f.srcId) || {};
+      const pos = placed[t.key].indexOf(f.id);
+      return '<button class="chip' + (pos > -1 ? ' on' : '') + '" data-t="' + t.key + '" data-f="' + f.id + '">' +
+        '<span class="num">' + (pos > -1 ? (pos + 1) : '○') + '</span>' +
+        '<span>' + esc(f.text) + ' <span class="cite">(' + esc(s.primary ? T.inText : inTextOf(s)) + ')</span></span></button>';
+    }).join('');
+    box.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+      const k = b.dataset.t, id = Number(b.dataset.f);
+      const i = placed[k].indexOf(id);
+      if (i > -1) placed[k].splice(i,1); else placed[k].push(id);
+      renderChips();
+    }));
+  });
+}
+
+/* ---------------- the paper ---------------- */
+function factSentence(f){
+  const s = SOURCES.find(x => x.id === f.srcId) || {};
+  let t = f.text.trim().replace(/\s*[.!?]\s*$/,'');
+  return t + ' (' + (s.primary ? T.inText : inTextOf(s)) + ').';
+}
+function para(tag){
+  return placed[tag].map(id => {
+    const f = FACTS.find(x => x.id === id); return f ? factSentence(f) : '';
+  }).filter(Boolean);
+}
+function ans(sel){
+  const el = document.querySelector('[data-q^="' + sel + '"]');
+  return el ? el.value.trim() : '';
+}
+function worksList(){
+  const used = new Set(FACTS.filter(f =>
+    placed.context.includes(f.id) || placed.author.includes(f.id) || placed.purpose.includes(f.id)
+  ).map(f => f.srcId));
+  used.add('primary');
+  const out = [];
+  SOURCES.filter(s => used.has(s.id)).forEach(s => {
+    if (s.primary){
+      let w = T.works;
+      if (T.askYear) w = w.replace('[[YEAR]]', $('ytyear').value.trim() || '[year — check the video]');
+      out.push({ k:T.sortKey, w:w });
+    } else out.push({ k:sortKeyOf(s), w:buildWorks(s) });
+  });
+  out.sort((a,b) => a.k.localeCompare(b.k));
+  return out.map(o => o.w);
+}
+function buildPaperHtml(){
+  if (!T) return '<p>Pick a piece in Part 1 first.</p>';
+  const name = $('mName').value.trim() || 'Your Name';
+  const teach = $('mTeacher').value.trim() || 'Teacher';
+  const course = $('mCourse').value.trim() || 'English 11A';
+  const date = $('mDate').value.trim() || new Date().toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'});
+
+  const thesis = ans('Q7.') && ans('Q7.') !== T.thesisStem ? ans('Q7.') : '';
+  const p1 = [
+    T.author + ' delivered “' + T.label + '” ' +
+    (T.delivered ? T.delivered + ', ' : '') + T.where + '.',
+    thesis
+  ].filter(Boolean).join(' ');
+
+  const p2 = para('context').concat(ans('Q1.') ? [ans('Q1.')] : []).join(' ');
+  const p3 = para('author').concat([ans('Q2.'), ans('Q3.')].filter(Boolean)).join(' ');
+  const p4 = para('purpose').concat([ans('Q4.'), ans('Q5.'), ans('Q6.')].filter(Boolean)).join(' ');
+  const p5 = ans('Q8.');
+
+  const paras = [p1,p2,p3,p4,p5].filter(x => x && x.trim());
+  const wc = worksList();
+
+  return '<div class="hdr">' + esc(name) + '<br>' + esc(teach) + '<br>' + esc(course) + '<br>' + esc(date) + '</div>' +
+    '<div class="ttl">' + esc(T.author) + ' and “' + esc(T.label) + '”</div>' +
+    paras.map(p => '<p>' + esc(p) + '</p>').join('') +
+    '<div class="wc"><h4>Works Cited</h4>' + wc.map(w => '<p>' + w + '</p>').join('') + '</div>';
+}
+function paperPlain(){
+  const box = $('paperbox');
+  let out = '';
+  box.childNodes.forEach(n => {
+    if (n.nodeType !== 1) return;
+    if (n.classList && n.classList.contains('wc')){
+      out += '\nWorks Cited\n';
+      n.querySelectorAll('p').forEach(p => out += p.innerText.trim() + '\n');
+    } else out += n.innerText.trim() + '\n\n';
+  });
+  return out.trim() + '\n';
+}
+function countWords(){
+  const box = $('paperbox');
+  const wcEl = box.querySelector('.wc');
+  let txt = box.innerText;
+  if (wcEl) txt = txt.replace(wcEl.innerText, '');
+  const n = txt.trim().split(/\s+/).filter(Boolean).length;
+  const band = n < 380 ? ' — a bit short of a page. Add a fact or a sentence.'
+             : n > 700 ? ' — longer than a page. Cut a fact you don’t need.'
+             : ' — about one page. That’s the target.';
+  $('wcount').textContent = n + ' words, not counting Works Cited' + band;
+}
+function rebuild(){
+  $('paperbox').innerHTML = buildPaperHtml();
+  countWords();
+  if (T && worksList().length < 2){
+    copyFeedback('hint','Your Works Cited has one entry.',
+      'A fact only makes it onto the Works Cited page if you actually <em>tapped it into a paragraph</em>. Reopen a part and tap in one of your outside facts.');
+  }
+}
+$('rebuild').addEventListener('click', rebuild);
+$('paperbox').addEventListener('input', countWords);
+
+/* ---------------- copy ---------------- */
+function copyFeedback(kind, head, body){
+  const box = $('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+$('copyAll').addEventListener('click', async () => {
+  if (!$('paperbox').innerHTML.trim()) rebuild();
+  const plain = paperPlain();
+  const html = '<div style="font-family:Georgia,serif;font-size:12pt;line-height:2;">' +
+    $('paperbox').innerHTML.replace(/text-indent:1.6rem/g,'text-indent:0.5in') + '</div>';
+  $('previewText').value = plain;
+
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html],{type:'text/html'}),
+        'text/plain': new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = $('previewText'); $('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+  if(ok) copyFeedback('good','✓ Copied — the whole paper.',
+    'Go to your Canvas assignment, click <strong>Text Submission</strong>, click in the box and paste (Ctrl+V). Then Submit.');
+  else {
+    $('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — two seconds.',
+      'Your paper is in the box below. Click in it, press <strong>Ctrl+A</strong>, then <strong>Ctrl+C</strong>.');
+  }
+});
+$('showPrev').addEventListener('click', () => {
+  if (!$('paperbox').innerHTML.trim()) rebuild();
+  $('previewText').value = paperPlain();
+  $('preview').classList.toggle('show');
+});
+
+/* ---------------- stage engine ---------------- */
+const ACTIVITY_TITLE = 'The Paper Machine — Author, Context, Critique';
+const ORDER = ['s1','s2','s3','s4','s5'];
+const REWARDS = {
+  s1: { star:'★', msg:'Bank open. That’s the research done.' },
+  s2: { star:'★', msg:'Paragraph 2 exists.' },
+  s3: { star:'★', msg:'Halfway. Keep going.' },
+  s4: { star:'★', msg:'That was the hard one.' },
+  s5: { star:'★', msg:'All done — go build the paper.' }
+};
+const BLOCKS = { s5:'blk1', s2:'blk2', s3:'blk3', s4:'blk4' };
+
+const LL = {
+  extra:{}, summary:{}, done:new Set(),
+  finish(id, extraEvidence){
+    if (id === 's1'){
+      if (FACTS.length < 3){
+        say('hint','You’ve got almost nothing yet.',
+          'Three facts is the bare minimum and it will show in the paper. Go back to the links above — the four questions under them are the fastest way to fill this.');
+        return;
+      }
+      /* The assignment says "based upon your research." A paper sourced only
+         from the reading itself hasn't done any. This is the one hard gate. */
+      if (!FACTS.some(f => f.srcId !== 'primary')){
+        say('hint','Everything here came from the reading itself.',
+          'That’s not research yet — it’s just the piece. Find <strong>one thing from somewhere else</strong> about the time or about the person, and add it with its source. That second source is a requirement of the assignment, and it takes about two minutes.');
+        return;
+      }
+    }
+    const stage = $(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active','open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    LL.paint(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+    if (!ORDER.some(x => !LL.done.has(x))) rebuild();
+  },
+  paint(id){
+    const b = BLOCKS[id];
+    if (b) $(b).querySelector('rect').setAttribute('fill','#cfe4d8');
+    if (id === 's5'){ $('blk5').querySelector('rect').setAttribute('fill','#cfe4d8'); }
+    if (id === 's1'){ $('blkwc').querySelector('rect').setAttribute('fill','#cfe4d8'); }
+  },
+  refreshSummary(id){
+    const sum = $('sum-' + id); if (!sum) return;
+    const fields = [...$(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = $('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = $(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+  toggle(id){ $(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+/* ---------------- go ---------------- */
+$('mDate').value = new Date().toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'});
+renderPicks();
+</script>
+</body>
+</html>
