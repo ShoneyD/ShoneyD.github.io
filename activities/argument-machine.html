@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — activity: The Argument Machine
+  engine: builder · variant: american-dream-argument · v1
+  Rejiggered from activities/paper-machine.html (same stylesheet, same stage
+  engine, same MLA + copy machinery).
+
+  CONTENT-SWAPPABLE: SOURCES, GROUPS and CARDS at the top of the script are the
+  only content-specific parts. Swap them for another defend/refute essay.
+
+  WHAT CHANGED FROM THE PAPER MACHINE: the evidence bank starts FULL, not empty.
+  This essay is written in one 40-minute period, so there is no research window.
+  The student's work is the argument itself: picking a side, choosing which
+  evidence serves it, and saying HOW that evidence proves the claim. The tool
+  writes the lead-in, the quotation marks and the citation around each quote.
+  The "because" sentence is always his own.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Argument Machine</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; --paper:#ffffff; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  h3{ font-size:1rem; margin:1.4rem 0 .5rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  /* the page-shape diagram */
+  .shape{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1rem .7rem; margin:0 0 1.25rem; display:flex; gap:1rem; align-items:center }
+  .shape svg{ flex:0 0 auto }
+  .shape .legend{ font-size:.86rem; color:var(--soft); line-height:1.5 }
+  .shape .legend strong{ color:var(--ink) }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.sm{ font-size:.82rem; padding:.35rem .7rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea, .abox input[type=text]{ width:100%; border:0; outline:0; resize:vertical;
+        min-height:2.6rem; font:inherit; font-size:1rem; color:var(--ink);
+        background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .nospell{ color:var(--soft); font-size:.86rem; margin:.4rem 0 1.1rem }
+
+  /* text picker */
+  .picks{ display:grid; gap:.8rem; grid-template-columns:1fr 1fr; margin:0 0 1rem }
+  @media(max-width:640px){ .picks{ grid-template-columns:1fr } }
+  .pick{ text-align:left; font:inherit; cursor:pointer; background:var(--card);
+        border:2px solid var(--line); border-radius:10px; padding:.9rem 1rem; color:var(--ink) }
+  .pick:hover{ border-color:var(--accent) }
+  .pick.on{ border-color:var(--accent); background:var(--accent-soft) }
+  .pick b{ display:block; font-size:1rem; margin-bottom:.15rem }
+  .pick span{ display:block; font-size:.85rem; color:var(--soft) }
+
+  /* fact bank */
+  .bank{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+         padding:1rem 1.1rem; margin:1rem 0 }
+  .bankhead{ display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; margin:0 0 .6rem }
+  .bankhead h3{ margin:0; font-size:1rem }
+  .count{ font-size:.85rem; color:var(--soft); margin-left:auto }
+  .empty{ font-size:.92rem; color:var(--soft); font-style:italic; margin:.4rem 0 }
+
+  .fact{ display:flex; gap:.6rem; align-items:flex-start; background:#fff;
+         border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; margin:0 0 .5rem }
+  .fact .badge{ flex:0 0 auto; margin-top:.15rem }
+  .fact .ft{ flex:1 1 auto; font-size:.95rem; line-height:1.5 }
+  .fact .src{ display:block; font-size:.8rem; color:var(--soft); margin-top:.2rem }
+  .fact .del{ flex:0 0 auto; background:none; border:0; font:inherit; font-size:1rem;
+        color:#9aa5ae; cursor:pointer; padding:0 .2rem }
+  .fact .del:hover{ color:#a33 }
+
+  .tagpick{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.4rem 0 .9rem }
+  .tagbtn{ font:inherit; font-size:.88rem; cursor:pointer; background:#fff; color:var(--ink);
+        border:2px solid var(--line); border-radius:999px; padding:.35rem .85rem;
+        display:inline-flex; align-items:center; gap:.4rem }
+  .tagbtn.on{ border-color:var(--accent); background:var(--accent-soft); font-weight:700 }
+
+  .srcform{ display:none; background:var(--warn-soft); border:1px dashed #ddbf94;
+        border-radius:8px; padding:.9rem 1.1rem; margin:.6rem 0 1rem }
+  .srcform.show{ display:block }
+  .grid2{ display:grid; gap:.6rem; grid-template-columns:1fr 1fr }
+  @media(max-width:640px){ .grid2{ grid-template-columns:1fr } }
+  .fld{ margin:0 0 .6rem }
+  .fld label{ display:block; font-size:.8rem; font-weight:700; color:var(--soft); margin:0 0 .2rem }
+  .fld input, .fld select{ width:100%; font:inherit; font-size:.95rem; padding:.45rem .6rem;
+        border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink) }
+  .hintline{ font-size:.84rem; color:var(--soft); margin:.1rem 0 .6rem }
+
+  .look{ background:var(--accent-soft); border:1px solid #c3dbe7; border-radius:8px;
+         padding:.85rem 1.1rem; margin:.8rem 0 1rem; font-size:.92rem }
+  .look p{ margin:0 0 .35rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent) }
+  .look ul{ margin:0; padding-left:1.2rem } .look li{ margin-bottom:.25rem }
+  .look a{ color:var(--accent) }
+
+  /* done looks like */
+  .donelooks{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+        border-radius:8px; padding:.8rem 1.1rem; margin:1.2rem 0 .9rem; font-size:.93rem }
+  .donelooks .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .45rem }
+  .donelooks ul{ list-style:none; margin:0; padding:0 }
+  .donelooks li{ display:flex; gap:.55rem; align-items:flex-start; margin:0 0 .3rem; line-height:1.5 }
+  .donelooks li .mk{ flex:0 0 1.2rem; font-weight:700; color:#b3aca0 }
+  .donelooks li.ok .mk{ color:var(--calm) }
+  .donelooks li.ok{ color:var(--soft) }
+
+  /* restored-work notice */
+  .restored{ background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:8px;
+        padding:.7rem 1rem; margin:0 0 1rem; font-size:.9rem; display:flex; gap:.7rem;
+        align-items:center; flex-wrap:wrap }
+  .restored button{ font:inherit; font-size:.82rem; background:none; border:0;
+        color:var(--accent); text-decoration:underline; cursor:pointer; padding:0 }
+
+  /* chips used when writing */
+  .chips{ display:flex; flex-direction:column; gap:.45rem; margin:.5rem 0 1rem }
+  .chip{ text-align:left; font:inherit; font-size:.92rem; cursor:pointer; background:#fff;
+        border:2px solid var(--line); border-radius:8px; padding:.55rem .8rem;
+        color:var(--ink); display:flex; gap:.55rem; align-items:flex-start; line-height:1.5 }
+  .chip:hover{ border-color:var(--accent) }
+  .chip.on{ border-color:var(--calm); background:var(--calm-soft) }
+  .chip .num{ flex:0 0 1.4rem; font-weight:700; color:var(--calm) }
+  .chip .cite{ color:var(--soft); font-size:.85rem }
+
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  /* the paper */
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .paperbox{ background:var(--paper); border:1px solid var(--line); border-radius:8px;
+        padding:1.25rem 1.4rem; margin:1rem 0; font-size:.95rem; line-height:1.9 }
+  .paperbox[contenteditable]:focus{ outline:3px solid var(--accent); outline-offset:2px }
+  .paperbox .hdr{ font-size:.9rem; line-height:1.6; margin:0 0 .9rem }
+  .paperbox .ttl{ text-align:center; font-weight:700; margin:0 0 .9rem }
+  .paperbox p{ margin:0 0 .9rem; text-indent:1.6rem }
+  .paperbox .wc h4{ margin:1.2rem 0 .5rem; text-align:center; font-size:.95rem }
+  .paperbox .wc p{ text-indent:0; padding-left:1.6rem; margin:0 0 .5rem }
+  .meta{ display:grid; gap:.6rem; grid-template-columns:1fr 1fr; margin:0 0 1rem }
+  @media(max-width:640px){ .meta{ grid-template-columns:1fr } }
+  .wcount{ font-size:.86rem; color:var(--soft); margin:.2rem 0 1rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:14rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+
+  /* ---- added for the Argument Machine ---- */
+  .sides{ display:grid; gap:.8rem; grid-template-columns:1fr 1fr; margin:.6rem 0 1rem }
+  @media(max-width:640px){ .sides{ grid-template-columns:1fr } }
+  .side{ text-align:left; font:inherit; cursor:pointer; background:var(--card);
+        border:2px solid var(--line); border-radius:10px; padding:1rem 1.1rem; color:var(--ink) }
+  .side:hover{ border-color:var(--accent) }
+  .side.on{ border-color:var(--calm); background:var(--calm-soft) }
+  .side .big{ display:block; font-size:1.6rem; line-height:1; margin-bottom:.35rem }
+  .side b{ display:block; font-size:1.05rem }
+  .side span.s{ display:block; font-size:.86rem; color:var(--soft); margin-top:.2rem }
+  .vid{ position:relative; width:100%; padding-top:56.25%; border-radius:10px; overflow:hidden;
+        background:#000; margin:.4rem 0 .5rem }
+  .vid iframe{ position:absolute; inset:0; width:100%; height:100%; border:0 }
+  .chip .qt{ display:block }
+  .chip mark{ background:#ffe9a8; color:inherit; padding:0 .1rem; border-radius:3px }
+  .chip .plain{ display:block; font-size:.84rem; color:var(--soft); margin-top:.25rem; line-height:1.45 }
+  .who{ display:flex; gap:.6rem; align-items:center; background:var(--accent-soft);
+        border:1px solid #c3dbe7; border-radius:8px; padding:.6rem .9rem; margin:0 0 .9rem; font-size:.92rem }
+  .who svg{ flex:0 0 auto }
+  .made{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.6rem .9rem; margin:.4rem 0 1rem; font-size:.9rem; color:var(--soft) }
+  .made b{ color:var(--ink) }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The Argument Machine</h1>
+  <p class="sub">Is the American Dream possible for everyone? You decide, you choose the proof, and you explain it. The machine puts in the quotation marks and citations.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="shape">
+    <svg id="pageshape" width="112" height="150" viewBox="0 0 112 150" role="img"
+         aria-label="Diagram of the finished essay: an opening paragraph, three body paragraphs, a closing paragraph, and a Works Cited strip. Each block turns green when its part is done.">
+      <rect x="1" y="1" width="110" height="148" rx="4" fill="#ffffff" stroke="#d8d2c8"/>
+      <rect x="14" y="10" width="84" height="4" rx="2" fill="#c9c2b6"/>
+      <rect x="14" y="18" width="60" height="4" rx="2" fill="#c9c2b6"/>
+      <g id="blk1"><rect x="14" y="30" width="84" height="15" rx="3" fill="#eee9e0"/></g>
+      <g id="blk2"><rect x="14" y="49" width="84" height="19" rx="3" fill="#eee9e0"/></g>
+      <g id="blk3"><rect x="14" y="72" width="84" height="19" rx="3" fill="#eee9e0"/></g>
+      <g id="blk4"><rect x="14" y="95" width="84" height="19" rx="3" fill="#eee9e0"/></g>
+      <g id="blk5"><rect x="14" y="118" width="84" height="12" rx="3" fill="#eee9e0"/></g>
+      <g id="blkwc"><rect x="14" y="134" width="84" height="7" rx="2" fill="#eee9e0"/></g>
+      <text x="6" y="39" font-size="7" fill="#9aa5ae">1</text>
+      <text x="6" y="60" font-size="7" fill="#9aa5ae">2</text>
+      <text x="6" y="83" font-size="7" fill="#9aa5ae">3</text>
+      <text x="6" y="106" font-size="7" fill="#9aa5ae">4</text>
+      <text x="6" y="127" font-size="7" fill="#9aa5ae">5</text>
+    </svg>
+    <div class="legend">
+      <strong>What you're building.</strong><br>
+      1 — your answer to the question (your thesis)<br>
+      2 — proof from Black Americans (Douglass)<br>
+      3 — proof from immigrants<br>
+      4 — proof from young people today<br>
+      5 — your last word<br>
+      Bottom strip — Works Cited, built for you.
+    </div>
+  </div>
+
+  <div class="steps">
+    <p>Plan — about 40 minutes</p>
+    <ol>
+      <li><strong>Watch and pick a side</strong> — 5 min</li>
+      <li><strong>Your thesis</strong> — 4 min</li>
+      <li><strong>Three proof paragraphs</strong> — about 8 min each</li>
+      <li><strong>Your last word</strong> — 4 min</li>
+      <li><strong>Read it, copy it, paste into Canvas</strong> — 3 min</li>
+    </ol>
+  </div>
+
+  <!-- ============ STAGE 1 — watch, pick a side ============ -->
+  <section class="stage active" id="s1" data-title="Watch and pick a side">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1 — Your side</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 — Watch, then pick a side</h2>
+      <p>A five-minute news report. Some people in it say they are living the American Dream. Others say it is harder to reach than it used to be. Listen for one line you could use.</p>
+
+      <div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/tTiVojsEc3U" title="CBS Mornings: Does the American dream still exist?" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+      <p class="hintline">Won't play? <a href="https://www.youtube.com/watch?v=tTiVojsEc3U" target="_blank" rel="noopener">Open it on YouTube</a>.</p>
+
+      <h3>One line from the video</h3>
+      <p style="font-size:.95rem;margin:0 0 .5rem">Say it out loud. Your teacher can type it for you. It becomes a piece of proof you can use later.</p>
+      <div class="abox"><p class="lab">What someone said</p>
+        <textarea id="vQuote" rows="2" placeholder="Their words, as close as you remember them."></textarea></div>
+      <div class="grid2">
+        <div class="fld"><label for="vWho">Who said it? (a name, or something like "a man who owns a bakery")</label>
+          <input type="text" id="vWho" placeholder="leave blank if you don't know"></div>
+        <div class="fld"><label for="vGroup">Which paragraph is it proof for?</label>
+          <select id="vGroup"></select></div>
+      </div>
+
+      <h3>So — is the American Dream possible for everyone?</h3>
+      <div class="sides" id="sides">
+        <button class="side" data-side="yes"><span class="big" aria-hidden="true">✓</span><b>Yes, it is.</b><span class="s">I'll <strong>defend</strong> the claim.</span></button>
+        <button class="side" data-side="no"><span class="big" aria-hidden="true">✗</span><b>No, it isn't.</b><span class="s">I'll <strong>refute</strong> the claim.</span></button>
+      </div>
+      <p class="nospell">Both answers can get a full grade. What matters is how well you prove it.</p>
+
+      <div class="donelooks" id="dl-s1"></div>
+      <div class="fb" id="fb-s1" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s1')">That's my side →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — thesis ============ -->
+  <section class="stage" id="s2" data-title="Paragraph 1 — your thesis">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2 — Your thesis</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — Say your answer in one sentence</h2>
+      <div class="made"><b>The machine already wrote your first sentence:</b> it says what the American Dream is, using the article. Your thesis comes right after it.</div>
+
+      <p class="q"><strong>Q1.</strong> Fill in the blank. This is the sentence your whole essay proves.</p>
+      <div class="abox"><p class="lab">My thesis</p>
+        <textarea data-q="Q1. Thesis." id="thesis" rows="3"></textarea></div>
+      <div class="stems"><p class="lab">Ideas for the blank — use one if you want</p>
+        <p id="thesisIdeas"></p></div>
+
+      <div class="fb" id="fb-s2" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s2')">Done with my thesis →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGES 3–5 — one per lived experience ============ -->
+  <section class="stage" id="s3" data-title="Paragraph 2 — Black Americans">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3 — Black Americans</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body" id="body-s3"></div>
+  </section>
+
+  <section class="stage" id="s4" data-title="Paragraph 3 — immigrants">
+    <button class="donebar" onclick="LL.toggle('s4')">
+      <span class="tick">✓</span> <strong>Part 4 — Immigrants</strong>
+      <span class="sum" id="sum-s4"></span>
+    </button>
+    <div class="stage-body" id="body-s4"></div>
+  </section>
+
+  <section class="stage" id="s5" data-title="Paragraph 4 — young people today">
+    <button class="donebar" onclick="LL.toggle('s5')">
+      <span class="tick">✓</span> <strong>Part 5 — Young people today</strong>
+      <span class="sum" id="sum-s5"></span>
+    </button>
+    <div class="stage-body" id="body-s5"></div>
+  </section>
+
+  <!-- ============ STAGE 6 — conclusion ============ -->
+  <section class="stage" id="s6" data-title="Paragraph 5 — your last word">
+    <button class="donebar" onclick="LL.toggle('s6')">
+      <span class="tick">✓</span> <strong>Part 6 — Your last word</strong>
+      <span class="sum" id="sum-s6"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 6 — Your last word</h2>
+      <p>Say your answer again, in new words, and say what the three groups have in common.</p>
+      <p class="q"><strong>Q5.</strong> Fill in the blanks.</p>
+      <div class="abox"><p class="lab">My closing paragraph</p>
+        <textarea data-q="Q5. Conclusion." id="concl" rows="4"></textarea></div>
+      <div class="stems"><p class="lab">Ideas — use one if you want</p>
+        <p>• …all show that the dream depends on ____.<br>• …all show that working hard is / is not enough, because ____.<br>• The dream will only be for everyone when ____.</p></div>
+      <div class="fb" id="fb-s6" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s6')">Build my essay →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ THE ESSAY ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Your essay</h2>
+        <p class="lede">Built from your choices and your sentences. You can click into it and change any word before you copy it.</p>
+
+        <div class="meta">
+          <div class="fld"><label for="mName">Your name</label><input type="text" id="mName"></div>
+          <div class="fld"><label for="mTeacher">Teacher</label><input type="text" id="mTeacher"></div>
+          <div class="fld"><label for="mCourse">Course</label><input type="text" id="mCourse" value="English 11A"></div>
+          <div class="fld"><label for="mDate">Date</label><input type="text" id="mDate"></div>
+        </div>
+        <div class="row" style="margin-bottom:.4rem">
+          <button class="btn" id="rebuild">↻ Build it / rebuild it</button>
+        </div>
+
+        <div class="paperbox" id="paperbox" contenteditable="true" spellcheck="true"
+             aria-label="Your essay — editable"></div>
+        <p class="wcount" id="wcount"></p>
+
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy my essay</button>
+          <button class="btn ghost" id="showPrev">Show me the plain text</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Part 1 — Watch and pick a side",
+    "questions": [
+      "Watch the CBS Mornings report \"Does the American dream still exist?\" (5 min).",
+      "Scribe one line someone says in the video, who said it, and which paragraph it's proof for.",
+      "Pick a side: the American Dream is / is not attainable for all."
+    ] },
+  { "title": "Part 2 — Thesis (paragraph 1)",
+    "questions": [
+      "Q1. Thesis — pre-filled stem for the chosen side; finish the blank. The machine writes the opening definition sentence from the Gale article."
+    ] },
+  { "title": "Part 3 — Black Americans (paragraph 2)",
+    "questions": [
+      "Tap one or two Douglass quotes (\"What to the Slave Is the Fourth of July?\").",
+      "Q2. This shows that for Black Americans, the American Dream ____ because ____."
+    ] },
+  { "title": "Part 4 — Immigrants (paragraph 3)",
+    "questions": [
+      "Tap one or two quotes from \"How the American Dream Has Changed Over Time\".",
+      "Q3. This shows that for immigrants, the American Dream ____ because ____."
+    ] },
+  { "title": "Part 5 — Young people today (paragraph 4)",
+    "questions": [
+      "Tap one or two quotes from the article, or the line from the video.",
+      "Q4. This shows that for young people today, the American Dream ____ because ____."
+    ] },
+  { "title": "Part 6 — Conclusion (paragraph 5)",
+    "questions": [
+      "Q5. Restate the answer and say what the three groups have in common — pre-filled stem."
+    ] },
+  { "title": "The essay",
+    "questions": [
+      "Five paragraphs, MLA heading, in-text citations placed, Works Cited alphabetized. Editable, then one button copies it into a Canvas Text Submission."
+    ] }
+]
+</script>
+
+<script>
+/* ============================================================
+   CONTENT — the only essay-specific part. Swap SOURCES, GROUPS,
+   CARDS and the stems for another defend/refute essay.
+   Every card is real, verbatim text from its source.
+   ============================================================ */
+const SOURCES = {
+  douglass: {
+    cite: 'Douglass',
+    lead: 'In his 1852 speech “What to the Slave Is the Fourth of July?” Frederick Douglass, who had escaped slavery himself, said',
+    again: 'He also said',
+    works: 'Douglass, Frederick. “What to the Slave Is the Fourth of July?” 5 July 1852. <i>Frederick Douglass Papers Project</i>, Indiana University Indianapolis, frederickdouglasspapersproject.com/s/digitaledition/item/16068.',
+    sortKey: 'douglass'
+  },
+  gale: {
+    cite: '“How the American Dream”',
+    lead: 'The article “How the American Dream Has Changed Over Time” says',
+    again: 'The same article says',
+    works: '“How the American Dream Has Changed Over Time.” <i>Student Resources in Context</i>, Gale, 2016.',
+    sortKey: 'how the american dream'
+  },
+  cbs: {
+    cite: '“Does the American Dream”',
+    lead: 'In the CBS Mornings report “Does the American Dream Still Exist?”',
+    again: 'Later in the same report,',
+    works: '“Does the American Dream Still Exist?” <i>YouTube</i>, uploaded by CBS Mornings, 8 Jan. 2026, www.youtube.com/watch?v=tTiVojsEc3U.',
+    sortKey: 'does the american dream'
+  }
+};
+
+/* Opening sentence of paragraph 1, written by the machine. Always cites Gale,
+   which is why Gale is always on the Works Cited. */
+const INTRO = 'The historian James Truslow Adams described the American Dream as “a land in which life should be better and richer and fuller for everyone” (“How the American Dream”).';
+
+const GROUPS = [
+  { key:'black',      stage:'s3', q:'Q2.', label:'Black Americans',    from:'Frederick Douglass’s speech',
+    intro:'Frederick Douglass escaped slavery and became one of the most famous speakers in America. In 1852 he was asked to speak at a Fourth of July celebration.' },
+  { key:'immigrants', stage:'s4', q:'Q3.', label:'immigrants',         from:'the American Dream article',
+    intro:'People have come to America from all over the world because of what it promised them.' },
+  { key:'young',      stage:'s5', q:'Q4.', label:'young people today', from:'the article and the video',
+    intro:'The people starting out right now — your age, and a little older.' }
+];
+
+/* hi = the load-bearing phrase, highlighted. plain = the same idea in plain
+   words, with any hard word explained in brackets. frag = quote starts
+   mid-sentence, so the lead-in says "says that". */
+const CARDS = [
+  { id:'d1', g:'black', src:'douglass',
+    text:'This Fourth of July is yours, not mine. You may rejoice, I must mourn.',
+    hi:'yours, not mine',
+    plain:'The holiday celebrates a freedom that he and other enslaved people do not have. (rejoice = celebrate · mourn = grieve)' },
+  { id:'d2', g:'black', src:'douglass',
+    text:'The rich inheritance of justice, liberty, prosperity and independence, bequeathed by your fathers, is shared by you, not by me.',
+    hi:'is shared by you, not by me',
+    plain:'The freedom and wealth the Founders handed down went to white Americans, not to him. (bequeathed = handed down)' },
+  { id:'d3', g:'black', src:'douglass',
+    text:'The blessings in which you, this day, rejoice, are not enjoyed in common.',
+    hi:'not enjoyed in common',
+    plain:'Not everyone gets the good things the country is celebrating.' },
+  { id:'d4', g:'black', src:'douglass',
+    text:'I do not despair of this country.',
+    hi:'I do not despair',
+    plain:'Even after everything he said, he has not given up hope on America. (despair = give up hope)' },
+
+  { id:'i1', g:'immigrants', src:'gale',
+    text:'Immigrants fled the entrenched class restrictions of their homelands for the United States in the hope of obtaining land and gaining religious and other freedoms.',
+    hi:'in the hope of',
+    plain:'People left countries where you stayed stuck in the class you were born into. They came hoping for land and freedom. (entrenched = stuck in place)' },
+  { id:'i2', g:'immigrants', src:'gale',
+    text:'This promise of a better life attracted people from all over the world to the United States. They came to America ready to work hard.',
+    hi:'promise of a better life',
+    plain:'People came from everywhere because America promised a better life, and they were ready to work for it.' },
+  { id:'i3', g:'immigrants', src:'gale',
+    text:'In the beginning, the American Dream simply promised a country in which people had the chance to work their way up through their own labor and ingenuity.',
+    hi:'the chance to work their way up',
+    plain:'At first, the dream was just a chance to climb up by working hard and being clever. (ingenuity = cleverness)' },
+
+  { id:'y1', g:'young', src:'gale',
+    text:'Millennials believe that it has become harder for them to get ahead, and that surpassing their parents’ success has become much more difficult.',
+    hi:'harder for them to get ahead',
+    plain:'Young adults think it is harder now to get ahead and to do better than their parents did.' },
+  { id:'y2', g:'young', src:'gale',
+    text:'the best schools and other amenities seem to be attainable for only the wealthiest citizens.', frag:true,
+    hi:'only the wealthiest',
+    plain:'The best schools and nice things seem to be only for rich people. (amenities = nice extras)' },
+  { id:'y3', g:'young', src:'gale',
+    text:'The American Dream as first conceived, however, is still possible. While people often must struggle, they are not sentenced to stay at that same station forever.',
+    hi:'still possible',
+    plain:'The first version of the dream — work hard and move up — can still happen. Being poor now does not mean being poor forever.' }
+];
+
+const THESIS = {
+  yes: 'The American Dream is attainable for all Americans. The lives of Black Americans, immigrants, and young people today show that ____.',
+  no:  'The American Dream is not attainable for all Americans. The lives of Black Americans, immigrants, and young people today show that ____.'
+};
+const THESIS_IDEAS = {
+  yes: '• …people can still move up if they ____.<br>• …even when the country makes it hard, people ____.<br>• …the dream is about ____, not about getting rich.',
+  no:  '• …your chances depend on ____.<br>• …working hard is not enough when ____.<br>• …the dream has always been easier for ____.'
+};
+const TOPIC = {
+  yes: g => 'The experience of ' + g.label + ' shows that the dream is open to everyone.',
+  no:  g => 'The experience of ' + g.label + ' shows that the dream is not open to everyone.'
+};
+const ANALYSIS = g => 'This shows that for ' + g.label + ', the American Dream ____ because ____.';
+const CONCL = {
+  yes: 'In the end, the American Dream is attainable for all, because ____. Black Americans, immigrants, and young people today all show that ____.',
+  no:  'In the end, the American Dream is not attainable for all, because ____. Black Americans, immigrants, and young people today all show that ____.'
+};
+const BLANK = '____';
+
+/* ---------------- state ---------------- */
+let SIDE = null;
+let placed = { black:[], immigrants:[], young:[] };
+
+/* ---------------- helpers ---------------- */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $ = id => document.getElementById(id);
+function say(stage, kind, head, body){
+  const fb = $('fb-' + stage); if (!fb) return;
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+function clearSay(stage){ const fb = $('fb-' + stage); if (fb) fb.className = 'fb'; }
+function hasBlank(s){ return !s || s.indexOf(BLANK) > -1; }
+
+/* the video line, as a card, live from the boxes in Part 1 */
+function videoCard(){
+  const t = $('vQuote').value.trim();
+  if (!t) return null;
+  return { id:'v', g:$('vGroup').value, src:'cbs', text:t, hi:'', who:$('vWho').value.trim(),
+           plain:'The line you picked from the video.' };
+}
+function cardsFor(gk){
+  const v = videoCard();
+  return CARDS.filter(c => c.g === gk).concat(v && v.g === gk ? [v] : []);
+}
+function cardById(id){ return id === 'v' ? videoCard() : CARDS.find(c => c.id === id); }
+
+/* ---------------- Part 1 ---------------- */
+$('vGroup').innerHTML = GROUPS.map(g =>
+  '<option value="' + g.key + '"' + (g.key === 'young' ? ' selected' : '') + '>' +
+  g.label.charAt(0).toUpperCase() + g.label.slice(1) + '</option>').join('');
+
+function pickSide(s){
+  SIDE = s;
+  $('sides').querySelectorAll('.side').forEach(b => b.classList.toggle('on', b.dataset.side === s));
+  const th = $('thesis');
+  if (hasBlank(th.value) && (th.value === '' || th.value === THESIS.yes || th.value === THESIS.no)) th.value = THESIS[s];
+  const co = $('concl');
+  if (co.value === '' || co.value === CONCL.yes || co.value === CONCL.no) co.value = CONCL[s];
+  $('thesisIdeas').innerHTML = THESIS_IDEAS[s];
+  LL.summary.s1 = s === 'yes' ? 'Defending: yes, it is' : 'Refuting: no, it isn’t';
+  renderGroups(); renderDL1(); saveBank();
+}
+$('sides').querySelectorAll('.side').forEach(b => b.addEventListener('click', () => pickSide(b.dataset.side)));
+
+function renderDL1(){
+  const li = (ok, txt) => '<li class="' + (ok ? 'ok' : '') + '"><span class="mk" aria-hidden="true">' +
+        (ok ? '✓' : '☐') + '</span><span>' + txt + '</span></li>';
+  $('dl-s1').innerHTML = '<p class="lab">Done looks like</p><ul>' +
+    li(!!$('vQuote').value.trim(), '<strong>One line from the video</strong> in the box (your teacher can type it).') +
+    li(!!SIDE, '<strong>A side picked</strong> — yes or no.') + '</ul>';
+}
+['vQuote','vWho','vGroup'].forEach(i => $(i).addEventListener('input', () => { renderDL1(); renderGroups(); saveBank(); }));
+$('vGroup').addEventListener('change', () => { renderGroups(); saveBank(); });
+
+/* ---------------- Parts 3–5 ---------------- */
+/* Each stage body is drawn once (so its answer box keeps its text), and only
+   the chips redraw. */
+function buildGroupStages(){
+  GROUPS.forEach((g, i) => {
+    const n = i + 3;
+    $('body-' + g.stage).innerHTML =
+      '<h2>Part ' + n + ' — Proof from ' + esc(g.label) + '</h2>' +
+      '<div class="who"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">' +
+        '<circle cx="17" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<path d="M5 31c1.5-7 6-10 12-10s10.5 3 12 10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>' +
+        '<span>' + esc(g.intro) + '</span></div>' +
+      '<p><strong>Step 1.</strong> Tap the line from ' + esc(g.from) + ' that best proves <strong id="side-' + g.key + '">your side</strong>. One is enough. Two is the most.</p>' +
+      '<div class="chips" id="chips-' + g.key + '"></div>' +
+      '<p class="q"><strong>' + g.q + '</strong> <strong>Step 2.</strong> Now explain it. Fill in both blanks with your own words — don’t just repeat the quote. Say <em>how</em> it proves your side.</p>' +
+      '<div class="abox"><p class="lab">How it proves my side</p>' +
+        '<textarea data-q="' + g.q + ' How the evidence about ' + esc(g.label) + ' proves the claim." id="an-' + g.key + '" rows="3">' + esc(ANALYSIS(g)) + '</textarea></div>' +
+      '<div class="stems"><p class="lab">Ideas for the “because” — use one if you want</p>' +
+        '<p>• …because the words “____” show that ____.<br>• …because even though ____, they still ____.<br>• …because if the dream were really for everyone, ____.</p></div>' +
+      '<div class="fb" id="fb-' + g.stage + '" role="status" aria-live="polite"></div>' +
+      '<div class="row"><button class="btn go" onclick="LL.finish(\'' + g.stage + '\')">Done with this paragraph →</button></div>';
+  });
+}
+function markHi(text, hi){
+  const t = esc(text);
+  if (!hi) return t;
+  const h = esc(hi), i = t.indexOf(h);
+  return i < 0 ? t : t.slice(0,i) + '<mark>' + h + '</mark>' + t.slice(i + h.length);
+}
+function renderGroups(){
+  GROUPS.forEach(g => {
+    const box = $('chips-' + g.key); if (!box) return;
+    const sideEl = $('side-' + g.key);
+    if (sideEl) sideEl.textContent = SIDE === 'no' ? 'that it is NOT for everyone' : SIDE === 'yes' ? 'that it IS for everyone' : 'your side';
+    const mine = cardsFor(g.key);
+    placed[g.key] = placed[g.key].filter(id => mine.some(c => c.id === id));
+    box.innerHTML = mine.map(c => {
+      const pos = placed[g.key].indexOf(c.id);
+      return '<button class="chip' + (pos > -1 ? ' on' : '') + '" data-g="' + g.key + '" data-c="' + c.id + '">' +
+        '<span class="num">' + (pos > -1 ? (pos + 1) : '○') + '</span>' +
+        '<span><span class="qt">“' + markHi(c.text, c.hi) + '” <span class="cite">(' + esc(SOURCES[c.src].cite) + ')</span></span>' +
+        '<span class="plain">' + esc(c.plain) + '</span></span></button>';
+    }).join('');
+    box.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+      const k = b.dataset.g, id = b.dataset.c;
+      const i = placed[k].indexOf(id);
+      if (i > -1) placed[k].splice(i,1);
+      else {
+        if (placed[k].length >= 2){
+          const st = GROUPS.find(x => x.key === k).stage;
+          say(st,'hint','Two is the most.','Tap one of your green lines to take it out first.');
+          return;
+        }
+        placed[k].push(id);
+      }
+      clearSay(GROUPS.find(x => x.key === k).stage);
+      renderGroups(); saveBank();
+    }));
+  });
+}
+
+/* ---------------- the essay ---------------- */
+function quoteSentence(c, first){
+  const S = SOURCES[c.src];
+  let lead = first ? S.lead : S.again;
+  if (c.src === 'cbs') lead += ' ' + (c.who || 'one person') + ' says';
+  if (c.frag) lead += ' that';
+  let q = c.text.trim().replace(/[.]+\s*$/,'');
+  const sep = c.frag ? ' “' : ', “';
+  return lead + sep + q + '” (' + S.cite + ').';
+}
+function bodyPara(g){
+  const parts = [TOPIC[SIDE || 'yes'](g)];
+  const seen = new Set();
+  placed[g.key].forEach(id => {
+    const c = cardById(id); if (!c) return;
+    parts.push(quoteSentence(c, !seen.has(c.src))); seen.add(c.src);
+  });
+  const a = $('an-' + g.key) ? $('an-' + g.key).value.trim() : '';
+  if (a && a !== ANALYSIS(g)) parts.push(a);
+  return parts.join(' ');
+}
+function worksList(){
+  const used = new Set(['gale']);
+  GROUPS.forEach(g => placed[g.key].forEach(id => { const c = cardById(id); if (c) used.add(c.src); }));
+  return [...used].map(k => SOURCES[k]).sort((a,b) => a.sortKey.localeCompare(b.sortKey)).map(s => s.works);
+}
+function buildPaperHtml(){
+  if (!SIDE) return '<p>Pick a side in Part 1 first.</p>';
+  const name = $('mName').value.trim() || 'Your Name';
+  const teach = $('mTeacher').value.trim() || 'Teacher';
+  const course = $('mCourse').value.trim() || 'English 11A';
+  const date = $('mDate').value.trim() || mlaDate();
+  const th = $('thesis').value.trim();
+  const p1 = [INTRO, 'But is that promise real for everyone?', th !== THESIS[SIDE] ? th : ''].filter(Boolean).join(' ');
+  const bodies = GROUPS.map(bodyPara);
+  const co = $('concl').value.trim();
+  const paras = [p1].concat(bodies, [co !== CONCL[SIDE] ? co : '']).filter(x => x && x.trim());
+  return '<div class="hdr">' + esc(name) + '<br>' + esc(teach) + '<br>' + esc(course) + '<br>' + esc(date) + '</div>' +
+    '<div class="ttl">Is the American Dream for Everyone?</div>' +
+    paras.map(p => '<p>' + esc(p) + '</p>').join('') +
+    '<div class="wc"><h4>Works Cited</h4>' + worksList().map(w => '<p>' + w + '</p>').join('') + '</div>';
+}
+/* MLA date: 19 October 2026 */
+function mlaDate(){
+  const d = new Date();
+  return d.getDate() + ' ' + d.toLocaleDateString('en-US',{month:'long'}) + ' ' + d.getFullYear();
+}
+function paperPlain(){
+  const box = $('paperbox');
+  let out = '';
+  box.childNodes.forEach(n => {
+    if (n.nodeType !== 1) return;
+    if (n.classList && n.classList.contains('wc')){
+      out += '\nWorks Cited\n';
+      n.querySelectorAll('p').forEach(p => out += p.innerText.trim() + '\n');
+    } else out += n.innerText.trim() + '\n\n';
+  });
+  return out.trim() + '\n';
+}
+function countWords(){
+  const box = $('paperbox');
+  const wcEl = box.querySelector('.wc');
+  let txt = box.innerText;
+  if (wcEl) txt = txt.replace(wcEl.innerText, '');
+  const n = txt.trim().split(/\s+/).filter(Boolean).length;
+  const band = n < 250 ? ' — a little short. Add a second quote somewhere, or one more “because”.'
+             : n > 700 ? ' — long. That’s fine if every sentence is doing a job.'
+             : ' — that’s the target.';
+  $('wcount').textContent = 'About ' + (n < 250 ? 'a short page' : n > 700 ? 'two pages' : 'one and a half pages') + band;
+}
+function rebuild(){
+  $('paperbox').innerHTML = buildPaperHtml();
+  countWords();
+}
+$('rebuild').addEventListener('click', rebuild);
+$('paperbox').addEventListener('input', countWords);
+
+/* ---------------- copy ---------------- */
+function copyFeedback(kind, head, body){
+  const box = $('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+$('copyAll').addEventListener('click', async () => {
+  if (!$('paperbox').innerHTML.trim()) rebuild();
+  const plain = paperPlain();
+  const html = '<div style="font-family:Georgia,serif;font-size:12pt;line-height:2;">' +
+    $('paperbox').innerHTML.replace(/text-indent:1.6rem/g,'text-indent:0.5in') + '</div>';
+  $('previewText').value = plain;
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html],{type:'text/html'}),
+        'text/plain': new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = $('previewText'); $('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+  if(ok) copyFeedback('good','✓ Copied — the whole essay.',
+    'Go to your Canvas assignment, click <strong>Text Submission</strong>, click in the box and paste (Ctrl+V). Then Submit.');
+  else {
+    $('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — two seconds.',
+      'Your essay is in the box below. Click in it, press <strong>Ctrl+A</strong>, then <strong>Ctrl+C</strong>.');
+  }
+});
+$('showPrev').addEventListener('click', () => {
+  if (!$('paperbox').innerHTML.trim()) rebuild();
+  $('previewText').value = paperPlain();
+  $('preview').classList.toggle('show');
+});
+
+/* ---------------- stage engine ---------------- */
+const ACTIVITY_TITLE = 'The Argument Machine — Is the American Dream for Everyone?';
+const ORDER = ['s1','s2','s3','s4','s5','s6'];
+const REWARDS = {
+  s1: { star:'★', msg:'Side picked. Now prove it.' },
+  s2: { star:'★', msg:'Thesis done — that’s the hardest sentence.' },
+  s3: { star:'★', msg:'First proof paragraph exists.' },
+  s4: { star:'★', msg:'Two down, one to go.' },
+  s5: { star:'★', msg:'All three proofs done.' },
+  s6: { star:'★', msg:'Essay finished. Go build it.' }
+};
+const BLOCKS = { s2:'blk1', s3:'blk2', s4:'blk3', s5:'blk4', s6:'blk5' };
+
+const LL = {
+  extra:{}, summary:{}, done:new Set(),
+  finish(id, extraEvidence){
+    /* Gates. The button is never hidden; pressing it too early explains what's missing. */
+    if (id === 's1' && !SIDE){
+      say('s1','hint','Pick a side first.','Yes or no — tap one of the two big buttons. Either one can get a full grade.'); return;
+    }
+    if (id === 's2' && hasBlank($('thesis').value)){
+      say('s2','hint','There’s still a blank.','Replace the <strong>____</strong> with your own words. The ideas under the box can help.'); return;
+    }
+    const g = GROUPS.find(x => x.stage === id);
+    if (g){
+      if (!placed[g.key].length){
+        say(id,'hint','Tap a line first.','Step 1 — tap the quote that best proves your side. It turns green.'); return;
+      }
+      if (hasBlank($('an-' + g.key).value)){
+        say(id,'hint','There’s still a blank.','Fill both <strong>____</strong> in your own words. The “because” part is the part your teacher is grading.'); return;
+      }
+      LL.summary[id] = placed[g.key].length + (placed[g.key].length === 1 ? ' quote' : ' quotes') + ' · explained';
+    }
+    if (id === 's6' && hasBlank($('concl').value)){
+      say('s6','hint','There’s still a blank.','Replace each <strong>____</strong> with your own words.'); return;
+    }
+    clearSay(id);
+    const stage = $(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active','open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    LL.paint(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+    if (!ORDER.some(x => !LL.done.has(x))){ $('blkwc').querySelector('rect').setAttribute('fill','#cfe4d8'); rebuild(); }
+    saveBank();
+  },
+  paint(id){
+    const b = BLOCKS[id];
+    if (b) $(b).querySelector('rect').setAttribute('fill','#cfe4d8');
+  },
+  refreshSummary(id){
+    const sum = $('sum-' + id); if (!sum) return;
+    const fields = [...$(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => hasBlank(el.value.trim())).length;
+    if (blanks) sum.textContent = blanks + ' blank left — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = $('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = $(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+  toggle(id){ $(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+/* ---------------- saving the choices ----------------
+   student.js saves every [data-q] answer box. It can't see the side, the
+   tapped quotes or the video line (those live in JS state and plain inputs),
+   so they get their own small layer. Every storage call is wrapped. */
+const BANK_KEY = 'llbank:' + location.pathname;
+const BANK_MAX_AGE = 45 * 24 * 60 * 60 * 1000;
+const BSTORE = (function(){
+  try { const s = window.localStorage; s.setItem('__bprobe','1'); s.removeItem('__bprobe'); return s; }
+  catch(e){ return null; }
+})();
+let bankTimer = null;
+function saveBank(){
+  if (!BSTORE) return;
+  clearTimeout(bankTimer);
+  bankTimer = setTimeout(() => {
+    try {
+      BSTORE.setItem(BANK_KEY, JSON.stringify({
+        t: Date.now(), side: SIDE, placed: placed,
+        vq: $('vQuote').value, vw: $('vWho').value, vg: $('vGroup').value,
+        name: $('mName').value, teacher: $('mTeacher').value, course: $('mCourse').value
+      }));
+    } catch(e){}
+  }, 300);
+}
+function restoreBank(){
+  if (!BSTORE) return;
+  let s = null;
+  try { s = JSON.parse(BSTORE.getItem(BANK_KEY) || 'null'); } catch(e){ return; }
+  if (!s) return;
+  if (Date.now() - (s.t || 0) > BANK_MAX_AGE){ try { BSTORE.removeItem(BANK_KEY); } catch(e){} return; }
+  if (!s.side && !s.vq) return;
+  if (s.vq) $('vQuote').value = s.vq;
+  if (s.vw) $('vWho').value = s.vw;
+  if (s.vg) $('vGroup').value = s.vg;
+  if (s.name) $('mName').value = s.name;
+  if (s.teacher) $('mTeacher').value = s.teacher;
+  if (s.course) $('mCourse').value = s.course;
+  placed = Object.assign({ black:[], immigrants:[], young:[] }, s.placed || {});
+  if (s.side) pickSide(s.side);
+  const note = document.createElement('div');
+  note.className = 'restored';
+  note.innerHTML = '<span>✓ Your side and your picked quotes came back from last time.</span>';
+  const btn = document.createElement('button');
+  btn.textContent = 'Clear them and start fresh';
+  btn.addEventListener('click', () => {
+    if (!confirm('Clear your side, your video line and your picked quotes?')) return;
+    try { BSTORE.removeItem(BANK_KEY); } catch(e){}
+    location.reload();
+  });
+  note.appendChild(btn);
+  $('s1').querySelector('.stage-body').insertBefore(note, $('s1').querySelector('.stage-body').firstChild);
+}
+['mName','mTeacher','mCourse'].forEach(i => $(i).addEventListener('input', saveBank));
+
+/* ---------------- go ---------------- */
+$('mDate').value = mlaDate();
+buildGroupStages();
+renderGroups();
+renderDL1();
+restoreBank();
+</script>
+
+<script src="../assets/student.js"></script>
+</body>
+</html>
