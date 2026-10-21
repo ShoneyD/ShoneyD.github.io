@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG8-L01 · Says vs. Sounds</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG8-L01</p>
+  <h1 id="pagetitle">English 8 · Lesson 1</h1>
+  <p class="sub" id="pagesub">Says vs. Sounds.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Says vs. sounds">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Says vs. sounds</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Says vs. sounds</h2>
+
+      <p><strong>Quick refresher.</strong> A man tells us how he killed the old man he lived with — and he insists, again and again, that he is <em>not</em> mad. He hid the body under the floorboards. When the police came, he was calm. Then he heard a heartbeat that nobody else could hear, and he confessed.</p>
+
+      <p>A character's <strong>motivation</strong> is <em>why</em> they do what they do. Sometimes the character tells you. Here's the trick: <strong>don't believe them yet.</strong> Listen to how they <strong>sound</strong> — that's <strong>tone</strong>, the attitude in the words.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 700 130" width="100%" style="max-width:44rem;display:block;margin:1rem auto" role="img" aria-label="Four boxes joined by arrows, left to right: what he says, which is the reason he gives; how he sounds, which is tone; what he wants, which is motivation; and what the story says about people, which is theme.">
+  <defs>
+    <marker id="tell-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--soft)"/>
+    </marker>
+  </defs>
+  <g font-family="Verdana,sans-serif" text-anchor="middle">
+    <rect x="4" y="30" width="148" height="66" rx="10" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+    <text x="78" y="58" font-size="14" font-weight="bold" fill="var(--ink)">What he SAYS</text>
+    <text x="78" y="78" font-size="12" fill="var(--soft)">the reason he gives</text>
+
+    <rect x="186" y="30" width="148" height="66" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+    <text x="260" y="58" font-size="14" font-weight="bold" fill="var(--ink)">How he SOUNDS</text>
+    <text x="260" y="78" font-size="12" fill="var(--soft)">tone</text>
+
+    <rect x="368" y="30" width="148" height="66" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+    <text x="442" y="58" font-size="14" font-weight="bold" fill="var(--ink)">What he WANTS</text>
+    <text x="442" y="78" font-size="12" fill="var(--soft)">motivation</text>
+
+    <rect x="550" y="30" width="146" height="66" rx="10" fill="var(--calm-soft)" stroke="var(--calm)" stroke-width="1.5"/>
+    <text x="623" y="58" font-size="14" font-weight="bold" fill="var(--ink)">About PEOPLE</text>
+    <text x="623" y="78" font-size="12" fill="var(--soft)">theme</text>
+
+    <g stroke="var(--soft)" stroke-width="2" fill="none" marker-end="url(#tell-ar)">
+      <path d="M154 63 H180"/><path d="M336 63 H362"/><path d="M518 63 H544"/>
+    </g>
+    <text x="78" y="118" font-size="11" fill="var(--soft)">don't trust this yet</text>
+    <text x="350" y="118" font-size="11" fill="var(--soft)">the tone gives the motive away</text>
+  </g>
+</svg>
+      <figcaption>The whole lesson in one line. Today we start from the second box, not the first.</figcaption>
+      </figure>
+
+      <p>Here's how it works on something you know. A rider says she's skipping Saturday's show because her horse "has been a little off this week." But she says it fast, sounds <strong>relieved</strong>, and changes the subject.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;font-size:1rem;margin:1rem 0">
+  <tr style="font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--soft)">
+    <td style="padding:.4rem .5rem;border-bottom:2px solid var(--line)">She says</td>
+    <td style="padding:.4rem .5rem;border-bottom:2px solid var(--line)">She sounds</td>
+    <td style="padding:.4rem .5rem;border-bottom:2px solid var(--line)">She really wants</td>
+    <td style="padding:.4rem .5rem;border-bottom:2px solid var(--line)">About people</td>
+  </tr>
+  <tr>
+    <td style="padding:.6rem .5rem;vertical-align:top">“My horse is a little off.”</td>
+    <td style="padding:.6rem .5rem;vertical-align:top"><strong>Relieved.</strong> Fast. Changes the subject.</td>
+    <td style="padding:.6rem .5rem;vertical-align:top">Not to mess up in front of everyone.</td>
+    <td style="padding:.6rem .5rem;vertical-align:top">Fear of failing can hide behind a perfectly good excuse.</td>
+  </tr>
+</table>
+      <figcaption>One worked example, start to finish. The reason she gives might even be true — the tone tells you it isn't the whole story.</figcaption>
+      </figure>
+
+      <p>Now the narrator. Here is the reason he gives:</p>
+
+      <figure class="dia">
+<blockquote style="font-size:1.25rem;line-height:1.8;margin:1.25rem 0;padding:.75rem 1.25rem;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0">
+Object there was none. Passion there was none. I loved the old man. He had never wronged me. He had never given me insult. For his gold I had no desire. I think it was his eye! — yes, it was this!
+</blockquote>
+      <figcaption>Object = a goal. Passion = strong anger. Gold = money.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q1.</strong> What reason does he <strong>say</strong> he had?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. What reason does he say he had?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="The old man&#x27;s money">The old man&#x27;s money</option>
+          <option value="Something cruel the old man did to him">Something cruel the old man did to him</option>
+          <option value="The old man&#x27;s eye">The old man&#x27;s eye</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>The eye. He crosses off money and revenge himself — then lands on the eye. That's the reason he <strong>gives</strong>. Hold onto it; we're about to test it.</p>
+      </details>
+
+      <p class="q"><strong>Q2.</strong> Now listen to <strong>how</strong> he says it: "I think it was his eye! — yes, it was this!" Which tone fits best?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. Now listen to how he says it: &quot;I think it was his eye! — yes, it was this!&quot; Which tone fits best?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Calm and certain">Calm and certain</option>
+          <option value="Unsure — then forcing himself to sound sure">Unsure — then forcing himself to sound sure</option>
+          <option value="Sorry and ashamed">Sorry and ashamed</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>He starts with \"I think\" — he isn't sure of his own reason. Then he grabs it: \"yes, it was this!\" Someone who knew why he did it wouldn't have to talk himself into it.</p>
+      </details>
+
+      <p class="q"><strong>Q3.</strong> If he isn't even sure about the eye, what do you think he <strong>really</strong> wants from us, the people he's telling this to?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; I think he really wants us to ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. If he isn&#x27;t even sure about the eye, what do you think he really wants from us, the people he&#x27;s telling this to?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two picks and one sentence that finishes the starter.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="From motive to theme">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; From motive to theme</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; From motive to theme</h2>
+
+      <p>A <strong>theme</strong> is what the story is saying about <strong>people in general</strong> — something that would still be true about anyone who did what he did. The motive is about one man. The theme is about everybody.</p>
+
+      <p>Here's the end of the story. The police have searched and found nothing. They're sitting, chatting, smiling. He can hear a heartbeat getting louder.</p>
+
+      <figure class="dia">
+<blockquote style="font-size:1.25rem;line-height:1.8;margin:1.25rem 0;padding:.75rem 1.25rem;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0">
+Anything was more tolerable than this derision! I could bear those hypocritical smiles no longer! I felt that I must scream or die!<br><br>
+“Villains!” I shrieked, “dissemble no more! I admit the deed!”
+</blockquote>
+      <figcaption>Derision = mockery. Hypocritical = fake. Dissemble = pretend.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q4.</strong> Why does he confess? <strong>This one has two good answers</strong> — pick the one you can back up.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. Why does he confess? This one has two good answers — pick the one you can back up.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="The police found the body">The police found the body</option>
+          <option value="He can&#x27;t stand the guilt any longer">He can&#x27;t stand the guilt any longer</option>
+          <option value="He&#x27;s sure the police already know and are mocking him">He&#x27;s sure the police already know and are mocking him</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Not the first one — the police found nothing and were happy to chat. Either of the other two works if you can point at a word: \"I must scream or die\" backs guilt; \"derision\" and \"hypocritical smiles\" back the feeling of being watched and judged.</p>
+      </details>
+
+      <p class="q"><strong>Q5.</strong> Put it together in one sentence: his tone, what he really wants, and what the story is saying about people.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; His <strong><em> tone shows he really wants </em></strong>, which connects to the theme that ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q5. Put it together in one sentence: his tone, what he really wants, and what the story is saying about people." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One pick and one sentence that connects his tone, his motive and a theme.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="A story you haven&#x27;t seen">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; A story you haven't seen</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; A story you haven't seen</h2>
+
+      <p>Same question as before — <strong>what do they say they want, and what do they sound like they want?</strong> — on a story you haven't seen. Nothing is labelled for you.</p>
+
+      <p><strong>Pick one passage.</strong> Either is fine. You can say any answer out loud instead of typing it, and spelling doesn't count.</p>
+
+<div style="border:1px solid var(--line);border-radius:10px;padding:1rem 1.25rem;margin:1rem 0;background:var(--card)">
+  <p style="margin:0 0 .25rem;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)">Passage A · Edgar Allan Poe, “The Cask of Amontillado,” 1846</p>
+  <p style="margin:0 0 .75rem;color:var(--soft)">Montresor, the narrator, is talking about a man named Fortunato.</p>
+  <p style="margin:0 0 .75rem;font-size:.95rem;color:var(--soft)"><strong>First:</strong> borne = put up with · ventured upon = dared · vowed = swore · impunity = getting away with it, no punishment</p>
+  <p style="font-size:1.2rem;line-height:1.8;margin:0 0 .75rem">The thousand injuries of Fortunato I had borne as I best could, but when he ventured upon insult I vowed revenge.</p>
+  <p style="font-size:1.2rem;line-height:1.8;margin:0 0 .75rem">I must not only punish but punish with impunity.</p>
+  <p style="font-size:1.2rem;line-height:1.8;margin:0">He had a weak point—this Fortunato—although in other regards he was a man to be respected and even feared.</p>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:10px;padding:1rem 1.25rem;margin:1rem 0;background:var(--card)">
+  <p style="margin:0 0 .25rem;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)">Passage B · O. Henry, “The Gift of the Magi,” 1905</p>
+  <p style="margin:0 0 .75rem;color:var(--soft)">Della has very little money and wants to buy her husband, Jim, a Christmas present.</p>
+  <p style="margin:0 0 .75rem;font-size:.95rem;color:var(--soft)"><strong>First:</strong> shabby = old and worn out · sterling = top quality, the real thing · worthy = good enough</p>
+  <p style="font-size:1.2rem;line-height:1.8;margin:0 0 .75rem">One dollar and eighty-seven cents. That was all. And sixty cents of it was in pennies.</p>
+  <p style="font-size:1.2rem;line-height:1.8;margin:0 0 .75rem">Three times Della counted it. One dollar and eighty-seven cents. And the next day would be Christmas.</p>
+  <p style="font-size:1.2rem;line-height:1.8;margin:0 0 .75rem">There was clearly nothing to do but flop down on the shabby little couch and howl. So Della did it.</p>
+  <p style="font-size:1.2rem;line-height:1.8;margin:0">Many a happy hour she had spent planning for something nice for him. Something fine and rare and sterling—something just a little bit near to being worthy of the honor of being owned by Jim.</p>
+</div>
+
+      <p class="q"><strong>Q6.</strong> Which passage did you pick?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. Which passage did you pick?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="A — Montresor, &quot;The Cask of Amontillado&quot;">A — Montresor, &quot;The Cask of Amontillado&quot;</option>
+          <option value="B — Della, &quot;The Gift of the Magi&quot;">B — Della, &quot;The Gift of the Magi&quot;</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> Name the tone in one or two words. Then copy the words from the passage that show it.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The tone is ___. You can hear it in ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q7. Name the tone in one or two words. Then copy the words from the passage that show it." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q8.</strong> What does the character <strong>really</strong> want? Is it the same as what they say — or something deeper?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; They say <strong><em>, but what they really want is </em></strong>, because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. What does the character really want? Is it the same as what they say — or something deeper?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q9.</strong> <strong>This one's meant to be hard.</strong> In two or three sentences, explain how the tone shows the motivation, and what theme that motivation points to. Give a <em>because</em>.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The <strong><em> tone shows that </em></strong> is really driven by <strong><em>. That connects to the theme that </em></strong>, because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q9. This one&#x27;s meant to be hard. In two or three sentences, explain how the tone shows the motivation, and what theme that motivation points to. Give a because." placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Check your own answer for four things: a <strong>tone</strong> word, a <strong>motive</strong>, a <strong>theme</strong> about people in general, and a <strong>because</strong> that points at words from the passage. All four? That's the outcome, done.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One passage picked, a tone with the words that show it, the real motive, and two or three sentences connecting it to a theme — with a <em>because</em>.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Tone, motivation, theme — and the tell &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Tone</td><td>The attitude in the words — how a character <strong>sounds</strong>, not what they say. Proud, defensive, panicked, sweet, cold…</td></tr>
+      <tr><td class="h">Motivation</td><td><strong>Why</strong> a character does what they do. Not always the reason they give.</td></tr>
+      <tr><td class="h">Theme</td><td>What the story is saying about <strong>people in general</strong> — something that would still be true about anyone in the same spot.</td></tr>
+      <tr><td class="h">The tell</td><td>When what a character <strong>says</strong> and how they <strong>sound</strong> don't match, the tone is usually the one telling the truth.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>The question that does the work:</strong> what do they say they want — and what do they <em>sound</em> like they want?</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">Spelling doesn't count. Ideas do. You can say any answer out loud instead of typing it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "English 8 · Lesson 1";
+const LESSON_ID = "ENG8-L01";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Explain the ways in which character motivation is informed through tone and theme.",
+  "O2": "Name a character's tone and point to the exact words that create it.",
+  "O3": "Tell the reason a character gives apart from the motivation their tone gives away.",
+  "O4": "Connect a character's motivation to a theme, with a \"because\"."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:5 },
+  { label:"Says vs. sounds", mins:12, part:"intro" },
+  { label:"The Tell", mins:13 },
+  { label:"Your turn: a story you haven't seen", mins:15, part:"mastery" },
+  { label:"Turn it in & wrap up", mins:5 }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "What a character says, how they sound, and what they really want.", sheet: true, outcomes: ["O1", "O2", "O3", "O4"] },
+  mastery: { title: "Independent Mastery", sub: "A story you haven't seen. You pick which one.", sheet: false, outcomes: ["O1", "O2", "O3", "O4"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You heard the gap between what he says and how he sounds. That's the whole skill."},
+  i2:{star:"★",msg:"Motive to theme — that's the move the whole unit is built on."},
+  m1:{star:"★",msg:"New story, nothing labelled, and you still found the tell."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>

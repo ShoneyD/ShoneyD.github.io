@@ -326,6 +326,23 @@ const ITEMS = [
   },
   {
     type: 'lesson',
+    id:   'ENG8-L01',
+    course: 'English 8',
+    file: 'lessons/english-8/ENG8-L01-says-vs-sounds.html',
+    title: 'Says vs. Sounds',
+    tag: 'lesson 1',
+    desc: 'Character motivation through tone and theme, on Poe\u2019s \u201cThe Tell-Tale Heart.\u201d What a narrator says his reason is, what his tone gives away, and what the story says about people in general. Mastery: pick one unseen passage \u2014 the opening of \u201cThe Cask of Amontillado\u201d or of \u201cThe Gift of the Magi\u201d \u2014 and explain tone \u2192 motive \u2192 theme.',
+    skills: 'Tone \u00b7 character motivation \u00b7 theme \u00b7 unreliable narrator \u00b7 close reading',
+    note: 'Assumes the story is already read. No homework. Guided Practice is The Tell (activities/the-tell.html), played between the two parts. Q4 is deliberately arguable; Q9 is marked \u201cmeant to be hard.\u201d',
+    height: 1500,
+    parts: [
+      { key: 'intro', label: 'Introduce the Concept' },
+      { file: 'activities/the-tell.html', label: 'The Tell', height: 1150 },
+      { key: 'mastery', label: 'Independent Mastery' }
+    ]
+  },
+  {
+    type: 'lesson',
     id:   'ENG12A-L02',
     course: 'English 12A',
     file: 'lessons/english-12a/ENG12A-L02-word-detective.html',
@@ -349,6 +366,18 @@ const ITEMS = [
     desc: 'Five real lines \u2014 Orwell, King, Douglass, Hurston twice \u2014 walked through the same three links three times: name the move, say what it does to the reader, say what universal idea it is aimed at. Then the student writes her own, using any move and any theme including one she invents.',
     skills: 'Rhetorical devices \u00b7 connotation \u00b7 author\u2019s purpose \u00b7 universal themes \u00b7 nonfiction \u00b7 close reading',
     note: 'Text-swappable: MOVES, THEMES, LINES and DECOYS at the top of the script are the only text-specific parts. No drag \u2014 taps and one dropdown, so it works on a trackpad. Support thins across the parts on purpose: the move list is on screen in part 1, gone by part 2, and part 3 has one deliberately arguable item (Orwell\u2019s \u201cdirty work of Empire\u201d accepts Power or Justice). Part 4 is a free creative write with no topic given. Everything shuffles on load.',
+    height: 1150
+  },
+  {
+    type: 'activity',
+    course: 'English',
+    file: 'activities/the-tell.html',
+    engine: 'chain', variant: 'motive-tone', version: 1, updated: '2026-10-21',
+    title: 'The Tell',
+    tag: 'tap to sort',
+    desc: 'Five lines from Poe\u2019s \u201cThe Tell-Tale Heart\u201d walked through the same three links: hear the tone, say what he really wants (not the reason he gives), name the theme it points at. Then the student invents a character whose tone gives away a motive they never say.',
+    skills: 'Tone \u00b7 character motivation \u00b7 theme \u00b7 unreliable narrator \u00b7 close reading',
+    note: 'Rejigger of The Aim (same chain engine). Text-swappable: MOVES (here, tones), THEMES, LINES and DECOYS at the top of the script. The decoys are the narrator\u2019s own stated reasons (money, revenge, the eye) \u2014 picking one is the says-vs-sounds mistake, made visible. The \u201chypocritical smiles\u201d line accepts Being watched or Guilt in Part 3. Everything shuffles on load.',
     height: 1150
   },
   {
