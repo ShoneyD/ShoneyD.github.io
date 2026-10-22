@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG12A-L03 · The Man Behind the Gun</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG12A-L03</p>
+  <h1 id="pagetitle">English 12A · Lesson 3</h1>
+  <p class="sub" id="pagesub">The Man Behind the Gun.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Clues, purpose, theme">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Clues, purpose, theme</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Clues, purpose, theme</h2>
+
+      <p>Writers don't just tell you what happened. They pick <strong>how</strong> to tell it, and those choices are clues.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 150" role="img" aria-label="Three boxes in a row joined by arrows: Clues (the writer's choices), then Purpose (why they wrote it), then Theme (the big idea about life).">
+  <rect x="10"  y="30" width="160" height="80" rx="10" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="220" y="30" width="160" height="80" rx="10" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="430" y="30" width="160" height="80" rx="10" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <text x="90"  y="64" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">1. Clues</text>
+  <text x="90"  y="90" text-anchor="middle" font-size="13" fill="var(--soft)">the writer's choices</text>
+  <text x="300" y="64" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">2. Purpose</text>
+  <text x="300" y="90" text-anchor="middle" font-size="13" fill="var(--soft)">why they wrote it</text>
+  <text x="510" y="64" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">3. Theme</text>
+  <text x="510" y="90" text-anchor="middle" font-size="13" fill="var(--soft)">the big idea about life</text>
+  <line x1="174" y1="70" x2="212" y2="70" stroke="var(--ink)" stroke-width="3"/>
+  <polygon points="212,63 220,70 212,77" fill="var(--ink)"/>
+  <line x1="384" y1="70" x2="422" y2="70" stroke="var(--ink)" stroke-width="3"/>
+  <polygon points="422,63 430,70 422,77" fill="var(--ink)"/>
+  <text x="300" y="140" text-anchor="middle" font-size="13" fill="var(--soft)">You find the clues. The clues tell you the purpose. The purpose points at the theme.</text>
+</svg>
+      <figcaption>Today's whole job, in three boxes.</figcaption>
+      </figure>
+
+      <p><strong>Before you read: who's talking?</strong> George Orwell worked as a police officer for the British Empire in Burma (now Myanmar) in the 1920s. The British ruled Burma, and many Burmese people hated it. Orwell wrote this essay years later, looking back.</p>
+
+      <p class="q"><strong>Q1.</strong> A writer describes a dog shivering in the rain, slowly, in a lot of detail. What's the most likely <strong>purpose</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. A writer describes a dog shivering in the rain, slowly, in a lot of detail. What&#x27;s the most likely purpose?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="to teach you about weather">to teach you about weather</option>
+          <option value="to make you feel sorry for the dog">to make you feel sorry for the dog</option>
+          <option value="to show off big words">to show off big words</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> Which of these is a <strong>theme</strong> (a big idea about life), not just a topic?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. Which of these is a theme (a big idea about life), not just a topic?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Dogs">Dogs</option>
+          <option value="Rain">Rain</option>
+          <option value="People who have power over others are responsible for them">People who have power over others are responsible for them</option>
+        </select></div>
+
+      <p class="q"><strong>Q3.</strong> In your own words: what's the difference between purpose and theme?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Purpose is … but theme is ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. In your own words: what&#x27;s the difference between purpose and theme?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and one sentence finishing the starter.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g0" data-title="Read it">
+    <button class="donebar" onclick="LL.toggle('g0')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Read it</strong>
+      <span class="sum" id="sum-g0"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Read it</h2>
+
+      <p>Open <strong>Shooting an Elephant</strong> in Canvas and read it. You can read it yourself, or your teacher can read it aloud while you follow along.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:33%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>👀 Watch for 1</strong><br>What does he say he thinks about the British Empire?</td>
+    <td style="width:33%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>👀 Watch for 2</strong><br>When the crowd shows up, what does he feel he <em>has</em> to do?</td>
+    <td style="width:33%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>👀 Watch for 3</strong><br>How does he describe the elephant dying? Fast or slow?</td>
+  </tr>
+</table>
+      <figcaption>Three things to keep an eye out for. You don't have to write them down.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q4.</strong> One thing in the essay that surprised you.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; I was surprised that ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q4. One thing in the essay that surprised you." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>The essay read to the end, and one thing that surprised you typed or said.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g0')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="guided" id="g1" data-title="Find the clues">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Find the clues</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Find the clues</h2>
+
+      <p>Here are three moments from the essay. Match each one to the clue Orwell is using. The reference sheet at the bottom has the clue words.</p>
+
+      <p class="q"><strong>Q5.</strong> He has the gun, the power and the crowd behind him, but he says he's the one who isn't free. Which clue is that?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. He has the gun, the power and the crowd behind him, but he says he&#x27;s the one who isn&#x27;t free. Which clue is that?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="imagery">imagery</option>
+          <option value="irony">irony</option>
+          <option value="metaphor">metaphor</option>
+        </select></div>
+
+      <p class="q"><strong>Q6.</strong> The elephant takes a long, painful time to die, and he describes it in a lot of detail. Which clue is that?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. The elephant takes a long, painful time to die, and he describes it in a lot of detail. Which clue is that?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="irony">irony</option>
+          <option value="first person / confession">first person / confession</option>
+          <option value="imagery">imagery</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> He admits, in "I", that he only did it so he wouldn't look like a fool. Which clue is that?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. He admits, in &quot;I&quot;, that he only did it so he wouldn&#x27;t look like a fool. Which clue is that?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="first person / confession">first person / confession</option>
+          <option value="metaphor">metaphor</option>
+          <option value="imagery">imagery</option>
+        </select></div>
+
+      <p class="q"><strong>Q8.</strong> Pick <strong>one</strong> of those three clues. Why do you think Orwell used it? What did he want you to feel or think?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Orwell uses … because he wants the reader to ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. Pick one of those three clues. Why do you think Orwell used it? What did he want you to feel or think?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q9.</strong> So what was Orwell's <strong>purpose</strong>? Pick the one you agree with most, or write your own.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. So what was Orwell&#x27;s purpose? Pick the one you agree with most, or write your own.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="to show that ruling over other people traps the rulers too">to show that ruling over other people traps the rulers too</option>
+          <option value="to show how dangerous elephants are">to show how dangerous elephants are</option>
+          <option value="to explain how to use a rifle">to explain how to use a rifle</option>
+          <option value="my own idea (I&#x27;ll write it in Q10)">my own idea (I&#x27;ll write it in Q10)</option>
+        </select></div>
+
+      <p class="q"><strong>Q10.</strong> Say why, in one sentence. Use one moment from the essay.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; I think his purpose is … because in the essay ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q10. Say why, in one sentence. Use one moment from the essay." placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>There's more than one good answer. Most readers land on something like: the Empire made him act against what he believed, so the person with the power ended up being the one who wasn't free. If yours is close to that, or different but backed by a moment from the essay, you're on track.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked and two sentences finished with a <em>because</em>.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Two sources, one verdict">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Two sources, one verdict</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Two sources, one verdict</h2>
+
+      <p>You've got <strong>two sources</strong> now.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:50%;padding:14px;border:2px solid var(--accent);border-radius:10px;vertical-align:top">
+      <strong>📄 Source 1: the essay</strong><br>
+      <em>Shooting an Elephant</em>, by George Orwell, published in 1936. A first-person story about one day as a police officer in Burma.
+    </td>
+    <td style="width:50%;padding:14px;border:2px solid var(--accent);border-radius:10px;vertical-align:top">
+      <strong>🗂 Source 2: background card</strong><br>
+      • Britain ruled Burma as part of British India until 1937.<br>
+      • George Orwell (real name Eric Blair) served in the Indian Imperial Police in Burma from 1922 to 1927.<br>
+      • He quit and came home to England, and spent the rest of his life writing against people having unfair power over others.
+    </td>
+  </tr>
+</table>
+      <figcaption>Two different kinds of source: his story, and facts about his life.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q11.</strong> Which fact from <strong>Source 2</strong> helps you understand <strong>why</strong> Orwell wrote the essay?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q11. Which fact from Source 2 helps you understand why Orwell wrote the essay?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Britain ruled Burma until 1937">Britain ruled Burma until 1937</option>
+          <option value="He served in the police in Burma for five years">He served in the police in Burma for five years</option>
+          <option value="He quit and spent his life writing against unfair power">He quit and spent his life writing against unfair power</option>
+        </select></div>
+
+      <p class="q"><strong>Q12.</strong> Which <strong>theme</strong> do you think the essay is really about?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q12. Which theme do you think the essay is really about?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="When you have power over people, you lose your own freedom">When you have power over people, you lose your own freedom</option>
+          <option value="Doing what the crowd wants instead of what you think is right">Doing what the crowd wants instead of what you think is right</option>
+          <option value="Animals deserve better than how people treat them">Animals deserve better than how people treat them</option>
+        </select></div>
+
+      <p class="q"><strong>Q13.</strong> How much does Orwell's purpose (what he wanted you to think) <strong>shape</strong> that theme for you as the reader?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q13. How much does Orwell&#x27;s purpose (what he wanted you to think) shape that theme for you as the reader?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a lot — I only see the theme because of how he tells it">a lot — I only see the theme because of how he tells it</option>
+          <option value="some — I&#x27;d see it anyway, but he makes it stronger">some — I&#x27;d see it anyway, but he makes it stronger</option>
+          <option value="not much — the theme would be there no matter how he told it">not much — the theme would be there no matter how he told it</option>
+        </select></div>
+
+      <p class="q"><strong>Q14.</strong> Write your verdict in three sentences: what you decided, one piece of evidence from the essay, one from the background card.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; I think Orwell's purpose shapes the theme … because … . In the essay, … . The background card shows that ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q14. Write your verdict in three sentences: what you decided, one piece of evidence from the essay, one from the background card." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One fact picked from each source, a theme chosen, a rating, and three sentences: your verdict, one piece of evidence from the essay, and one from the background card.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The clue words &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Author's purpose</td><td>WHY the writer wrote it. What they want you to think, feel or do afterwards.</td></tr>
+      <tr><td class="h">Theme</td><td>The big idea about life the text keeps pointing at. A full sentence, not one word.</td></tr>
+      <tr><td class="h">Irony</td><td>The opposite of what you'd expect. He's the one with the gun, but he's the one who isn't free.</td></tr>
+      <tr><td class="h">First person / confession</td><td>"I" telling you something they're ashamed of. It makes you trust them, and judge them.</td></tr>
+      <tr><td class="h">Imagery</td><td>Description you can see, hear or feel. Slow, painful detail makes you feel something on purpose.</td></tr>
+      <tr><td class="h">Metaphor</td><td>Calling one thing another thing. "A mask", "a puppet".</td></tr>
+      <tr><td class="h">Evidence</td><td>A quote or fact, plus where it came from, plus what it shows.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>The chain:</strong> clue → purpose → theme. Every answer today is one link of that chain.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">Spelling doesn't count. You can say any answer out loud instead of typing it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "English 12A · Lesson 3";
+const LESSON_ID = "ENG12A-L03";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "2-1": "Investigate how author's purpose is revealed through different literary devices and writing strategies.",
+  "2-4": "Evaluate how an author's purpose shapes the reader's understanding of a central theme or idea.",
+  "2-7": "Use evidence from a variety of sources to develop and support research on an author's purpose."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:4 },
+  { label:"Clues, purpose, theme", mins:7, part:"intro" },
+  { label:"Read: Shooting an Elephant", mins:12 },
+  { label:"Find the clues", mins:12, part:"guided" },
+  { label:"Two sources, one verdict", mins:12, part:"mastery" },
+  { label:"One-sentence wrap-up", mins:3 }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Writers leave clues. The clues point to a purpose. The purpose points to a big idea.", sheet: true, outcomes: ["2-1"] },
+  guided: { title: "Guided Practice", sub: "Find Orwell's clues and say what each one is doing.", sheet: true, outcomes: ["2-1", "2-4"] },
+  mastery: { title: "Independent Mastery", sub: "Use the essay and one more source to decide what Orwell was really after.", sheet: true, outcomes: ["2-4", "2-7"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You've got the chain. Now go find it in a real essay."},
+  g0:{star:"★",msg:"You read the whole thing. That's the hardest part of today."},
+  g1:{star:"★",msg:"You found the clues and said what they do. That's outcome 2-1."},
+  m1:{star:"★",msg:"Two sources, one claim, your verdict. That's real research."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>

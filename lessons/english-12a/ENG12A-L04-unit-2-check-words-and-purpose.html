@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG12A-L04 · Unit 2 Check - Words and Purpose</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG12A-L04</p>
+  <h1 id="pagetitle">English 12A · Lesson 4</h1>
+  <p class="sub" id="pagesub">Unit 2 Check - Words and Purpose.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== UNIT 2 ASSESSMENT ===================== -->
+  <p class="partsep" data-partsep="assessment">Unit 2 Assessment</p>
+
+  <section class="stage" data-part="assessment" id="a1" data-title="Part 1: Words and how they&#x27;re built">
+    <button class="donebar" onclick="LL.toggle('a1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Part 1: Words and how they're built</strong>
+      <span class="sum" id="sum-a1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Part 1: Words and how they're built</h2>
+
+      <p class="q"><strong>Q1.</strong> Sei Shōnagon wrote <em>The Pillow Book</em> mostly as…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Sei Shōnagon wrote The Pillow Book mostly as…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="one long story">one long story</option>
+          <option value="lists of short items">lists of short items</option>
+          <option value="a poem that rhymes">a poem that rhymes</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> Copy <strong>one word</strong> from either text that you think was chosen on purpose.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q2. Copy one word from either text that you think was chosen on purpose." placeholder="One word…"></div>
+
+      <p class="q"><strong>Q3.</strong> Why that word? What does it make you feel or picture?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The writer picked the word … because it makes me ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. Why that word? What does it make you feel or picture?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked, one word or line copied, and one sentence finished with a <em>because</em>.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('a1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="assessment" id="a2" data-title="Part 2: The hard parts">
+    <button class="donebar" onclick="LL.toggle('a2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Part 2: The hard parts</strong>
+      <span class="sum" id="sum-a2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Part 2: The hard parts</h2>
+
+      <p class="q"><strong>Q4.</strong> What made <strong>Shooting an Elephant</strong> hardest to read in places?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. What made Shooting an Elephant hardest to read in places?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="long sentences">long sentences</option>
+          <option value="old-fashioned or British words">old-fashioned or British words</option>
+          <option value="he says one thing but means another">he says one thing but means another</option>
+          <option value="words about places I didn&#x27;t know">words about places I didn&#x27;t know</option>
+        </select></div>
+
+      <p class="q"><strong>Q5.</strong> Give one example of that.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; One part that was hard was … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q5. Give one example of that." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked and one sentence with an example.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('a2')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="assessment" id="a3" data-title="Part 3: Not literally true">
+    <button class="donebar" onclick="LL.toggle('a3')">
+      <span class="tick">&#10003;</span> <strong>Part 3 &mdash; Part 3: Not literally true</strong>
+      <span class="sum" id="sum-a3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 &mdash; Part 3: Not literally true</h2>
+
+      <p class="q"><strong>Q6.</strong> Orwell calls himself a <strong>puppet</strong> in front of the crowd. That's…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. Orwell calls himself a puppet in front of the crowd. That&#x27;s…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="imagery">imagery</option>
+          <option value="a metaphor">a metaphor</option>
+          <option value="a list">a list</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> Pick one thing from either text that isn't meant literally (you can use "puppet"). What does it really mean?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The writer says … but it really means ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q7. Pick one thing from either text that isn&#x27;t meant literally (you can use &quot;puppet&quot;). What does it really mean?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One quote or moment, and one sentence starting "It really means…"</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('a3')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="assessment" id="a4" data-title="Part 4: Two writers, side by side">
+    <button class="donebar" onclick="LL.toggle('a4')">
+      <span class="tick">&#10003;</span> <strong>Part 4 &mdash; Part 4: Two writers, side by side</strong>
+      <span class="sum" id="sum-a4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 4 &mdash; Part 4: Two writers, side by side</h2>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse">
+  <tr>
+    <th style="padding:10px;border:1px solid var(--soft);text-align:left"></th>
+    <th style="padding:10px;border:1px solid var(--soft);text-align:left">The Pillow Book</th>
+    <th style="padding:10px;border:1px solid var(--soft);text-align:left">Shooting an Elephant</th>
+  </tr>
+  <tr>
+    <td style="padding:10px;border:1px solid var(--soft)"><strong>Shape</strong></td>
+    <td style="padding:10px;border:1px solid var(--soft)">short list items</td>
+    <td style="padding:10px;border:1px solid var(--soft)">one story, start to finish</td>
+  </tr>
+  <tr>
+    <td style="padding:10px;border:1px solid var(--soft)"><strong>Who's talking</strong></td>
+    <td style="padding:10px;border:1px solid var(--soft)">"I", sharing opinions</td>
+    <td style="padding:10px;border:1px solid var(--soft)">"I", admitting something</td>
+  </tr>
+  <tr>
+    <td style="padding:10px;border:1px solid var(--soft)"><strong>Mood</strong></td>
+    <td style="padding:10px;border:1px solid var(--soft)">?</td>
+    <td style="padding:10px;border:1px solid var(--soft)">?</td>
+  </tr>
+</table>
+      <figcaption>Two of the three rows are filled in for you. You fill in the mood.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q8.</strong> The mood of <em>The Pillow Book</em> is mostly…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q8. The mood of The Pillow Book is mostly…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="heavy and guilty">heavy and guilty</option>
+          <option value="light and opinionated">light and opinionated</option>
+          <option value="scary">scary</option>
+        </select></div>
+
+      <p class="q"><strong>Q9.</strong> The mood of <em>Shooting an Elephant</em> is mostly…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. The mood of Shooting an Elephant is mostly…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="light and funny">light and funny</option>
+          <option value="heavy and guilty">heavy and guilty</option>
+          <option value="calm and peaceful">calm and peaceful</option>
+        </select></div>
+
+      <p class="q"><strong>Q10.</strong> Two sentences: one way they're alike, one way they're different.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Both writers … . But Sei Shōnagon uses … while Orwell uses ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q10. Two sentences: one way they&#x27;re alike, one way they&#x27;re different." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and two sentences finished.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('a4')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="assessment" id="a5" data-title="Part 5: Purpose and theme">
+    <button class="donebar" onclick="LL.toggle('a5')">
+      <span class="tick">&#10003;</span> <strong>Part 5 &mdash; Part 5: Purpose and theme</strong>
+      <span class="sum" id="sum-a5"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 5 &mdash; Part 5: Purpose and theme</h2>
+
+      <p class="q"><strong>Q11.</strong> Orwell admits he shot the elephant only so he wouldn't look like a fool. That clue is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q11. Orwell admits he shot the elephant only so he wouldn&#x27;t look like a fool. That clue is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="first person / confession">first person / confession</option>
+          <option value="a list">a list</option>
+          <option value="figurative language">figurative language</option>
+        </select></div>
+
+      <p class="q"><strong>Q12.</strong> What was Orwell's <strong>purpose</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q12. What was Orwell&#x27;s purpose?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="to teach how to handle elephants">to teach how to handle elephants</option>
+          <option value="to show that ruling over people traps the rulers too">to show that ruling over people traps the rulers too</option>
+          <option value="to make the Burmese people look bad">to make the Burmese people look bad</option>
+        </select></div>
+
+      <p class="q"><strong>Q13.</strong> How much does that purpose shape the <strong>theme</strong> you take away?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q13. How much does that purpose shape the theme you take away?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a lot">a lot</option>
+          <option value="some">some</option>
+          <option value="not much">not much</option>
+        </select></div>
+
+      <p class="q"><strong>Q14.</strong> Explain your answer to Q13, using one clue from the essay.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; His purpose shapes the theme … because when he ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q14. Explain your answer to Q13, using one clue from the essay." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked and two sentences finished.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('a5')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="assessment" id="a6" data-title="Part 6: Two sources, one claim">
+    <button class="donebar" onclick="LL.toggle('a6')">
+      <span class="tick">&#10003;</span> <strong>Part 6 &mdash; Part 6: Two sources, one claim</strong>
+      <span class="sum" id="sum-a6"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 6 &mdash; Part 6: Two sources, one claim</h2>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:50%;padding:14px;border:2px solid var(--accent);border-radius:10px;vertical-align:top">
+      <strong>📄 Source 1: the essay</strong><br>
+      <em>Shooting an Elephant</em>, George Orwell, 1936. He shoots the elephant because the crowd expects it, and says he only did it to avoid looking a fool.
+    </td>
+    <td style="width:50%;padding:14px;border:2px solid var(--accent);border-radius:10px;vertical-align:top">
+      <strong>🗂 Source 2: background card</strong><br>
+      • Britain ruled Burma until 1937.<br>
+      • Orwell served in the Indian Imperial Police in Burma, 1922–1927.<br>
+      • He quit and spent his life writing against unfair power.
+    </td>
+  </tr>
+</table>
+      <figcaption>Same two sources as last lesson.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q15.</strong> Which fact from <strong>Source 2</strong> best supports the claim "Orwell wrote this to criticise the Empire"?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q15. Which fact from Source 2 best supports the claim &quot;Orwell wrote this to criticise the Empire&quot;?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Britain ruled Burma until 1937">Britain ruled Burma until 1937</option>
+          <option value="He quit and spent his life writing against unfair power">He quit and spent his life writing against unfair power</option>
+          <option value="He served in the police for five years">He served in the police for five years</option>
+        </select></div>
+
+      <p class="q"><strong>Q16.</strong> Write the claim and back it up with one thing from <strong>each</strong> source.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Orwell wrote this essay to … . In the essay, … . The background card shows ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q16. Write the claim and back it up with one thing from each source." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One fact from each source, and two sentences: a claim and the evidence for it.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('a6')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Every clue word from this unit &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Diction</td><td>The words a writer picks. Why this word and not a plainer one?</td></tr>
+      <tr><td class="h">Syntax</td><td>How sentences are built: a list or a story, long or short, full sentences or fragments.</td></tr>
+      <tr><td class="h">Language complexity</td><td>What makes a part hard to read: old words, long sentences, a hidden meaning.</td></tr>
+      <tr><td class="h">Figurative language</td><td>Saying something not literally true to make a point: metaphor, exaggeration, a strong image.</td></tr>
+      <tr><td class="h">Irony</td><td>The opposite of what you'd expect.</td></tr>
+      <tr><td class="h">First person / confession</td><td>"I" admitting something. It makes you trust them, and judge them.</td></tr>
+      <tr><td class="h">Imagery</td><td>Description you can see, hear or feel.</td></tr>
+      <tr><td class="h">Author's purpose</td><td>WHY the writer wrote it.</td></tr>
+      <tr><td class="h">Theme</td><td>The big idea about life the text keeps pointing at.</td></tr>
+      <tr><td class="h">Evidence</td><td>A quote or fact + where it came from + what it shows.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>You can look back at both texts, and at your old answers, the whole time.</strong> This checks what you can do, not what you can remember.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">Spelling doesn't count. You can say any answer out loud and your teacher will type it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "English 12A · Lesson 4";
+const LESSON_ID = "ENG12A-L04";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "2-1": "Investigate how author's purpose is revealed through different literary devices and writing strategies.",
+  "2-2": "Analyze diction and syntax.",
+  "2-3": "Explain language complexity.",
+  "2-4": "Evaluate how an author's purpose shapes the reader's understanding of a central theme or idea.",
+  "2-5": "Describe figurative language.",
+  "2-6": "Compare author language choices.",
+  "2-7": "Use evidence from a variety of sources to develop and support research on an author's purpose."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:3 },
+  { label:"Unit 2 Check: six short parts", mins:42, part:"assessment" },
+  { label:"Done! Quick look back", mins:5 }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  assessment: { title: "Unit 2 Assessment", sub: "Six short parts, one for each thing you learned this unit. You can look back at both texts the whole time.", sheet: true, outcomes: ["2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "2-7"] }
+};
+
+const REWARDS = {
+  a1:{star:"★",msg:"Part 1 done. Diction and syntax, checked off."},
+  a2:{star:"★",msg:"Part 2 done. You can explain why reading is hard, which is harder than it sounds."},
+  a3:{star:"★",msg:"Part 3 done. You can spot when a writer means more than the words say."},
+  a4:{star:"★",msg:"Part 4 done. Two writers compared. That's outcome 2-6."},
+  a5:{star:"★",msg:"Part 5 done. You can read WHY, not just WHAT."},
+  a6:{star:"★",msg:"Unit 2, finished. Every outcome, checked."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
