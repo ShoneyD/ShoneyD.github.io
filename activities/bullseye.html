@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<!--
+  BULLSEYE — engine: archery · variant: nouns-pronouns-6
+
+  A first-person archery range. You stand behind your bow looking down the
+  lane; each round shows one sentence and the candidate words stand on
+  targets at different distances. Shoot the one the round asks for.
+  Mouse: move to aim the sight, press and HOLD to draw the string, let go to
+  shoot (a fuller draw flies flatter). Keyboard: click the range, arrow keys
+  aim, hold Space to draw. "Easy aim" turns the targets into buttons (the
+  click-to-place fallback).
+
+  Physics is in metres: arrows drop with distance, wind pushes sideways, and
+  from Range 3 the sight sways if a full draw is held too long. Per-range
+  knobs live on each RANGES entry: R (target radius, m), dist ([near, far] m),
+  guide (which targets get a gold landing ✕ while drawing, 0–1 from nearest to farthest), wind (max m/s² sideways),
+  sway (px).
+
+  CONTENT-SWAPPABLE. Everything grammar-specific lives in two constants at the
+  top of the script:
+
+      LEARN    the mini-lesson card shown above the range for each block
+      RANGES   five stages → blocks → rounds. A round is
+               { ask, s, t:[[label, isRight, why], …] }
+               s marks candidate words {like this} and the focus pronoun [like this].
+
+  Blocks inside a range are played in order and never interleaved (one skill at
+  a time); rounds inside a block shuffle, and target positions shuffle per
+  round. Archery difficulty climbs with the grammar.
+
+  Missing the target costs nothing grammatical; hitting the wrong word gets a
+  why + retry, and after two wrong hits the block's tip appears.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bullseye</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a;
+         /* the range */
+         --sky1:#bfe0f3; --sky2:#eef7fc; --hill:#a9cf98; --grass:#7cb26a; --grass2:#5d9450;
+         --wood:#8a5a33; --ring-gold:#f2c230; --ring-red:#e04a3a; --ring-blue:#3a8fd6;
+         --ring-black:#2b2b2b; --ring-white:#f7f7f2; --sign:#fffdfa; --sign-dim:#e4e1db;
+         --focus-pill:#ffe7a8; --trees:#6f9a63; --string:#f4f1ea; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:52rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem;
+          display:flex; gap:1.2rem; align-items:center; flex-wrap:wrap }
+  .steps .txt{ flex:1 1 20rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+  .steps svg{ flex:0 0 auto; width:230px; max-width:100%; height:auto }
+  kbd{ font:inherit; font-size:.85em; border:1px solid var(--line); border-bottom-width:2px;
+       border-radius:5px; padding:0 .35em; background:#fff }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+  .done-looks{ font-size:.92rem; color:var(--soft); margin:-.4rem 0 1rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.small{ font-size:.85rem; padding:.35rem .8rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb.info{ background:var(--accent-soft); border:1px solid #bcd6e4 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+  .fb .tip{ display:block; margin-top:.45rem; font-size:.92rem }
+
+  /* mini-lesson card */
+  .learn-card{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+        padding:1rem 1.25rem; margin:0 0 1.1rem; font-size:.97rem }
+  .learn-card .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+        color:var(--accent); margin:0 0 .5rem }
+  .learn-card p{ margin:.35rem 0 }
+  .learn-card .new{ display:inline-block; background:var(--gold); color:#fff; border-radius:999px;
+        font-size:.72rem; font-weight:700; letter-spacing:.05em; padding:.05rem .55rem; margin-left:.4rem;
+        vertical-align:middle }
+  table.pair{ border-collapse:collapse; width:100%; margin:.3rem 0 .4rem; font-size:.95rem }
+  table.pair th, table.pair td{ border:1px solid var(--line); padding:.35rem .7rem; text-align:left }
+  table.pair th{ background:var(--accent-soft); font-size:.85rem }
+  .chips{ display:flex; flex-wrap:wrap; gap:.4rem; margin:.4rem 0 }
+  .chip{ border:1px solid var(--line); background:#fff; border-radius:999px; padding:.05rem .7rem; font-weight:700; font-size:.92rem }
+  .linkdemo{ position:relative; padding-top:2.4rem; margin:.3rem 0 .4rem; font-size:1.08rem }
+  .linkdemo p{ margin:0 }
+  .linkdemo [data-a]{ border-bottom:3px solid var(--accent); font-weight:700 }
+  .linkdemo [data-p]{ background:var(--focus-pill); border-radius:5px; padding:0 .2rem; font-weight:700 }
+  svg.links{ position:absolute; left:0; top:0; pointer-events:none; overflow:visible }
+  svg.links path{ fill:none; stroke:var(--accent); stroke-width:2.2 }
+  svg.links path.maybe{ stroke:var(--warn); stroke-dasharray:5 4 }
+  svg.links text{ font:700 15px "Atkinson Hyperlegible",Verdana,sans-serif; fill:var(--warn) }
+  .test{ background:var(--accent-soft); border-radius:8px; padding:.45rem .8rem; margin:.5rem 0 0; font-size:.93rem }
+  .strike{ text-decoration:line-through; color:var(--soft) }
+  details.remind{ border:1px solid var(--line); border-radius:8px; background:var(--card); padding:.5rem 1rem; margin:0 0 1rem; font-size:.93rem }
+  details.remind summary{ cursor:pointer; font-weight:700; color:var(--accent) }
+
+  /* the range */
+  #range{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.9rem; margin:0 0 1rem }
+  .rbar{ display:flex; flex-wrap:wrap; gap:.4rem .9rem; align-items:center; font-size:.85rem; color:var(--soft); margin:0 0 .6rem }
+  .rbar .rnd{ font-weight:700; color:var(--ink) }
+  .rbar .bulls{ color:var(--gold); font-weight:700 }
+  .rbar .sp{ margin-left:auto; display:flex; gap:.4rem }
+  .prompt{ border-left:5px solid var(--accent); background:var(--accent-soft); border-radius:6px;
+        padding:.55rem .9rem; margin:0 0 .7rem }
+  .prompt .ask{ font-size:1.1rem; font-weight:700; margin:0 }
+  .prompt .ask b{ color:var(--accent); text-transform:none }
+  .prompt .sent{ font-size:1.18rem; margin:.25rem 0 0; line-height:1.8 }
+  .sent .cand{ border-bottom:3px dotted var(--accent); }
+  .sent .focus{ background:var(--focus-pill); border-radius:5px; padding:0 .25rem; font-weight:700; border:1px solid #e6c766 }
+  canvas#cv{ display:block; width:100%; height:auto; aspect-ratio:960/500; border-radius:10px;
+        touch-action:none; cursor:none; background:var(--sky2) }
+  canvas#cv:focus-visible{ outline:3px solid var(--accent); outline-offset:3px }
+  .controls{ font-size:.85rem; color:var(--soft); margin:.5rem 0 .6rem }
+  #easyRow{ display:none; flex-wrap:wrap; gap:.5rem; margin:0 0 .8rem }
+  #easyRow.show{ display:flex }
+  #easyRow .lab{ width:100%; font-size:.8rem; color:var(--soft); margin:0 }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+  .log{ font-size:.88rem; white-space:pre-wrap; color:var(--soft); background:var(--card);
+        border:1px solid var(--line); border-radius:8px; padding:.7rem 1rem; display:none }
+  .stage.done .log{ display:block }
+  #s5write{ display:none }
+  #s5write.show{ display:block }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🏹 Bullseye</h1>
+  <p class="sub">Every round has a sentence. The words stand on targets. Shoot the one the round asks for.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <div class="txt">
+      <p>How to shoot</p>
+      <ol>
+        <li><strong>Aim:</strong> move the mouse. The sight ⊕ follows it. (Keys: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>.)</li>
+        <li><strong>Draw:</strong> press and <strong>hold</strong> the mouse button (or <kbd>Space</kbd>) to pull the string back. Let go to shoot. A full draw flies flatter and faster.</li>
+        <li>Far targets need you to aim a little <strong>above</strong> them, because arrows drop. While you draw, a gold ✕ shows where the arrow will land on the target you're aiming at. In later ranges it only shows on the nearer targets.</li>
+        <li>Missing is fine. Grab another arrow. Only the word you hit counts.</li>
+        <li>Five ranges. At the end, one button copies everything for Canvas.</li>
+      </ol>
+    </div>
+    <svg viewBox="0 0 230 130" role="img" aria-label="Diagram: the sight is placed a little above a far target; the arrow drops into the middle of the target. Below, a bar fills while you hold the button to draw.">
+      <rect x="0" y="0" width="230" height="70" fill="#d8ecf7"/><rect x="0" y="70" width="230" height="40" fill="#a9cf98"/>
+      <line x1="140" y1="86" x2="134" y2="110" stroke="#8a5a33" stroke-width="2"/><line x1="152" y1="86" x2="158" y2="110" stroke="#8a5a33" stroke-width="2"/>
+      <circle cx="146" cy="76" r="14" fill="#f7f7f2" stroke="#2b2b2b"/><circle cx="146" cy="76" r="11" fill="#2b2b2b"/><circle cx="146" cy="76" r="8.4" fill="#3a8fd6"/><circle cx="146" cy="76" r="5.6" fill="#e04a3a"/><circle cx="146" cy="76" r="2.8" fill="#f2c230"/>
+      <circle cx="146" cy="40" r="10" fill="none" stroke="#2b2b2b" stroke-width="2"/>
+      <line x1="130" y1="40" x2="140" y2="40" stroke="#2b2b2b" stroke-width="2"/><line x1="152" y1="40" x2="162" y2="40" stroke="#2b2b2b" stroke-width="2"/>
+      <circle cx="146" cy="52" r="2.6" fill="#c68a1a"/><circle cx="146" cy="61" r="2.6" fill="#c68a1a"/><circle cx="146" cy="70" r="2.6" fill="#c68a1a"/>
+      <text x="168" y="44" font-size="11" fill="#22252a" font-family="Verdana">aim here</text>
+      <text x="168" y="80" font-size="11" fill="#22252a" font-family="Verdana">lands here</text>
+      <rect x="10" y="116" width="120" height="10" rx="5" fill="#fff" stroke="#22252a"/><rect x="10" y="116" width="84" height="10" rx="5" fill="#c68a1a"/>
+      <text x="136" y="125" font-size="11" fill="#22252a" font-family="Verdana">hold to draw</text>
+    </svg>
+  </div>
+
+  <!-- ============ RANGE 1 ============ -->
+  <section class="stage active" id="s1" data-title="Range 1 — Common vs. Proper Nouns">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Range 1 — Common or Proper?</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Range 1 — Common or Proper?</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> one warm-up shot, then the right noun hit in every round.</p>
+      <div class="learn"></div>
+      <div class="mount"></div>
+      <div class="log"></div>
+    </div>
+  </section>
+
+  <!-- ============ RANGE 2 ============ -->
+  <section class="stage" id="s2" data-title="Range 2 — Pronoun Antecedents">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Range 2 — Point It Back</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Range 2 — Point It Back (antecedents)</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> for each highlighted pronoun, you hit the noun it stands for. Some of them get murky.</p>
+      <div class="learn"></div>
+      <div class="mount"></div>
+      <div class="log"></div>
+    </div>
+  </section>
+
+  <!-- ============ RANGE 3 ============ -->
+  <section class="stage" id="s3" data-title="Range 3 — Demonstrative & Relative Pronouns">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Range 3 — Pointers &amp; Clue-Starters</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Range 3 — Pointers &amp; Clue-Starters</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> three demonstrative rounds, then three relative rounds.</p>
+      <div class="learn"></div>
+      <div class="mount"></div>
+      <div class="log"></div>
+    </div>
+  </section>
+
+  <!-- ============ RANGE 4 ============ -->
+  <section class="stage" id="s4" data-title="Range 4 — Reflexive & Intensive Pronouns">
+    <button class="donebar" onclick="LL.toggle('s4')">
+      <span class="tick">✓</span> <strong>Range 4 — The -Self Words</strong>
+      <span class="sum" id="sum-s4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Range 4 — The -Self Words</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> three reflexive rounds, then three intensive rounds. Watch the wind flag. It's starting to blow.</p>
+      <div class="learn"></div>
+      <div class="mount"></div>
+      <div class="log"></div>
+    </div>
+  </section>
+
+  <!-- ============ RANGE 5 ============ -->
+  <section class="stage" id="s5" data-title="Range 5 — The Championship (mixed)">
+    <button class="donebar" onclick="LL.toggle('s5')">
+      <span class="tick">✓</span> <strong>Range 5 — The Championship</strong>
+      <span class="sum" id="sum-s5"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Range 5 — The Championship</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> eight mixed rounds (anything from Ranges 1–4, plus a couple of traps), then two short sentences of your own.</p>
+      <div class="learn"></div>
+      <div class="mount"></div>
+
+      <div id="s5write">
+        <h2>Last step: your own sentences</h2>
+        <p class="q"><strong>Q1.</strong> This sentence is murky: “Maya passed the ball to Jess, and she scored.” Rewrite it so a reader knows exactly who scored.</p>
+        <div class="abox"><p class="lab">My answer</p>
+          <textarea data-q="Q1. This sentence is murky: “Maya passed the ball to Jess, and she scored.” Rewrite it so a reader knows exactly who scored." placeholder="Type here…" rows="2"></textarea></div>
+
+        <p class="q"><strong>Q2.</strong> Pick one: write a sentence about a sport you do that uses a <strong>reflexive</strong> pronoun <em>or</em> an <strong>intensive</strong> pronoun. Then say which kind you used and how you know.</p>
+        <div class="abox"><p class="lab">My answer</p>
+          <textarea data-q="Q2. Write a sentence about a sport you do using a reflexive OR an intensive pronoun. Say which kind you used and how you know." placeholder="Type here…" rows="3"></textarea></div>
+
+        <div class="stems"><p class="lab">Sentence starters, if you want them</p>
+          <p>• Maya passed the ball to Jess, and ____ scored.<br>
+             • I taught myself to ____. &nbsp;/&nbsp; I ____ it myself!<br>
+             • It's ____ because when I take the -self word out, the sentence ____.</p>
+          <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">Two sentences is plenty. Don't worry about spelling.</p></div>
+
+        <div class="row"><button class="btn go" onclick="LL.finish('s5', evidence('s5'))">Done with the Championship →</button></div>
+      </div>
+      <div class="log"></div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every range, ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- the range itself — moved into whichever stage is active -->
+  <div id="parking" hidden>
+    <div id="range">
+      <div class="rbar">
+        <span class="rnd" id="rnd">Round 1</span>
+        <span class="bulls" id="bulls"></span>
+        <span id="windTxt">Wind: calm</span>
+        <span id="aimTxt"></span>
+        <span class="sp">
+          <button class="btn ghost small" id="easyBtn" aria-pressed="false">🎯 Easy aim: off</button>
+          <button class="btn ghost small" id="sndBtn" aria-pressed="false">🔇 Sound: off</button>
+        </span>
+      </div>
+      <div class="prompt">
+        <p class="ask" id="ask"></p>
+        <p class="sent" id="sent"></p>
+      </div>
+      <canvas id="cv" width="960" height="500" tabindex="0"
+        aria-label="First-person archery range. Move the mouse to aim the sight, then press and hold to draw the string and let go to shoot. Or use the arrow keys to aim and hold Space to draw. Turn on Easy aim to pick a word with a button instead."></canvas>
+      <p class="controls">Mouse: move to aim · <strong>press and hold</strong> to draw · let go to shoot &nbsp;|&nbsp; Keys: click here, <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> aim (<kbd>Shift</kbd> = big steps), hold <kbd>Space</kbd>, let go · <kbd>Esc</kbd> cancels a draw</p>
+      <div id="easyRow" aria-label="Easy aim targets"></div>
+      <div class="fb" id="gfb" role="status" aria-live="polite"></div>
+      <div class="row" id="nextRow" style="display:none">
+        <button class="btn go" id="nextBtn">Next round →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   CONTENT — swap these two constants to point the range at other skills.
+   ===================================================================== */
+
+const LEARN = {
+  nouns: `<div class="learn-card"><p class="lab">Common vs. proper</p>
+    <table class="pair"><tr><th>Common: <em>any</em> one</th><th>Proper: <em>one specific</em> one, with capitals</th></tr>
+    <tr><td>coach</td><td>Coach Lin</td></tr><tr><td>river</td><td>the Mississippi River</td></tr>
+    <tr><td>day</td><td>Friday</td></tr><tr><td>team</td><td>the Wildcats</td></tr></table>
+    <p class="test"><strong>Test:</strong> Could it be <em>any</em> one? → common. Does it name <em>one specific</em> person, place, day, team, or event? → proper.</p></div>`,
+
+  ante: `<div class="learn-card"><p class="lab">Antecedents</p>
+    <p>A pronoun stands in for a noun. That noun is its <strong>antecedent</strong>. It usually comes first (<em>ante</em> means “before”).</p>
+    <div class="linkdemo"><p><span data-a="1">Kai</span> lost <span data-p="1">his</span> water bottle at practice.</p></div>
+    <p class="test"><strong>Test:</strong> Swap the noun in: “Kai lost <em>Kai's</em> water bottle.” Makes sense? Found it.</p></div>`,
+
+  murky: `<div class="learn-card"><p class="lab">Murky antecedents <span class="new">NEW TARGET: 🤔 UNCLEAR</span></p>
+    <p>Sometimes two nouns look like they could fit. Check in this order:</p>
+    <p><strong>1. Count.</strong> Is the pronoun one or more than one? &nbsp; <strong>2. Meaning.</strong> Which one makes sense? &nbsp; <strong>3. Still two?</strong> Shoot <strong>🤔 Unclear</strong>.</p>
+    <div class="linkdemo"><p><span data-a="1" data-maybe="1">Leo</span> called <span data-a="1" data-maybe="1">Sam</span> after <span data-p="1">he</span> got home.</p></div>
+    <p class="test">Both boys fit, so that one is truly unclear. A good writer would just use the name.</p></div>`,
+
+  demo: `<div class="learn-card"><p class="lab">Demonstrative pronouns: the pointers</p>
+    <table class="pair"><tr><th></th><th>near 👇</th><th>far 👉</th></tr>
+    <tr><th>one thing</th><td><strong>this</strong></td><td><strong>that</strong></td></tr>
+    <tr><th>more than one</th><td><strong>these</strong></td><td><strong>those</strong></td></tr></table>
+    <p class="test">They stand alone and point: “<strong>That</strong> was close!” “Can I try <strong>these</strong>?”</p></div>`,
+
+  rel: `<div class="learn-card"><p class="lab">Relative pronouns: the clue-starters <span class="new">NEW</span></p>
+    <div class="chips"><span class="chip">who</span><span class="chip">whom</span><span class="chip">whose</span><span class="chip">which</span><span class="chip">that</span></div>
+    <p>They come right after a noun and start a clue about it.</p>
+    <div class="linkdemo"><p>The <span data-a="1">kid</span> <span data-p="1">who</span> sits behind me plays chess.</p></div>
+    <p class="test">Which kid? The one <em>who sits behind me</em>. “Who” opens the clue.</p></div>`,
+
+  refl: `<div class="learn-card"><p class="lab">Reflexive pronouns: doer = receiver</p>
+    <div class="chips"><span class="chip">myself</span><span class="chip">yourself</span><span class="chip">himself</span><span class="chip">herself</span><span class="chip">itself</span><span class="chip">ourselves</span><span class="chip">themselves</span></div>
+    <div class="linkdemo"><p><span data-a="1">Kai</span> pushed <span data-p="1">himself</span> up the hill.</p></div>
+    <p class="test"><strong>Take it out:</strong> “Kai pushed <span class="strike">himself</span> ___ up the hill.” <strong>Broken.</strong> That means it's reflexive. The sentence needs it.</p></div>`,
+
+  inten: `<div class="learn-card"><p class="lab">Intensive pronouns: same words, different job <span class="new">NEW</span></p>
+    <p>Same -self words, but here they only add <strong>emphasis</strong>.</p>
+    <div class="linkdemo"><p>The <span data-a="1">principal</span> <span data-p="1">herself</span> refereed the game.</p></div>
+    <p class="test"><strong>Take it out:</strong> “The principal <span class="strike">herself</span> refereed the game.” <strong>Still works.</strong> That means it's intensive. It's there for punch.</p></div>`,
+
+  champ: `<div class="learn-card"><p class="lab">Championship rules</p>
+    <p>Anything from Ranges 1–4, shuffled together. Farther and smaller targets, a shorter drop guide, stronger wind, and a sight that sways if you hold too long. Some targets are <strong>labels</strong> (like “Reflexive”) instead of words.</p></div>
+    <details class="remind"><summary>Need a reminder? (Try a round without it first.)</summary>
+    <table class="pair">
+      <tr><td>Common / proper</td><td>any one / one specific, with capitals</td></tr>
+      <tr><td>Antecedent</td><td>the noun a pronoun stands for. Count, then meaning, then Unclear</td></tr>
+      <tr><td>Demonstrative</td><td>this, that, these, those, <em>standing alone</em></td></tr>
+      <tr><td>Relative</td><td>who, whom, whose, which, that. Starts a clue about the noun before it</td></tr>
+      <tr><td>Reflexive</td><td>-self word; take it out → sentence breaks</td></tr>
+      <tr><td>Intensive</td><td>-self word; take it out → still works (emphasis)</td></tr>
+    </table></details>`
+};
+
+const UNCLEAR = '🤔 Unclear';
+
+const RANGES = {
+  s1: { name:'Range 1', R:1.15, dist:[15,26], guide:1.0, wind:0, sway:0, warmup:true,
+    blocks:[ { learn:'nouns',
+      tip:'Ask: could this be ANY one, or is it ONE specific person, place, day, team, or event? Specific ones wear capitals.',
+      rounds:[
+      { ask:'Hit the <b>proper</b> noun.', s:'Our {team} rode a {bus} to {Lake Placid} for the {final}.',
+        t:[['Lake Placid',1,'Yes! It names one specific town, so both words get capitals.'],
+           ['team',0,'A team could be any team. That makes it common.'],
+           ['bus',0,'Any bus is a bus, so it’s common. If it named a specific one, like “the Greyhound,” that would be proper.'],
+           ['final',0,'“The final” could be any last game. Common.']] },
+      { ask:'Hit the <b>common</b> noun.', s:'{Coach Rivera} handed {Jordan} a new {quiver}.',
+        t:[['quiver',1,'Yes! A quiver is any arrow holder. No capital, so it’s common.'],
+           ['Coach Rivera',0,'With her name attached, this is one specific person, so it’s proper. Notice the capital C.'],
+           ['Jordan',0,'Jordan is a name, one specific person. Proper.']] },
+      { ask:'Hit the <b>proper</b> noun.', s:'The {archers} practiced every {Saturday} at the {river}.',
+        t:[['Saturday',1,'Yes! Days of the week are always proper nouns, always with a capital.'],
+           ['archers',0,'Archers are any people who shoot bows. Common.'],
+           ['river',0,'“The river” could be any river. If it had a name (the Hudson River), it would be proper.']] },
+      { ask:'Hit the <b>proper</b> noun.', s:'My {coach} says the {Olympics} are harder than any {tournament}.',
+        t:[['Olympics',1,'Yes! One specific event with a name. Proper.'],
+           ['coach',0,'Careful! With “my” in front and no name, coach is common. “Coach Rivera” would be proper.'],
+           ['tournament',0,'“Any tournament” means literally any one. Common.']] },
+      { ask:'Hit the <b>common</b> noun.', s:'{Priya} swam {laps} for the {Dolphins} at {Riverside Middle School}.',
+        t:[['laps',1,'Yes! A lap is any trip across the pool. Common.'],
+           ['Priya',0,'A name of one specific person. Proper.'],
+           ['Dolphins',0,'Here it’s the name of one specific team, so it’s proper. See the capital D? Dolphins in the ocean would be common.'],
+           ['Riverside Middle School',0,'“A school” is common, but Riverside Middle School names one specific school. Proper.']] },
+      { ask:'Hit the <b>common</b> noun.', s:'We watched the {game} on {Thanksgiving} with {Uncle Dev}.',
+        t:[['game',1,'Yes! Could be any game. Common.'],
+           ['Thanksgiving',0,'Holidays are proper nouns: one specific day, with a capital.'],
+           ['Uncle Dev',0,'With his name attached, this is one specific person. Proper.']] }
+    ]} ] },
+
+  s2: { name:'Range 2', R:1.05, dist:[17,32], guide:0.65, wind:0, sway:0,
+    blocks:[
+    { learn:'ante',
+      tip:'Swap each noun in for the pronoun and read the sentence again. The one that makes sense is the antecedent.',
+      rounds:[
+      { ask:'Who or what does <b>he</b> point back to?', s:'{Jordan} grabbed the {bow} because [he] wanted one more {round}.',
+        t:[['Jordan',1,'Yes! Swap it in: “because Jordan wanted one more round.” ✓'],
+           ['bow',0,'Swap it in: “because the bow wanted one more round.” Bows don’t want things. Also, “he” is for a person.'],
+           ['round',0,'“The round wanted one more round” doesn’t make sense. Look earlier for a person.']] },
+      { ask:'Who or what does <b>their</b> point back to?', s:'The {twins} packed [their] {arrows} before the {bus} left.',
+        t:[['twins',1,'Yes! “Their” is plural, and the twins are the ones who own the arrows.'],
+           ['arrows',0,'The arrows are what got packed. They aren’t the owners. Who owns them?'],
+           ['bus',0,'Bus is just one thing, and “their” is plural. Look for more than one person.']] },
+      { ask:'Who or what does <b>it</b> point back to?', s:'{Lena} polished the {trophy} until [it] sparkled.',
+        t:[['trophy',1,'Yes! The trophy is what sparkled.'],
+           ['Lena',0,'“It” isn’t used for a person. What got polished and sparkled?']] }
+    ]},
+    { learn:'murky',
+      tip:'Count first (one or more than one?), then check meaning. Only shoot Unclear if two nouns STILL both fit.',
+      rounds:[
+      { ask:'Who or what does <b>it</b> point back to?', s:'Lena set her {bow} on the {bench}. After twenty minutes of stretching, she picked [it] up again.',
+        t:[['bow',1,'Yes! A careful reader can tell. She set the bow down to stretch, so the thing she picks up again is the bow.'],
+           ['bench',0,'Grammar-wise it could be the bench, but why would she pick up a bench? Meaning points to the thing she set down.'],
+           [UNCLEAR,0,'Close call, but a careful reader CAN tell: she put the bow down to stretch and picks it back up. Meaning solves this one.']] },
+      { ask:'Who or what does <b>they</b> point back to?', s:'When the {referee} showed the {players} the {scoreboard}, [they] groaned.',
+        t:[['players',1,'Yes! “They” is plural. The referee is one person and the scoreboard is one thing, so only the players fit.'],
+           ['referee',0,'There’s one referee, but “they” means more than one here. Count first.'],
+           ['scoreboard',0,'Scoreboards don’t groan, and there’s only one. Who could groan, and is there more than one of them?'],
+           [UNCLEAR,0,'Count first! Only one noun in this sentence is plural, so that one is the antecedent.']] },
+      { ask:'Who does <b>she</b> point back to?', s:'{Maya} passed the ball to {Jess}, and [she] scored.',
+        t:[[UNCLEAR,1,'Yes! This one is truly murky. Either girl could have scored. A writer fixes it by using the name: “…and Jess scored.”'],
+           ['Maya',0,'Could be, but could it also be Jess? If both fit, the pronoun is unclear.'],
+           ['Jess',0,'Maybe! But Maya fits too. When a reader can’t tell, the right call is Unclear.']] }
+    ]} ] },
+
+  s3: { name:'Range 3', R:1.0, dist:[19,38], guide:0.45, wind:0, sway:5,
+    blocks:[
+    { learn:'demo',
+      tip:'Look for this, that, these, or those standing on its own, pointing at something.',
+      rounds:[
+      { ask:'Hit the <b>demonstrative</b> pronoun.', s:'{That} was the best {shot} of the {day}!',
+        t:[['That',1,'Yes! “That” stands alone and points at something: the shot everyone just saw.'],
+           ['shot',0,'Shot is a noun. It’s the thing being talked about. Find the pointing word.'],
+           ['day',0,'Day is a noun. Find the word that points.']] },
+      { ask:'Hit the <b>demonstrative</b> pronoun.', s:'Are {these} {yours} or {mine}?',
+        t:[['these',1,'Yes! “These” points at more than one thing that’s near.'],
+           ['yours',0,'Yours IS a pronoun, but it shows who owns something (possessive). Find the one that points.'],
+           ['mine',0,'Mine is a possessive pronoun. It shows ownership. Which word points?']] },
+      { ask:'Hit the <b>demonstrative</b> pronoun.', s:'{Those} are the {gloves} {I} wanted.',
+        t:[['Those',1,'Yes! “Those” points at more than one thing that’s far away.'],
+           ['gloves',0,'Gloves is a noun. It’s the thing being pointed at, not the pointer.'],
+           ['I',0,'I is a pronoun, but a personal one. It stands for the speaker. Which word points?']] }
+    ]},
+    { learn:'rel',
+      tip:'Look right after a noun for who, whom, whose, which, or that. It starts a clue about that noun.',
+      rounds:[
+      { ask:'Hit the <b>relative</b> pronoun.', s:'The {girl} {who} won the {race} is {my} cousin.',
+        t:[['who',1,'Yes! “Who” starts a clue about the girl. Which girl? The one who won the race.'],
+           ['girl',0,'Girl is the noun being described. What word starts the clue about her?'],
+           ['race',0,'Race is a noun inside the clue. Find the word that opens the clue.'],
+           ['my',0,'My shows ownership. Look right after “girl.”']] },
+      { ask:'Hit the <b>relative</b> pronoun.', s:'My {bow}, {which} {I} got last {spring}, is purple.',
+        t:[['which',1,'Yes! “Which” starts extra info about the bow.'],
+           ['bow',0,'Bow is the noun the clue is about. Find the word that opens the clue.'],
+           ['I',0,'I is a personal pronoun (the speaker). Find the word right after “bow.”'],
+           ['spring',0,'Spring is a noun inside the clue.']] },
+      { ask:'Hit the <b>relative</b> pronoun.', s:'The {coach} {whose} {team} wins gets a pizza {party}.',
+        t:[['whose',1,'Yes! “Whose” starts a clue about the coach, and it shows ownership: the coach’s team.'],
+           ['coach',0,'Coach is the noun the clue describes. What word comes right after it?'],
+           ['team',0,'Team is a noun inside the clue.'],
+           ['party',0,'Party is a noun. Look right after “coach.”']] }
+    ]} ] },
+
+  s4: { name:'Range 4', R:0.95, dist:[21,44], guide:0.3, wind:1.6, sway:8,
+    blocks:[
+    { learn:'refl',
+      tip:'Look for a word ending in -self or -selves. The doer and the receiver are the same.',
+      rounds:[
+      { ask:'Hit the <b>reflexive</b> pronoun.', s:'{Ava} taught {herself} to shoot with {her} left {hand}.',
+        t:[['herself',1,'Yes! Ava taught Ava. Take it out (“Ava taught ___ to shoot”) and the sentence breaks.'],
+           ['Ava',0,'Ava is the doer. Who RECEIVED the teaching?'],
+           ['her',0,'Her is a pronoun, but here it shows whose hand. Look for -self.'],
+           ['hand',0,'Hand is a noun.']] },
+      { ask:'Hit the <b>reflexive</b> pronoun.', s:'{We} cooled {ourselves} off in the {lake}.',
+        t:[['ourselves',1,'Yes! We cooled us. Doer and receiver are the same.'],
+           ['We',0,'We is the doer. Who got cooled off?'],
+           ['lake',0,'Lake is a noun.']] },
+      { ask:'Hit the <b>reflexive</b> pronoun.', s:'The {goalie} blamed {himself} for the loss, but {his} {team} didn’t.',
+        t:[['himself',1,'Yes! The goalie blamed the goalie. Take it out and “blamed ___” breaks.'],
+           ['goalie',0,'The goalie is the doer. Who got blamed?'],
+           ['his',0,'His shows ownership (his team). Look for -self.'],
+           ['team',0,'Team is a noun.']] }
+    ]},
+    { learn:'inten',
+      tip:'Find the -self word, then take it out. If the sentence still works, it was just there for emphasis.',
+      rounds:[
+      { ask:'Hit the <b>intensive</b> pronoun.', s:'The {coach} {herself} carried the heavy {target}.',
+        t:[['herself',1,'Yes! Take it out: “The coach carried the heavy target.” Still works, so it’s there for emphasis.'],
+           ['coach',0,'Coach is a noun. Find the -self word that adds emphasis.'],
+           ['target',0,'Target is a noun. Find the -self word.']] },
+      { ask:'Hit the <b>intensive</b> pronoun.', s:'{I} fixed the {bowstring} {myself}!',
+        t:[['myself',1,'Yes! “I fixed the bowstring!” still works. Myself adds punch: I did it, nobody helped.'],
+           ['I',0,'I is the doer, a personal pronoun. Find the one that adds emphasis.'],
+           ['bowstring',0,'Bowstring is a noun.']] },
+      { ask:'Hit the <b>intensive</b> pronoun.', s:'The {players} {themselves} picked the team {name}.',
+        t:[['themselves',1,'Yes! “The players picked the team name” still works. Themselves stresses it was the players, not the coach.'],
+           ['players',0,'Players is a noun. Find the -self word.'],
+           ['name',0,'Name is a noun.']] }
+    ]} ] },
+
+  s5: { name:'Range 5', R:0.9, dist:[23,52], guide:0.18, wind:3.0, sway:11, final:true,
+    blocks:[ { learn:'champ',
+      tip:'Reflexive or intensive? Take the -self word out. Broken = reflexive; still fine = intensive. Demonstratives stand ALONE. Relatives open a clue right after a noun.',
+      rounds:[
+      { ask:'What kind of pronoun is <b>herself</b>?', s:'Nadia [herself] painted the team banner.',
+        t:[['Intensive',1,'Yes! Take it out: “Nadia painted the team banner.” Still works, so it’s emphasis.'],
+           ['Reflexive',0,'Take it out: “Nadia painted the team banner.” Still works! A reflexive one would leave the sentence broken.'],
+           ['Demonstrative',0,'Demonstratives point: this, that, these, those.'],
+           ['Relative',0,'Relatives start a clue: who, whom, whose, which, that.']] },
+      { ask:'What kind of pronoun is <b>themselves</b>?', s:'The runners timed [themselves] on the track.',
+        t:[['Reflexive',1,'Yes! “The runners timed ___ on the track” is broken. Timed WHO? The runners timed the runners.'],
+           ['Intensive',0,'Take it out: “The runners timed on the track.” Timed who? It breaks, so it’s doing a real job. That’s reflexive.'],
+           ['Relative',0,'Relatives start a clue: who, whom, whose, which, that.'],
+           ['Demonstrative',0,'Demonstratives point: this, that, these, those.']] },
+      { ask:'Hit the demonstrative <b>pronoun</b>.', s:'{This} {arrow} is bent, but {that} is {fine}.',
+        t:[['that',1,'Yes! “That” stands alone. Nothing comes after it for it to point at.'],
+           ['This',0,'Trap! “This” is pointing at the noun arrow (which arrow?), so here it’s working like an adjective. A demonstrative PRONOUN stands alone.'],
+           ['arrow',0,'Arrow is a noun.'],
+           ['fine',0,'Fine describes. It’s an adjective.']] },
+      { ask:'What kind of pronoun is <b>that</b>?', s:'The team [that] trains the hardest usually wins.',
+        t:[['Relative',1,'Yes! “That” starts a clue about the team. Which team? The one that trains the hardest.'],
+           ['Demonstrative',0,'“That” CAN be demonstrative, but here it comes right after “team” and starts a clue about it. That’s the relative job.'],
+           ['Intensive',0,'Intensives are -self words.'],
+           ['Reflexive',0,'Reflexives are -self words.']] },
+      { ask:'Who does <b>her</b> point back to?', s:'Before the game, {Coach Kim} told {Ms. Ortiz} that [her] whistle was broken.',
+        t:[[UNCLEAR,1,'Yes! Both are women, and either could own the whistle. Fix: “Coach Kim told Ms. Ortiz, ‘My whistle is broken.’”'],
+           ['Coach Kim',0,'Maybe, but Ms. Ortiz fits too. If both fit, it’s unclear.'],
+           ['Ms. Ortiz',0,'Maybe, but Coach Kim fits too. If both fit, it’s unclear.']] },
+      { ask:'What does <b>they</b> point back to?', s:'The {bow} sat next to the {arrows}, but [they] were too short for the new {archer}.',
+        t:[['arrows',1,'Yes! “They” is plural, and arrows is the only plural noun.'],
+           ['bow',0,'There’s one bow, but “they” means more than one.'],
+           ['archer',0,'There’s one archer, and the archer is who they’re too short FOR.'],
+           [UNCLEAR,0,'Count! Only one noun here is plural.']] },
+      { ask:'Hit the <b>proper</b> noun.', s:'We watched the {World Cup} at my {grandma}’s {house}.',
+        t:[['World Cup',1,'Yes! One specific event, with capitals on both words.'],
+           ['grandma',0,'Sneaky one: with “my” in front, grandma is common. As a name on its own (“Grandma said hi”), it would be proper.'],
+           ['house',0,'Could be any house. Common.']] },
+      { ask:'Who does <b>who</b> point back to?', s:'{Malik} cheered for the {runner} [who] tripped at the {start}.',
+        t:[['runner',1,'Yes! Relative pronouns have antecedents too. “Who tripped” is a clue about the runner.'],
+           ['Malik',0,'Malik did the cheering. Who tripped?'],
+           ['start',0,'The start is a thing, and “who” is for people.'],
+           [UNCLEAR,0,'Look where “who” sits: right after “runner.” A relative pronoun hooks onto the noun just before it.']] }
+    ]} ] }
+};
+
+const WARMUP = { warm:true, ask:'Warm-up: hit the target. Any ring counts.',
+  s:'No grammar yet. Just get a feel for the bow.',
+  t:[['Warm-up',1,'Nice shot! That’s the feel. From now on, the word you hit is what counts.']] };
+
+/* =====================================================================
+   STAGE ENGINE (from the activity shell)
+   ===================================================================== */
+const ACTIVITY_TITLE = 'Bullseye: Nouns & Pronouns';
+const ORDER = ['s1','s2','s3','s4','s5'];
+const REWARDS = {
+  s1: { star:'🎯', msg:'Range 1 cleared!' },
+  s2: { star:'🎯', msg:'Antecedents: tracked down!' },
+  s3: { star:'🎯', msg:'Pointers and clue-starters done!' },
+  s4: { star:'🎯', msg:'The -self words: sorted!' },
+  s5: { star:'🏆', msg:'All done. Go turn it in.' }
+};
+
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const LL = {
+  extra: {}, summary: {}, done: new Set(),
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    fillLog(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank. Tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else sum.textContent = 'tap to see it again';
+  },
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'start'}), 120);
+  },
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+/* =====================================================================
+   THE RANGE — first person. You stand behind the bow looking down the lane.
+   The world is metres: x right, y up, z away. Targets sit at different
+   distances; the arrow is launched along the line through the sight and
+   then gravity pulls it down and wind pushes it sideways, so distance and
+   draw strength both matter.
+   ===================================================================== */
+const W = 960, H = 500, HZ = 228, FOC = 900, EYE = 1.6;
+const GRAV = 9.8, VMIN = 22, VMAX = 72, FULL_DRAW = 0.9;   /* seconds to full draw */
+const RING_NAMES = ['🎯 BULLSEYE!', 'Red ring!', 'Blue ring!', 'Black ring!', 'White ring!'];
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const rangeEl = document.getElementById('range');
+const $ = id => document.getElementById(id);
+let C = {};
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ['sky1','sky2','hill','grass','grass2','wood','ring-gold','ring-red','ring-blue','ring-black',
+   'ring-white','sign','sign-dim','ink','soft','accent','calm','calm-soft','warn','gold','line','trees','string']
+   .forEach(k => C[k] = cs.getPropertyValue('--' + k).trim() || '#888');
+}
+
+/* Shuffle rounds once on load, inside each block. Blocks stay in order. */
+const PLAY = {};
+for (const id in RANGES){
+  const R = RANGES[id], list = [];
+  if (R.warmup) list.push(Object.assign({ block:0 }, WARMUP));
+  R.blocks.forEach((b, bi) => shuffle(b.rounds).forEach(r => list.push(Object.assign({ block:bi }, r))));
+  PLAY[id] = list;
+}
+
+let game = null;
+let soundOn = false, easyOn = false, actx = null;
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function plain(html){ const d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
+function sentHtml(s){
+  return esc(s).replace(/\{([^}]+)\}/g, '<span class="cand">$1</span>')
+               .replace(/\[([^\]]+)\]/g, '<span class="focus">$1</span>');
+}
+function sentPlain(s){ return s.replace(/[{}]/g, '').replace(/\[([^\]]+)\]/g, '[$1]'); }
+function proj(x, y, z){ return { x: W / 2 + FOC * x / z, y: HZ + FOC * (EYE - y) / z, s: FOC / z }; }
+
+/* ---------- stage mounting ---------- */
+function mountActive(){
+  const st = [...document.querySelectorAll('.stage.active')].find(s => RANGES[s.id] && !LL.done.has(s.id));
+  ORDER.forEach(fillLog);
+  if (!st){ $('parking').appendChild(rangeEl); game = null; return; }
+  if (game && game.id === st.id) return;
+  st.querySelector('.mount').appendChild(rangeEl);
+  startStage(st.id);
+}
+function fillLog(id){
+  const el = document.querySelector('#' + id + ' .log');
+  if (el && LL.extra[id]) el.textContent = LL.extra[id];
+}
+
+function startStage(id){
+  game = { id, R: RANGES[id], list: PLAY[id], ri: -1, block: -1,
+    aim: { x: W / 2, y: HZ - 6 }, power: 0, hold: 0, drawing: false, fly: null, last: 0,
+    stats: { rounds:0, first:0, arrows:0, bulls:0, easy:false, log:[] } };
+  if (id === 's5') $('s5write').classList.remove('show');
+  nextRound();
+  resize();
+}
+
+function renderLearn(){
+  const box = document.getElementById(game.id).querySelector('.learn');
+  box.innerHTML = LEARN[game.R.blocks[game.block].learn];
+  requestAnimationFrame(() => drawLinks(box));
+}
+
+function nextRound(){
+  game.ri++;
+  const r = game.list[game.ri];
+  const newBlock = r.block !== game.block;
+  if (newBlock){ game.block = r.block; renderLearn(); }
+  setupRound(r);
+  if (newBlock && game.block > 0)
+    say('info', 'New target type unlocked.', 'Read the new card above the range, then shoot.');
+}
+
+function setupRound(r){
+  const ts = shuffle(r.t), n = ts.length, D = game.R.dist;
+  const depths = n === 1 ? [(D[0] + D[1]) / 2]
+               : shuffle(ts.map((_, i) => D[0] + (D[1] - D[0]) * i / (n - 1)));
+  const heights = shuffle([1.0, 1.35, 1.7, 2.05, 2.4]).slice(0, n);
+  const targets = ts.map((t, i) => {
+    const sx = n === 1 ? W / 2 : 150 + (W - 300) * i / (n - 1);
+    return { label: t[0], ok: !!t[1], why: t[2], z: depths[i], y: heights[i],
+             x: (sx - W / 2) * depths[i] / FOC, state: '' };
+  });
+  const wmax = game.R.wind;
+  const wind = wmax ? Math.round((Math.random() * 2 - 1) * wmax * 10) / 10 : 0;
+  game.round = { r, targets, stuck: [], wrongs: [], arrows: 0, solved: false, wind };
+  game.fly = null; game.drawing = false; game.power = 0; game.hold = 0;
+
+  const real = game.list.filter(x => !x.warm).length;
+  const k = game.list.slice(0, game.ri + 1).filter(x => !x.warm).length;
+  $('rnd').textContent = r.warm ? game.R.name + ' · Warm-up' : game.R.name + ' · Round ' + k + ' of ' + real;
+  $('ask').innerHTML = r.ask;
+  $('sent').innerHTML = sentHtml(r.s);
+  $('windTxt').textContent = 'Wind: ' + windWord(wind, true);
+  $('aimTxt').textContent = 'Drop guide: ' + (game.R.guide >= .9 ? 'long' : game.R.guide >= .5 ? 'medium' : 'short') +
+                            (game.R.sway ? ' · sight sways if you hold too long' : '');
+  $('bulls').textContent = game.stats.bulls ? '🎯 × ' + game.stats.bulls : '';
+  $('nextRow').style.display = 'none';
+  $('gfb').className = 'fb';
+  renderEasy();
+  draw();
+}
+
+function windWord(w, long){
+  const a = Math.abs(w);
+  if (a < 0.3) return 'calm';
+  const word = a < 1.2 ? 'light' : a < 2.2 ? 'steady' : 'strong';
+  return word + (w > 0 ? ' →' : ' ←') + (long ? (w > 0 ? ' (pushes arrows right)' : ' (pushes arrows left)') : '');
+}
+
+function canShoot(){ return game && game.round && !game.fly && !game.round.solved; }
+
+function say(kind, head, body){
+  const fb = $('gfb');
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+/* ---------- the sight: where you point, plus sway at higher ranges ---------- */
+function sway(){
+  if (!game.drawing || !game.R.sway) return { x: 0, y: 0 };
+  const t = performance.now() / 1000;
+  const tired = Math.min(1, Math.max(0, (game.hold - 1.2) / 2.5));   /* holding full draw too long */
+  const amp = game.R.sway * (0.25 + 1.4 * tired);
+  return { x: amp * Math.sin(t * 1.9), y: amp * Math.sin(t * 2.6 + 1.3) };
+}
+function sightPoint(){ const s = sway(); return { x: game.aim.x + s.x, y: game.aim.y + s.y }; }
+
+function launch(power, from){
+  const a = from || sightPoint();
+  let dx = (a.x - W / 2) / FOC, dy = (HZ - a.y) / FOC, dz = 1;
+  const n = Math.hypot(dx, dy, dz); dx /= n; dy /= n; dz /= n;
+  const v = VMIN + (VMAX - VMIN) * power, z0 = 0.8;
+  return { p: { x: dx / dz * z0, y: EYE + dy / dz * z0, z: z0 }, v: { x: dx * v, y: dy * v, z: dz * v } };
+}
+
+/* ---------- shooting ---------- */
+function fire(){
+  if (!canShoot()) return;
+  const L = launch(Math.max(.05, game.power));
+  game.fly = { p: L.p, v: L.v, t: 0, passes: [] };
+  game.drawing = false; game.power = 0; game.hold = 0;
+  game.round.arrows++;
+  sfx('twang'); loop();
+}
+function fireEasy(t){
+  if (!canShoot()) return;
+  game.stats.easy = true;
+  game.fly = { magic: true, to: t, t: 0, dur: .55, p: { x: 0, y: EYE - .1, z: 1 }, v: { x: 0, y: 0, z: 1 } };
+  game.round.arrows++;
+  sfx('twang'); loop();
+}
+
+function step(dt){
+  const f = game.fly; if (!f) return;
+  if (f.magic){
+    f.t += dt;
+    const k = Math.min(1, f.t / f.dur), e = 1 - Math.pow(1 - k, 2);
+    f.p = { x: f.to.x * e, y: (EYE - .1) + (f.to.y - (EYE - .1)) * e + Math.sin(k * Math.PI) * .6, z: 1 + (f.to.z - 1) * e };
+    if (k >= 1) landHit(f.to, { x: f.to.x, y: f.to.y, z: f.to.z }, -1);
+    return;
+  }
+  const sub = 1 / 240, R = game.R.R; let left = dt;
+  while (left > 0 && game.fly){
+    const h = Math.min(sub, left); left -= h;
+    const pz = f.p.z, px = f.p.x, py = f.p.y;
+    f.v.x += game.round.wind * h; f.v.y -= GRAV * h;
+    f.p.x += f.v.x * h; f.p.y += f.v.y * h; f.p.z += f.v.z * h; f.t += h;
+    for (const t of game.round.targets){
+      if (pz < t.z && f.p.z >= t.z){
+        const k = (t.z - pz) / (f.p.z - pz);
+        const hx = px + (f.p.x - px) * k, hy = py + (f.p.y - py) * k;
+        const d = Math.hypot(hx - t.x, hy - t.y);
+        if (d < R){ landHit(t, { x: hx, y: hy, z: t.z }, Math.min(4, Math.floor(d / R * 5))); return; }
+        f.passes.push({ t, dx: hx - t.x, dy: hy - t.y, d });
+      }
+    }
+    if (f.p.y <= 0){ landMiss('ground'); return; }
+    if (f.p.z > 95 || f.t > 4){ landMiss('away'); return; }
+  }
+}
+
+function landHit(t, at, ring){
+  game.round.stuck.push({ x: at.x, y: at.y, z: at.z });
+  game.fly = null;
+  sfx('thunk');
+  const R = game.round, r = R.r, S = game.stats;
+  const ringTxt = ring < 0 ? 'Guided shot.' : RING_NAMES[ring];
+  if (t.ok){
+    R.solved = true; t.state = 'right';
+    if (!r.warm){
+      S.rounds++; S.arrows += R.arrows;
+      if (!R.wrongs.length) S.first++;
+      if (ring === 0) S.bulls++;
+      S.log.push((R.wrongs.length ? '✓ (after ' + R.wrongs.join(', ') + ') ' : '✓ ') +
+        plain(r.ask) + '  “' + sentPlain(r.s) + '” → ' + t.label);
+    }
+    $('bulls').textContent = S.bulls ? '🎯 × ' + S.bulls : '';
+    sfx('yay');
+    say('good', ringTxt + ' Right word: ' + esc(t.label) + '.', t.why);
+    const last = game.ri === game.list.length - 1;
+    $('nextBtn').textContent = !last ? 'Next round →' : (game.R.final ? 'On to the last step ↓' : 'Finish ' + game.R.name + ' 🎯');
+    $('nextRow').style.display = '';
+  } else {
+    if (t.state !== 'wrong'){ t.state = 'wrong'; R.wrongs.push(t.label); }
+    sfx('nope');
+    const tip = R.wrongs.length >= 2 ? '<span class="tip">💡 <strong>Tip:</strong> ' + esc(game.R.blocks[game.block].tip) + '</span>' : '';
+    say('hint', ringTxt + ' Nice shot, but <em>' + esc(t.label) + '</em> isn’t the one.', t.why + tip);
+  }
+  renderEasy();
+  draw();
+}
+
+/* A miss says which way it went — archery coaching, never grammar. */
+function landMiss(where){
+  const f = game.fly;
+  if (where === 'ground') game.round.stuck.push({ x: f.p.x, y: 0, z: f.p.z, ground: true });
+  game.fly = null;
+  let msg;
+  const near = f.passes.sort((a, b) => a.d - b.d)[0];
+  if (!near) msg = 'Dropped short. Pull the string all the way back before you let go, or aim a little higher.';
+  else if (Math.abs(near.dy) >= Math.abs(near.dx))
+    msg = near.dy < 0 ? 'Went under. Aim a little higher (farther targets need more height) or draw fuller.'
+                      : 'Went over the top. Aim a little lower.';
+  else msg = 'Drifted ' + (near.dx > 0 ? 'right' : 'left') + '. ' +
+             (Math.abs(game.round.wind) >= .3 ? 'That’s the wind. Aim a little into it.' : 'Nudge your sight the other way.');
+  say('info', 'Missed. Grab another arrow.', msg + ' Missing doesn’t count against you.');
+  draw();
+}
+
+/* ---------- loop ---------- */
+let rafOn = false;
+function loop(){
+  if (rafOn) return; rafOn = true; game.last = performance.now();
+  const tick = now => {
+    if (!game){ rafOn = false; return; }
+    const dt = Math.min(1 / 30, (now - game.last) / 1000); game.last = now;
+    if (game.drawing){
+      game.power = Math.min(1, game.power + dt / FULL_DRAW);
+      if (game.power >= 1) game.hold += dt;
+    }
+    step(dt);
+    draw();
+    if (game && (game.fly || game.drawing)) requestAnimationFrame(tick);
+    else rafOn = false;
+  };
+  requestAnimationFrame(tick);
+}
+
+/* ---------- input: pointer (mouse aims; press and hold draws the string) ---------- */
+function pt(e){
+  const r = cv.getBoundingClientRect();
+  return { x: Math.max(0, Math.min(W, (e.clientX - r.left) * W / r.width)),
+           y: Math.max(0, Math.min(H, (e.clientY - r.top) * H / r.height)) };
+}
+cv.addEventListener('pointerdown', e => {
+  if (!canShoot()) return;
+  cv.focus({ preventScroll: true });
+  game.aim = pt(e);
+  game.drawing = 'ptr'; game.power = 0; game.hold = 0;
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  e.preventDefault(); loop();
+});
+cv.addEventListener('pointermove', e => {
+  if (!game || !game.round) return;
+  if (e.pointerType !== 'mouse' && game.drawing !== 'ptr') return;
+  game.aim = pt(e);
+  if (!rafOn) draw();
+});
+function endPtr(fireIt){
+  if (!game || game.drawing !== 'ptr') return;
+  if (fireIt && game.power > .08) fire();
+  else { game.drawing = false; game.power = 0; game.hold = 0; draw(); }
+}
+cv.addEventListener('pointerup', () => endPtr(true));
+cv.addEventListener('pointercancel', () => endPtr(false));
+
+/* ---------- input: keyboard (only while the range has focus) ---------- */
+cv.addEventListener('keydown', e => {
+  if (!game) return;
+  const k = e.key, big = e.shiftKey ? 16 : 4;
+  if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) e.preventDefault();
+  if (!canShoot()) return;
+  const A = game.aim;
+  if (k === 'ArrowUp')    A.y = Math.max(0, A.y - big);
+  if (k === 'ArrowDown')  A.y = Math.min(H, A.y + big);
+  if (k === 'ArrowLeft')  A.x = Math.max(0, A.x - big);
+  if (k === 'ArrowRight') A.x = Math.min(W, A.x + big);
+  if (k === ' ' && !e.repeat && !game.drawing){ game.drawing = 'kb'; game.power = 0; game.hold = 0; loop(); }
+  if (k === 'Escape'){ game.drawing = false; game.power = 0; game.hold = 0; }
+  if (!rafOn) draw();
+});
+cv.addEventListener('keyup', e => {
+  if (!game || e.key !== ' ' || game.drawing !== 'kb') return;
+  e.preventDefault();
+  if (game.power > .08) fire(); else { game.drawing = false; game.power = 0; draw(); }
+});
+cv.addEventListener('blur', () => { if (game && game.drawing === 'kb'){ game.drawing = false; game.power = 0; draw(); } });
+
+/* ---------- easy aim ---------- */
+function renderEasy(){
+  const row = $('easyRow');
+  row.classList.toggle('show', easyOn);
+  if (!easyOn || !game) { row.innerHTML = ''; return; }
+  row.innerHTML = '<p class="lab">Easy aim: pick a word and the arrow flies there.</p>';
+  game.round.targets.slice().sort((a, b) => proj(a.x, a.y, a.z).x - proj(b.x, b.y, b.z).x).forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'btn ghost'; b.textContent = (t.state === 'wrong' ? '✗ ' : t.state === 'right' ? '✓ ' : '🎯 ') + t.label;
+    b.disabled = !canShoot();
+    b.onclick = () => fireEasy(t);
+    row.appendChild(b);
+  });
+}
+$('easyBtn').onclick = () => {
+  easyOn = !easyOn;
+  $('easyBtn').setAttribute('aria-pressed', easyOn);
+  $('easyBtn').textContent = '🎯 Easy aim: ' + (easyOn ? 'on' : 'off');
+  renderEasy();
+};
+$('sndBtn').onclick = () => {
+  soundOn = !soundOn;
+  $('sndBtn').setAttribute('aria-pressed', soundOn);
+  $('sndBtn').textContent = (soundOn ? '🔊' : '🔇') + ' Sound: ' + (soundOn ? 'on' : 'off');
+  if (soundOn) sfx('yay');
+};
+
+/* ---------- next / finish ---------- */
+$('nextBtn').onclick = () => {
+  if (!game || !game.round.solved) return;
+  const last = game.ri === game.list.length - 1;
+  if (!last){ nextRound(); return; }
+  if (game.R.final){
+    $('nextRow').style.display = 'none';
+    LL.extra.s5 = evidence('s5');
+    $('s5write').classList.add('show');
+    $('s5write').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  LL.finish(game.id, evidence(game.id));
+};
+
+function evidence(id){
+  if (!game || game.id !== id) return LL.extra[id] || '';
+  const S = game.stats;
+  LL.summary[id] = S.first + ' of ' + S.rounds + ' right on the first hit' + (S.bulls ? ' · 🎯 ' + S.bulls : '');
+  return 'Rounds: ' + S.rounds + ' · Right on the first hit: ' + S.first + ' of ' + S.rounds +
+         ' · Arrows shot: ' + S.arrows + ' · Bullseyes: ' + S.bulls + (S.easy ? ' · used Easy aim' : '') +
+         '\n' + S.log.join('\n');
+}
+
+/* =====================================================================
+   DRAWING
+   ===================================================================== */
+function resize(){
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+const FONT = '700 16px "Atkinson Hyperlegible", Verdana, sans-serif';
+
+function draw(){
+  if (!game || !game.round) return;
+  drawScene();
+  const R = game.round;
+  /* far to near, so nearer things cover farther ones */
+  const things = R.targets.map(t => ({ z: t.z, f: () => drawTarget(t) }))
+    .concat(R.stuck.map(s => ({ z: s.z - .01, f: () => drawStuck(s) })));
+  things.sort((a, b) => b.z - a.z).forEach(o => o.f());
+  R.targets.forEach(drawSign);
+  if (game.fly) drawFlying(game.fly.p);
+  drawWind(R.wind);
+  drawBow();
+  if (canShoot() || game.drawing) drawSight();
+  drawGuide();                       /* on top of the sight, or the near dots hide under it */
+  if (game.drawing) drawPowerBar();
+}
+
+function drawScene(){
+  const sky = ctx.createLinearGradient(0, 0, 0, HZ);
+  sky.addColorStop(0, C.sky1); sky.addColorStop(1, C.sky2);
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, HZ);
+  /* tree line on the horizon */
+  ctx.fillStyle = C.trees; ctx.beginPath(); ctx.moveTo(0, HZ);
+  for (let x = 0; x <= W; x += 30) ctx.quadraticCurveTo(x + 15, HZ - 22 - 10 * Math.sin(x * .7), x + 30, HZ - 6);
+  ctx.lineTo(W, HZ); ctx.fill();
+  const gr = ctx.createLinearGradient(0, HZ, 0, H);
+  gr.addColorStop(0, C.hill); gr.addColorStop(1, C.grass2);
+  ctx.fillStyle = gr; ctx.fillRect(0, HZ, W, H - HZ);
+  /* lane edges converging on the horizon */
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
+  [-9, 9].forEach(x => { const a = proj(x, 0, 3), b = proj(x, 0, 120); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); });
+  /* distance lines, so the student can judge how far each target is */
+  ctx.font = '700 12px "Atkinson Hyperlegible", Verdana, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)';
+  [10, 20, 30, 40, 50].forEach(z => {
+    const a = proj(-9, 0, z), b = proj(9, 0, z);
+    ctx.globalAlpha = .45; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.fillText(z + ' m', a.x - 34, a.y + 4);
+  });
+  ctx.restore();
+}
+
+function drawTarget(t){
+  const c = proj(t.x, t.y, t.z), r = game.R.R * c.s, g = proj(t.x, 0, t.z);
+  ctx.save();
+  ctx.strokeStyle = C.wood; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2, c.s * .07);
+  ctx.beginPath(); ctx.moveTo(c.x - r * .35, c.y); ctx.lineTo(c.x - r * .75, g.y);
+  ctx.moveTo(c.x + r * .35, c.y); ctx.lineTo(c.x + r * .75, g.y); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(g.x, g.y, r * .9, r * .12, 0, 0, Math.PI * 2); ctx.fill();
+  const cols = [C['ring-white'], C['ring-black'], C['ring-blue'], C['ring-red'], C['ring-gold']];
+  cols.forEach((col, i) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(c.x, c.y, r * (5 - i) / 5, 0, Math.PI * 2); ctx.fill(); });
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
+  if (t.state === 'right'){ ctx.strokeStyle = C.calm; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(c.x, c.y, r + 5, 0, Math.PI * 2); ctx.stroke(); }
+  if (t.state === 'wrong'){ ctx.globalAlpha = .5; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
+function wrap(text, maxW){
+  ctx.font = FONT;
+  const words = text.split(' '), lines = []; let cur = '';
+  words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; });
+  if (cur) lines.push(cur); return lines;
+}
+/* Signs stay full size at every distance — the word must always be readable. */
+function drawSign(t){
+  const c = proj(t.x, t.y, t.z), r = game.R.R * c.s;
+  const mark = t.state === 'right' ? '✓ ' : t.state === 'wrong' ? '✗ ' : '';
+  const lines = wrap(mark + t.label, 128);
+  ctx.save(); ctx.font = FONT;
+  const lw = Math.max(...lines.map(l => ctx.measureText(l).width));
+  const sw = lw + 20, sh = lines.length * 20 + 12, sx = c.x - sw / 2, sy = c.y - r - 14 - sh;
+  ctx.strokeStyle = C.wood; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(c.x, sy + sh); ctx.lineTo(c.x, c.y - r); ctx.stroke();
+  ctx.fillStyle = t.state === 'right' ? C['calm-soft'] : t.state === 'wrong' ? C['sign-dim'] : C.sign;
+  ctx.strokeStyle = t.state === 'right' ? C.calm : C.ink; ctx.lineWidth = t.state === 'right' ? 2.5 : 1.5;
+  roundRect(sx, sy, sw, sh, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = t.state === 'wrong' ? C.soft : C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  lines.forEach((l, i) => ctx.fillText(l, c.x, sy + 16 + i * 20));
+  ctx.restore();
+}
+function roundRect(x, y, w, h, r){
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+/* An arrow stuck in a target, seen from behind: a short shaft and fletching. */
+function drawStuck(s){
+  const p = proj(s.x, s.y, s.z), L = Math.max(6, Math.min(40, p.s * .55));
+  ctx.save(); ctx.lineCap = 'round';
+  ctx.strokeStyle = C.wood; ctx.lineWidth = Math.max(1.5, L * .09);
+  ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + L * .25, p.y + L * .7); ctx.stroke();
+  ctx.fillStyle = C['ring-red'];
+  ctx.beginPath(); ctx.arc(p.x + L * .25, p.y + L * .7, Math.max(2, L * .14), 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+/* The arrow in flight, from behind: a nock with three vanes, shrinking with distance. */
+function drawFlying(p){
+  const q = proj(p.x, p.y, Math.max(p.z, .8)), r = Math.max(3, Math.min(34, q.s * .09));
+  ctx.save(); ctx.translate(q.x, q.y);
+  ctx.strokeStyle = C['ring-red']; ctx.lineWidth = Math.max(1.5, r * .35); ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++){ const a = i * 2.094 - 1.57; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); ctx.stroke(); }
+  ctx.fillStyle = C.wood; ctx.beginPath(); ctx.arc(0, 0, Math.max(1.5, r * .3), 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+/* Drop guide: when the sight is near a target, a small gold ✕ shows where an
+   arrow released right now would land on it. Every target gets one at Range 1;
+   later ranges only mark the nearer ones, so the scaffold fades. Wind is left
+   out on purpose: reading the flag is the skill. */
+function drawGuide(){
+  if (!game.drawing || game.power <= .08 || game.R.guide <= 0) return;
+  const D = game.R.dist, reach = D[0] + (D[1] - D[0]) * game.R.guide + .5;
+  const L = launch(game.power);
+  ctx.save();
+  game.round.targets.filter(t => t.z <= reach).forEach(t => {
+    const tt = (t.z - L.p.z) / L.v.z;
+    const y = L.p.y + L.v.y * tt - .5 * GRAV * tt * tt, x = L.p.x + L.v.x * tt;
+    if (y <= 0 || Math.hypot(x - t.x, y - t.y) > game.R.R * 2.6) return;   /* only near the target you're aiming at */
+    const q = proj(x, y, t.z), k = 6;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(q.x - k, q.y - k); ctx.lineTo(q.x + k, q.y + k); ctx.moveTo(q.x + k, q.y - k); ctx.lineTo(q.x - k, q.y + k); ctx.stroke();
+    ctx.strokeStyle = C.gold; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(q.x - k, q.y - k); ctx.lineTo(q.x + k, q.y + k); ctx.moveTo(q.x + k, q.y - k); ctx.lineTo(q.x - k, q.y + k); ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawSight(){
+  const a = sightPoint(), full = game.power >= 1;
+  ctx.save();
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.85)';
+  ctx.beginPath(); ctx.arc(a.x, a.y, 16, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 2; ctx.strokeStyle = game.drawing ? (full ? C.calm : C.gold) : C.ink;
+  ctx.beginPath(); ctx.arc(a.x, a.y, 16, 0, Math.PI * 2);
+  ctx.moveTo(a.x - 26, a.y); ctx.lineTo(a.x - 8, a.y); ctx.moveTo(a.x + 8, a.y); ctx.lineTo(a.x + 26, a.y);
+  ctx.moveTo(a.x, a.y - 26); ctx.lineTo(a.x, a.y - 8); ctx.moveTo(a.x, a.y + 8); ctx.lineTo(a.x, a.y + 26); ctx.stroke();
+  ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(a.x, a.y, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+/* Your bow in the foreground. It leans toward the sight, the string comes
+   back toward you as you draw, and the arrow sits on the rest pointing out. */
+function drawBow(){
+  const a = sightPoint(), p = game.power;
+  const ox = (a.x - W / 2) * .07, oy = (a.y - HZ) * .05;
+  /* held low, so the bow never covers a target or its word */
+  const rx = W / 2 - 60 + ox, ry = H - 52 + Math.max(-10, Math.min(10, oy));   /* arrow rest */
+  const top = { x: rx + 30, y: ry - 140 }, bot = { x: rx + 30, y: ry + 200 };
+  const nock = { x: rx + 110 + p * 140, y: ry + 40 + p * 50 };
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  /* string */
+  ctx.strokeStyle = C.string; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(top.x, top.y); ctx.lineTo(canShoot() || game.drawing ? nock.x : rx + 110, canShoot() || game.drawing ? nock.y : ry + 40); ctx.lineTo(bot.x, bot.y); ctx.stroke();
+  /* limbs + riser */
+  ctx.strokeStyle = C.wood; ctx.lineWidth = 14;
+  ctx.beginPath(); ctx.moveTo(top.x, top.y); ctx.quadraticCurveTo(rx - 40, ry, bot.x, bot.y); ctx.stroke();
+  ctx.fillStyle = '#4a3020'; roundRect(rx - 24, ry - 6, 28, 70, 8); ctx.fill();          /* grip */
+  /* arrow on the rest, aimed at the sight */
+  if (canShoot() || game.drawing){
+    const dx = a.x - rx, dy = a.y - ry, n = Math.hypot(dx, dy) || 1;
+    const out = 46 - p * 34, tip = { x: rx + dx / n * out, y: ry + dy / n * out };
+    ctx.strokeStyle = C.wood; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(nock.x, nock.y); ctx.lineTo(tip.x, tip.y); ctx.stroke();
+    ctx.fillStyle = '#6b6f76'; ctx.beginPath(); ctx.arc(tip.x, tip.y, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C['ring-red'];
+    ctx.save(); ctx.translate(nock.x, nock.y); ctx.rotate(Math.atan2(tip.y - nock.y, tip.x - nock.x));
+    [-1, 1].forEach(sg => { ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(34, 0); ctx.lineTo(14, sg * 13); ctx.closePath(); ctx.fill(); });
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawWind(w){
+  const x = 26, y = 22, a = Math.abs(w);
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,.8)'; roundRect(x - 10, y - 12, 150, 46, 8); ctx.fill();
+  ctx.strokeStyle = C.wood; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(x, y + 28); ctx.stroke();
+  ctx.fillStyle = C.warn; ctx.beginPath();
+  if (a < .3){ ctx.moveTo(x, y - 6); ctx.lineTo(x + 5, y + 12); ctx.lineTo(x, y + 14); }
+  else { const len = 12 + a * 12, d = w > 0 ? 1 : -1; ctx.moveTo(x, y - 6); ctx.lineTo(x + d * len, y + 1); ctx.lineTo(x, y + 8); }
+  ctx.fill();
+  ctx.fillStyle = C.ink; ctx.font = '700 13px "Atkinson Hyperlegible", Verdana, sans-serif';
+  ctx.fillText('wind: ' + windWord(w), x + 48, y + 14);
+  ctx.restore();
+}
+
+function drawPowerBar(){
+  const x = 20, y = H - 34, w = 170, h = 14, full = game.power >= 1;
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,.85)'; roundRect(x, y, w, h, 7); ctx.fill();
+  ctx.fillStyle = full ? C.calm : C.gold; roundRect(x, y, Math.max(7, w * game.power), h, 7); ctx.fill();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1; roundRect(x, y, w, h, 7); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = '700 13px "Atkinson Hyperlegible", Verdana, sans-serif'; ctx.textBaseline = 'bottom';
+  ctx.fillText(full ? (game.R.sway && game.hold > 1.2 ? 'FULL DRAW: let go before you wobble!' : 'FULL DRAW') : 'drawing…', x, y - 4);
+  ctx.restore();
+}
+
+/* ---------- link diagrams on the mini-lesson cards ---------- */
+function drawLinks(root){
+  root.querySelectorAll('.linkdemo').forEach(box => {
+    box.querySelectorAll('svg.links').forEach(s => s.remove());
+    const br = box.getBoundingClientRect(); if (!br.width) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'links'); svg.setAttribute('width', br.width); svg.setAttribute('height', br.height);
+    svg.setAttribute('aria-hidden', 'true');
+    const id = 'lh' + Math.random().toString(36).slice(2, 7);
+    svg.innerHTML = '<defs><marker id="' + id + '" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#2f6f8f"/></marker>' +
+                    '<marker id="' + id + 'w" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#a8641b"/></marker></defs>';
+    box.querySelectorAll('[data-p]').forEach(p => {
+      const pr = p.getBoundingClientRect();
+      box.querySelectorAll('[data-a="' + p.dataset.p + '"]').forEach(a => {
+        const ar = a.getBoundingClientRect();
+        if (Math.abs(ar.top - pr.top) > 6) return;
+        const x1 = pr.left + pr.width / 2 - br.left, x2 = ar.left + ar.width / 2 - br.left, y = pr.top - br.top - 2;
+        const h = Math.min(y - 4, 16 + Math.abs(x1 - x2) * .12);
+        const maybe = !!a.dataset.maybe;
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', 'M' + x1 + ' ' + y + ' C' + x1 + ' ' + (y - h) + ', ' + x2 + ' ' + (y - h) + ', ' + x2 + ' ' + (y - 1));
+        if (maybe) path.setAttribute('class', 'maybe');
+        path.setAttribute('marker-end', 'url(#' + id + (maybe ? 'w' : '') + ')');
+        svg.appendChild(path);
+        if (maybe){
+          const tx = document.createElementNS(NS, 'text');
+          tx.setAttribute('x', (x1 + x2) / 2 - 4); tx.setAttribute('y', y - h * .75 - 2); tx.textContent = '?';
+          svg.appendChild(tx);
+        }
+      });
+    });
+    box.appendChild(svg);
+  });
+}
+
+/* ---------- sound: opt-in, off by default ---------- */
+function sfx(kind){
+  if (!soundOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime;
+    const tone = (f1, f2, dur, type, vol, delay) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.setValueAtTime(f1, t0 + delay); o.frequency.exponentialRampToValueAtTime(f2, t0 + delay + dur);
+      g.gain.setValueAtTime(vol, t0 + delay); g.gain.exponentialRampToValueAtTime(.001, t0 + delay + dur);
+      o.connect(g).connect(actx.destination); o.start(t0 + delay); o.stop(t0 + delay + dur + .02);
+    };
+    if (kind === 'twang') tone(220, 90, .18, 'triangle', .25, 0);
+    if (kind === 'thunk') tone(140, 60, .09, 'square', .12, 0);
+    if (kind === 'yay'){ tone(660, 660, .12, 'sine', .18, .05); tone(990, 990, .18, 'sine', .18, .17); }
+    if (kind === 'nope') tone(260, 200, .16, 'sine', .14, .05);
+  } catch (e) { /* no audio — fine */ }
+}
+
+/* ---------- turn-in panel (from the shell) ---------- */
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' ranges.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' ranges.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = $('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+$('copyAll').addEventListener('click', async () => {
+  const plainTxt = buildPlain();
+  $('previewText').value = plainTxt;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plainTxt],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plainTxt); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = $('previewText');
+      $('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    $('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand. Takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+$('showPrev').addEventListener('click', () => {
+  $('previewText').value = buildPlain();
+  $('preview').classList.toggle('show');
+});
+
+/* ---------- boot ---------- */
+/* Wrap next() so the range follows the active stage. student.js wraps this
+   wrapper in turn, so a restored session lands on the right range too. */
+const baseNext = LL.next.bind(LL);
+LL.next = function(){ baseNext(); mountActive(); };
+window.addEventListener('resize', () => {
+  if (!game) return; resize();
+  const st = document.getElementById(game.id); if (st) drawLinks(st.querySelector('.learn'));
+});
+readColors();
+mountActive();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+  draw(); if (game) drawLinks(document.getElementById(game.id).querySelector('.learn'));
+});
+</script>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Range 1 — Common vs. Proper Nouns",
+    "questions": [ "Warm-up shot, then six rounds: shoot the PROPER (or COMMON) noun in a sports sentence. Traps include “my coach” vs. “Coach Rivera” and team names like the Dolphins." ] },
+  { "title": "Range 2 — Pronoun Antecedents",
+    "questions": [ "Three clear rounds: shoot the noun the highlighted pronoun points back to.",
+                   "Three murky rounds with a 🤔 Unclear target: solve by number, then meaning; one is truly ambiguous (“Maya passed the ball to Jess, and she scored”)." ] },
+  { "title": "Range 3 — Demonstrative & Relative Pronouns",
+    "questions": [ "Three rounds: shoot the demonstrative pronoun (this/that/these/those standing alone), with personal and possessive pronouns as decoys.",
+                   "Three rounds: shoot the relative pronoun (who/which/whose)." ] },
+  { "title": "Range 4 — Reflexive & Intensive Pronouns",
+    "questions": [ "Three rounds: shoot the reflexive pronoun.",
+                   "Three rounds: shoot the intensive pronoun (take-it-out test). Wind starts." ] },
+  { "title": "Range 5 — The Championship (mixed)",
+    "questions": [ "Eight mixed rounds: label -self words reflexive vs. intensive, demonstrative pronoun vs. demonstrative adjective trap, relative “that”, murky antecedents, “my grandma” common-noun trap, antecedent of a relative pronoun.",
+                   "Q1. Rewrite “Maya passed the ball to Jess, and she scored” so a reader knows who scored.",
+                   "Q2. Write a sports sentence with a reflexive OR intensive pronoun and say which kind and how you know." ] }
+]
+</script>
+<script src="../assets/student.js"></script>
+</body>
+</html>
