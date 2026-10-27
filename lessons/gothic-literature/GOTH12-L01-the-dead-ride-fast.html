@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GOTH12-L01 · The Dead Ride Fast</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">GOTH12-L01</p>
+  <h1 id="pagetitle">Gothic Literature · Lesson 1</h1>
+  <p class="sub" id="pagesub">The Dead Ride Fast.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="The dead travel fast">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The dead travel fast</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The dead travel fast</h2>
+
+      <p>In the first chapter of <strong>Dracula</strong> (1897), Jonathan Harker is riding a coach toward the Count's castle. He hears the other passengers whisper a line of poetry:</p>
+
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.4rem;line-height:1.7;max-width:30em;">
+  <strong>Denn die Todten reiten schnell</strong><br>
+  <span style="color:var(--soft);">“For the dead travel fast”</span>
+</div>
+
+      <p>That line was <strong>already 124 years old</strong> when Stoker used it. It comes from a German poem called <strong>“Lenore”</strong>, written in 1773. Every Gothic story you like is a remix. Today you meet the originals.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 640 250" role="img" aria-label="A Gothic family tree drawn as a timeline. On the left, labelled The roots, monster outside: Lenore, 1773, and The Rime of the Ancient Mariner, 1798. On the right, labelled The Victorian branch, monster moves inside: Porphyria's Lover, 1836; Goblin Market, 1862; Jekyll and Hyde, 1886; Dracula, 1897. A curved arrow runs from Lenore to Dracula, labelled Stoker quotes Lenore.">
+  <text x="20" y="28" font-size="17" font-weight="700" fill="var(--accent)">THE ROOTS</text>
+  <text x="20" y="48" font-size="14" fill="var(--soft)">monster outside</text>
+  <text x="300" y="28" font-size="17" font-weight="700" fill="var(--warn)">THE VICTORIAN BRANCH</text>
+  <text x="300" y="48" font-size="14" fill="var(--soft)">monster moves inside</text>
+  <line x1="20" y1="130" x2="620" y2="130" stroke="var(--soft)" stroke-opacity=".45" stroke-width="4"/>
+  <line x1="280" y1="62" x2="280" y2="200" stroke="var(--soft)" stroke-opacity=".45" stroke-width="2" stroke-dasharray="6 6"/>
+  <circle cx="60"  cy="130" r="11" fill="var(--accent)"/>
+  <circle cx="190" cy="130" r="11" fill="var(--accent)"/>
+  <rect x="325" y="119" width="22" height="22" fill="var(--warn)"/>
+  <rect x="415" y="119" width="22" height="22" fill="var(--warn)"/>
+  <rect x="505" y="119" width="22" height="22" fill="var(--warn)"/>
+  <rect x="585" y="119" width="22" height="22" fill="var(--warn)"/>
+  <text x="60"  y="168" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">Lenore</text>
+  <text x="60"  y="188" text-anchor="middle" font-size="14" fill="var(--soft)">1773</text>
+  <text x="190" y="168" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">The Rime</text>
+  <text x="190" y="188" text-anchor="middle" font-size="14" fill="var(--soft)">1798</text>
+  <text x="336" y="168" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">Porphyria</text>
+  <text x="336" y="188" text-anchor="middle" font-size="14" fill="var(--soft)">1836</text>
+  <text x="426" y="168" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">Goblin</text>
+  <text x="426" y="186" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">Market</text>
+  <text x="426" y="206" text-anchor="middle" font-size="14" fill="var(--soft)">1862</text>
+  <text x="516" y="168" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">Jekyll</text>
+  <text x="516" y="186" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">&amp; Hyde</text>
+  <text x="516" y="206" text-anchor="middle" font-size="14" fill="var(--soft)">1886</text>
+  <text x="596" y="168" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">Dracula</text>
+  <text x="596" y="188" text-anchor="middle" font-size="14" fill="var(--soft)">1897</text>
+  <path d="M60 116 C 200 40, 470 40, 594 112" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 5"/>
+  <polygon points="594,116 586,104 600,104" fill="var(--ink)"/>
+  <text x="330" y="80" text-anchor="middle" font-size="14" font-style="normal" fill="var(--ink)">Stoker quotes Lenore</text>
+</svg>
+      <figcaption>Circles are the roots. Squares are the Victorian branch. Today: the first four.</figcaption>
+      </figure>
+
+      <figure class="photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/La_Ballade_de_Lénore_-_H.Vernet_(1839).jpg?width=760"
+             alt="A painting of a pale woman clinging to an armoured rider on a black horse, galloping past gravestones at night.">
+        <figcaption>Horace Vernet, <em>The Ballad of Lenore</em> (1839). Painted from the poem, 66 years later. <a href="https://commons.wikimedia.org/wiki/File:La_Ballade_de_Lénore_-_H.Vernet_(1839).jpg">via Wikimedia Commons</a>.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q1.</strong> Look at the painting for ten seconds. Which word fits this ride?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Look at the painting for ten seconds. Which word fits this ride?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="terrifying">terrifying</option>
+          <option value="romantic">romantic</option>
+          <option value="both at once">both at once</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked, and one thing you noticed in the painting said out loud.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="Lenore: the dead rider">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Lenore: the dead rider</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Lenore: the dead rider</h2>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> Germany, 1773. Lenore's fiancé went to war and never came home. She is so angry that she curses God. At midnight a rider who looks like her fiancé knocks, and she climbs up behind him. They ride faster and faster through the dark. At sunrise he turns out to be Death, and the “wedding bed” he promised her is a grave.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> one line that keeps coming back.</p>
+</div>
+
+      <p>When she asks why they're riding so fast, he answers with the line you already know:</p>
+
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.4rem;line-height:1.7;max-width:30em;">
+  <strong>The dead travel fast.</strong>
+</div>
+
+      <p><strong>The three questions.</strong> Ask these of every Gothic poem. Here they are, done for you on Lenore:</p>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top;width:33%;"><strong>1 · Who's telling it?</strong><br>A storyteller, like a campfire legend. You trust the facts.</td>
+    <td style="padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top;width:33%;"><strong>2 · What's the sound doing?</strong><br>The line repeats like hoofbeats. Faster, closer, no way off the horse.</td>
+    <td style="padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top;width:33%;"><strong>3 · Where's the monster?</strong><br><strong>OUTSIDE.</strong> A dead man rides up to her door and takes her.</td>
+  </tr>
+</table>
+      <figcaption>The lens. Same three questions, every poem, all lesson.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q2.</strong> Why does the poem keep repeating "the dead travel fast"?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. Why does the poem keep repeating &quot;the dead travel fast&quot;?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="so it rhymes with the next line">so it rhymes with the next line</option>
+          <option value="it keeps coming back, like hoofbeats you can&#x27;t outrun">it keeps coming back, like hoofbeats you can&#x27;t outrun</option>
+          <option value="so you don&#x27;t forget who the rider is">so you don&#x27;t forget who the rider is</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>The lens read across for Lenore, and one dropdown picked.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i3" data-title="The Rime: the cursed sailor">
+    <button class="donebar" onclick="LL.toggle('i3')">
+      <span class="tick">&#10003;</span> <strong>Part 3 &mdash; The Rime: the cursed sailor</strong>
+      <span class="sum" id="sum-i3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 &mdash; The Rime: the cursed sailor</h2>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> England, 1798. An old sailor stops a stranger on his way to a wedding and won't let him leave until he hears a story. Years ago, out at sea, the sailor shot an albatross for no reason. The crew believed the bird was good luck. Then the ship is cursed: no wind, no water, every other sailor drops dead, and he is left alone with the bodies.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> a word that he can't stop saying.</p>
+</div>
+
+      <figure class="photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Rime_of_the_Ancient_Mariner-Albatross-Dore.jpg?width=760"
+             alt="An engraving of a frozen ship hung with icicles. A large albatross perches on the rail while the crew crowd round to feed it.">
+        <figcaption>Gustave Doré (1876). The crew loved this bird. Look at the man in the middle, sitting apart from the others. <a href="https://commons.wikimedia.org/wiki/File:Rime_of_the_Ancient_Mariner-Albatross-Dore.jpg">via Wikimedia Commons</a>.</figcaption>
+      </figure>
+
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  With my cross-bow<br>I shot the ALBATROSS.
+</div>
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  Alone, alone, all, all alone,<br>Alone on a wide wide sea!
+</div>
+
+      <p class="q"><strong>Q3.</strong> He grabs a stranger and won't let go until the story is told. What does that tell you about the person telling it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. He grabs a stranger and won&#x27;t let go until the story is told. What does that tell you about the person telling it?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="he&#x27;s calm and over it">he&#x27;s calm and over it</option>
+          <option value="he&#x27;s making it up for attention">he&#x27;s making it up for attention</option>
+          <option value="he&#x27;s still haunted: telling it is part of the curse">he&#x27;s still haunted: telling it is part of the curse</option>
+        </select></div>
+
+      <p><strong>This one has two good answers. Pick one and back it out loud.</strong> Late in the poem he describes how he feels, even after the curse lifts:</p>
+
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.3rem;line-height:1.75;max-width:30em;">
+  Like one, that on a lonesome road<br>Doth walk in fear and dread,<br>And having once turned round walks on,<br>And turns no more his head;<br>Because he knows, a frightful fiend<br>Doth close behind him tread.
+</div>
+
+      <p class="q"><strong>Q4.</strong> That fiend walking behind him. Where is that monster?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. That fiend walking behind him. Where is that monster?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="inside: it&#x27;s his guilt following him">inside: it&#x27;s his guilt following him</option>
+          <option value="both">both</option>
+          <option value="outside: real spirits are hunting him">outside: real spirits are hunting him</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked, and your Q4 answer defended out loud in one sentence.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i3')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="A killer with good manners">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; A killer with good manners</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; A killer with good manners</h2>
+
+      <p><strong>Robert Browning, “Porphyria's Lover”</strong> (1836). Victorian. Three words first:</p>
+
+<table style="border-collapse:separate;border-spacing:6px;font-size:1.05rem;">
+  <tr><td style="padding:8px 12px;border:2px solid var(--line);border-radius:8px;"><strong>sullen</strong></td><td style="padding:8px 12px;">moody, sulking</td></tr>
+  <tr><td style="padding:8px 12px;border:2px solid var(--line);border-radius:8px;"><strong>vex</strong></td><td style="padding:8px 12px;">to annoy, to stir up</td></tr>
+  <tr><td style="padding:8px 12px;border:2px solid var(--line);border-radius:8px;"><strong>Porphyria</strong></td><td style="padding:8px 12px;">her name (por-FEER-ee-uh)</td></tr>
+</table>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> A stormy night. A man sits alone in a cottage. Porphyria, a woman from a richer family, comes in out of the rain, lights the fire, and shows him she loves him. He decides this perfect moment has to last forever, so he strangles her with her own hair. Then he sits with her body all night, calm and pleased with himself. The whole poem is <em>him</em> telling it.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> how calm he sounds.</p>
+</div>
+
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  The rain set early in to-night,<br>The sullen wind was soon awake,
+</div>
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  and all her hair<br>In one long yellow string I wound<br>Three times her little throat around,<br>And strangled her. No pain felt she;<br>I am quite sure she felt no pain.
+</div>
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  And yet God has not said a word!
+</div>
+
+      <figure class="dia">
+<svg viewBox="0 0 620 210" role="img" aria-label="Two panels side by side. Left panel, What he tells you: she felt no pain; she wanted this moment to last; God has not objected. Right panel, What actually happened: he killed her. A gap between the panels is labelled the gap is where the horror lives.">
+  <rect x="10" y="10" width="270" height="190" rx="12" fill="none" stroke="var(--accent)" stroke-width="3"/>
+  <rect x="340" y="10" width="270" height="190" rx="12" fill="none" stroke="var(--warn)" stroke-width="3"/>
+  <text x="145" y="42" text-anchor="middle" font-size="17" font-weight="700" fill="var(--accent)">What he tells you</text>
+  <text x="30" y="82"  font-size="15" fill="var(--ink)">• She felt no pain</text>
+  <text x="30" y="114" font-size="15" fill="var(--ink)">• She wanted this moment</text>
+  <text x="44" y="134" font-size="15" fill="var(--ink)">to last forever</text>
+  <text x="30" y="166" font-size="15" fill="var(--ink)">• God hasn't objected</text>
+  <text x="475" y="42" text-anchor="middle" font-size="17" font-weight="700" fill="var(--warn)">What happened</text>
+  <text x="475" y="112" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">He killed her.</text>
+  <text x="310" y="96"  text-anchor="middle" font-size="13" fill="var(--soft)">the</text>
+  <text x="310" y="114" text-anchor="middle" font-size="13" fill="var(--soft)">gap</text>
+</svg>
+      <figcaption>The horror lives in the gap between the two boxes.</figcaption>
+      </figure>
+
+      <p><strong>Your turn. Row 1 is done for you.</strong></p>
+
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:10px;border:2px solid var(--calm);border-radius:10px;vertical-align:top;width:33%;"><strong>1 · Who's telling it?</strong><br>The killer himself. And he thinks he's the good guy. ✓</td>
+    <td style="padding:10px;border:2px dashed var(--field-line);border-radius:10px;vertical-align:top;width:33%;"><strong>2 · What's the sound doing?</strong><br>→ Q6</td>
+    <td style="padding:10px;border:2px dashed var(--field-line);border-radius:10px;vertical-align:top;width:33%;"><strong>3 · Where's the monster?</strong><br>→ Q7</td>
+  </tr>
+</table>
+
+      <p class="q"><strong>Q5.</strong> "I am quite sure she felt no pain." Can you trust him?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. &quot;I am quite sure she felt no pain.&quot; Can you trust him?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="yes, he was there">yes, he was there</option>
+          <option value="no, he&#x27;s telling himself what he needs to hear">no, he&#x27;s telling himself what he needs to hear</option>
+          <option value="you can&#x27;t tell either way">you can&#x27;t tell either way</option>
+        </select></div>
+
+      <p class="q"><strong>Q6.</strong> The poem keeps a neat rhyme and a steady beat the whole way through, even during the murder. What does that do?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. The poem keeps a neat rhyme and a steady beat the whole way through, even during the murder. What does that do?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="makes it creepier: he&#x27;s as calm as a nursery rhyme">makes it creepier: he&#x27;s as calm as a nursery rhyme</option>
+          <option value="makes it less scary">makes it less scary</option>
+          <option value="nothing, poems just rhyme">nothing, poems just rhyme</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> Where's the monster in this poem?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. Where&#x27;s the monster in this poem?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="outside: the storm">outside: the storm</option>
+          <option value="both">both</option>
+          <option value="inside: a normal-looking man&#x27;s mind">inside: a normal-looking man&#x27;s mind</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Row 1 is done for you. Three dropdowns picked to finish rows 2 and 3.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="guided" id="g2" data-title="His Victorian cousins">
+    <button class="donebar" onclick="LL.toggle('g2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; His Victorian cousins</strong>
+      <span class="sum" id="sum-g2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; His Victorian cousins</h2>
+
+      <p>Browning wrote this in 1836. Over the next sixty years, Victorian novels kept telling the same story: <strong>the monster is a person who looks fine.</strong></p>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:12px;border:2px solid var(--warn);border-radius:10px;vertical-align:top;width:33%;"><span style="font-size:1.8rem;">🧪</span><br><strong>Mr. Hyde</strong> (1886)<br>A respected doctor drinks a potion and lets the monster inside him out.</td>
+    <td style="padding:12px;border:2px solid var(--warn);border-radius:10px;vertical-align:top;width:33%;"><span style="font-size:1.8rem;">🧛</span><br><strong>Dracula</strong> (1897)<br>A polite gentleman who wants to own people, body and soul, forever.</td>
+    <td style="padding:12px;border:2px solid var(--warn);border-radius:10px;vertical-align:top;width:33%;"><span style="font-size:1.8rem;">🖼️</span><br><strong>Dorian Gray</strong> (1890)<br>A beautiful young man stays perfect while his portrait rots with every evil thing he does.</td>
+  </tr>
+</table>
+      <figcaption>Three Victorian monsters. Each one looks like a gentleman.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q8.</strong> Which one is the closest cousin to Porphyria's lover?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q8. Which one is the closest cousin to Porphyria&#x27;s lover?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Dracula">Dracula</option>
+          <option value="Dorian Gray">Dorian Gray</option>
+          <option value="Mr. Hyde">Mr. Hyde</option>
+        </select></div>
+
+      <p class="q"><strong>Q9.</strong> Say why out loud first. Then get it down in two sentences, typed or scribed. Don't worry about spelling.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Porphyria's lover is most like … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q9. Say why out loud first. Then get it down in two sentences, typed or scribed. Don&#x27;t worry about spelling." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked, then said out loud and captured in two sentences, typed or scribed.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Come buy">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Come buy</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Come buy</h2>
+
+      <p><strong>Christina Rossetti, “Goblin Market”</strong> (1862). Victorian. A poem you haven't seen.</p>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> Two sisters, Laura and Lizzie. Every morning and evening, goblin men by the stream call out, selling magical fruit. Laura buys some, paying with a lock of her golden hair, and eats until she can't stop. After that she can't hear the goblins any more, can't get more fruit, and starts wasting away. Lizzie goes to the goblins herself to save her.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> what the goblins say, over and over.</p>
+</div>
+
+      <figure class="photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Buy_from_Us_with_a_Golden_Curl_(frontispiece_to_%22Goblin_Market_and_other_Poems%22_by_Christina_Rossetti)_MET_DP835742.jpg?width=760"
+             alt="A woodcut of a girl snipping off a curl of her hair while animal-faced goblin men crowd round with plates of fruit. Her sister walks away in the background.">
+        <figcaption>"Buy from us with a golden curl." The poet's brother, Dante Gabriel Rossetti, drew this for the first edition in 1862. <a href="https://commons.wikimedia.org/wiki/File:Buy_from_Us_with_a_Golden_Curl_(frontispiece_to_%22Goblin_Market_and_other_Poems%22_by_Christina_Rossetti)_MET_DP835742.jpg">via Wikimedia Commons</a>.</figcaption>
+      </figure>
+
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  “Come buy our orchard fruits,<br>Come buy, come buy:
+</div>
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  We must not look at goblin men,<br>We must not buy their fruits:<br>Who knows upon what soil they fed<br>Their hungry thirsty roots?
+</div>
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  Her hair grew thin and grey;
+</div>
+
+      <p class="q"><strong>Q10.</strong> 1 · Who's telling it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q10. 1 · Who&#x27;s telling it?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Laura, looking back">Laura, looking back</option>
+          <option value="a storyteller, like a fairy tale">a storyteller, like a fairy tale</option>
+          <option value="the goblins">the goblins</option>
+        </select></div>
+
+      <p class="q"><strong>Q11.</strong> 2 · "Come buy, come buy" repeats all through the poem. What does it sound like?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q11. 2 · &quot;Come buy, come buy&quot; repeats all through the poem. What does it sound like?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a lullaby">a lullaby</option>
+          <option value="a warning bell">a warning bell</option>
+          <option value="a sales pitch you can&#x27;t get out of your head, like an ad jingle">a sales pitch you can&#x27;t get out of your head, like an ad jingle</option>
+        </select></div>
+
+      <p class="q"><strong>Q12.</strong> 3 · Where's the monster?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q12. 3 · Where&#x27;s the monster?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="both: the goblins are real, and so is her craving">both: the goblins are real, and so is her craving</option>
+          <option value="outside: the goblins">outside: the goblins</option>
+          <option value="inside: Laura&#x27;s craving">inside: Laura&#x27;s craving</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked. Nothing is filled in for you this time.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="mastery" id="m2" data-title="Line them up">
+    <button class="donebar" onclick="LL.toggle('m2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Line them up</strong>
+      <span class="sum" id="sum-m2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Line them up</h2>
+
+      <p>Lenore is placed for you. Picture the other three on the line.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 620 150" role="img" aria-label="A horizontal line from OUTSIDE on the left, meaning something comes for you, to INSIDE on the right, meaning it lives in a mind or a hunger. Lenore is marked at the far left end. Three empty markers labelled question marks sit along the line for the Rime, Porphyria's Lover and Goblin Market.">
+  <text x="20"  y="28" font-size="17" font-weight="700" fill="var(--accent)">OUTSIDE</text>
+  <text x="20"  y="48" font-size="14" fill="var(--soft)">something comes for you</text>
+  <text x="600" y="28" text-anchor="end" font-size="17" font-weight="700" fill="var(--warn)">INSIDE</text>
+  <text x="600" y="48" text-anchor="end" font-size="14" fill="var(--soft)">a mind, a hunger</text>
+  <line x1="30" y1="88" x2="590" y2="88" stroke="var(--soft)" stroke-opacity=".6" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="50" cy="88" r="14" fill="var(--accent)"/>
+  <text x="50" y="128" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">Lenore</text>
+  <circle cx="230" cy="88" r="13" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="380" cy="88" r="13" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="530" cy="88" r="13" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="230" y="94" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">?</text>
+  <text x="380" y="94" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">?</text>
+  <text x="530" y="94" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">?</text>
+</svg>
+      <figcaption>Where would the Rime, Porphyria's Lover and Goblin Market sit?</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q13.</strong> Which poem goes furthest to the INSIDE end?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q13. Which poem goes furthest to the INSIDE end?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="The Rime of the Ancient Mariner">The Rime of the Ancient Mariner</option>
+          <option value="Goblin Market">Goblin Market</option>
+          <option value="Porphyria&#x27;s Lover">Porphyria&#x27;s Lover</option>
+        </select></div>
+
+      <p><strong>This one's meant to be hard.</strong> There's more than one defensible answer. Pick a side and back it.</p>
+
+      <p class="q"><strong>Q14.</strong> "Goblin Market has more in common with Lenore than with Porphyria's Lover."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q14. &quot;Goblin Market has more in common with Lenore than with Porphyria&#x27;s Lover.&quot;">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="agree">agree</option>
+          <option value="disagree">disagree</option>
+        </select></div>
+
+      <p class="q"><strong>Q15.</strong> Why? Two sentences, your own words. Use at least one thing from the poems. Don't worry about spelling.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q15. Why? Two sentences, your own words. Use at least one thing from the poems. Don&#x27;t worry about spelling." placeholder="Say it out loud first, then type it (or your teacher types exactly what you say)…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>One strong AGREE: both sound like old folk songs, both have something supernatural that comes for a girl, and in both she pays for wanting something. One strong DISAGREE: the goblins are only half of it; Laura's real problem is a hunger she can't stop, and that puts the monster inside her, like Browning's speaker. Either side is right if your reason comes from the poems.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and two sentences in your own words. No starters on this one.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="Caption the monster">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Caption the monster</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Caption the monster</h2>
+
+      <p>You post things. Today you post these. Pick a picture from today and write the caption that makes a stranger scrolling past <strong>feel</strong> the monster. Then tag where it lives: <strong>#outside</strong> or <strong>#inside</strong>.</p>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;">
+  <tr>
+    <td style="width:33%;vertical-align:top;text-align:center;"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/La_Ballade_de_Lénore_-_H.Vernet_(1839).jpg?width=300" alt="Vernet's painting of Lenore on the ghost rider's horse." style="width:100%;height:auto;border-radius:8px;"><br><strong>A · Lenore</strong></td>
+    <td style="width:33%;vertical-align:top;text-align:center;"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Rime_of_the_Ancient_Mariner-Albatross-Dore.jpg?width=300" alt="Doré's engraving of the albatross over the ship in the ice." style="width:100%;height:auto;border-radius:8px;"><br><strong>B · The albatross</strong></td>
+    <td style="width:33%;vertical-align:top;text-align:center;"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Buy_from_Us_with_a_Golden_Curl_(frontispiece_to_%22Goblin_Market_and_other_Poems%22_by_Christina_Rossetti)_MET_DP835742.jpg?width=300" alt="Rossetti's woodcut of Laura cutting her hair for the goblins." style="width:100%;height:auto;border-radius:8px;"><br><strong>C · The goblins</strong></td>
+  </tr>
+</table>
+      <figcaption>Vernet (1839), Doré (1876), D. G. Rossetti (1862). All via Wikimedia Commons.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q16.</strong> Caption 1. Which picture? (We do this one together.)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q16. Caption 1. Which picture? (We do this one together.)">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="A · Lenore">A · Lenore</option>
+          <option value="B · The albatross">B · The albatross</option>
+          <option value="C · The goblins">C · The goblins</option>
+        </select></div>
+
+      <p class="q"><strong>Q17.</strong> Caption 1: one sentence, then #outside or #inside.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q17. Caption 1: one sentence, then #outside or #inside." placeholder="e.g. she said yes to the wrong ride. #outside" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q18.</strong> Caption 2: a different picture. One sentence, then #outside or #inside. Don't worry about spelling.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q18. Caption 2: a different picture. One sentence, then #outside or #inside. Don&#x27;t worry about spelling." placeholder="Which picture, then your caption and tag…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two captions, one sentence each, each tagged #outside or #inside. The first one we do together before class ends.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The three questions, and where the monster lives &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">1 · Who's telling it?</td><td>The speaker. Can you trust them? Calm, scared, haunted, lying to themselves?</td></tr>
+      <tr><td class="h">2 · What's the sound doing?</td><td>Repeated words, rhythm, rhyme. What does it make you feel: speed, panic, a lullaby, a sales pitch?</td></tr>
+      <tr><td class="h">3 · Where's the monster?</td><td>OUTSIDE: a ghost, a curse, something that comes for you. INSIDE: a mind, a hunger, a person who looks normal.</td></tr>
+      <tr><td class="h">The roots (1773 and 1798)</td><td>Bürger's Lenore and Coleridge's Rime of the Ancient Mariner. Folk-ballad sound, the supernatural, the monster mostly comes from outside.</td></tr>
+      <tr><td class="h">The Victorian branch (1830s to 1890s)</td><td>Browning, Rossetti, then Jekyll and Hyde and Dracula. The monster moves inside: into a voice, a craving, a respectable person.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>Don't worry about spelling here.</strong></p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud and your teacher will type it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Gothic Literature · Lesson 1";
+const LESSON_ID = "GOTH12-L01";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Develop critical reading skills used to analyze Gothic poetry.",
+  "O2": "Examine the poetry of Robert Browning and Christina Rossetti as they relate to other forms of Victorian Gothic literature.",
+  "O3": "Recognize the roots of Gothic poetry in Gottfried Bürger's \"Lenore\" and Samuel Taylor Coleridge's \"The Rime of the Ancient Mariner\"."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & bring one thing", mins:5 },
+  { label:"The roots: a dead rider and a cursed sailor", mins:12, part:"intro" },
+  { label:"A killer with good manners", mins:13, part:"guided" },
+  { label:"Come buy", mins:15, part:"mastery" },
+  { label:"Caption the monster", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Where Gothic poetry came from, and the three questions you ask every Gothic poem.", sheet: true, outcomes: ["O1", "O3"] },
+  guided: { title: "Guided Practice", sub: "A Victorian poem told by the monster himself.", sheet: true, outcomes: ["O1", "O2"] },
+  mastery: { title: "Independent Mastery", sub: "A poem you haven't seen. Same three questions, then line all four poems up.", sheet: true, outcomes: ["O1", "O2", "O3"] },
+  homework: { title: "Homework", sub: "Two captions, two monsters.", sheet: true, outcomes: ["O1", "O2"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You've seen where it starts. Now meet the poem Dracula stole from."},
+  i2:{star:"★",msg:"First root found. The monster came from outside, and it came fast."},
+  i3:{star:"★",msg:"Both roots found. You can read a Gothic poem with three questions."},
+  g1:{star:"★",msg:"You caught a narrator lying to himself. That is the Victorian Gothic move."},
+  g2:{star:"★",msg:"You put a poem in its family. That's O2."},
+  m1:{star:"★",msg:"New poem, no help, and you read it with the lens."},
+  m2:{star:"★",msg:"Four poems, two centuries, one line, and a claim you defended. That's all three outcomes."},
+  h1:{star:"★",msg:"Two captions, two monsters located. Done."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
