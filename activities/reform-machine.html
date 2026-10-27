@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — activity: The Reform Machine
+  engine: builder · variant: reform-big-brother · v1
+  Rejiggered from activities/argument-machine.html (same stylesheet, same stage
+  engine, same copy machinery, same second save layer).
+
+  WHAT IT IS: the English 12A Unit 2 assessment ("Words, Power, and Influence")
+  broken into ten short in-class steps. Part A: a short reform piece with a
+  chosen purpose and at least three tagged language moves. Part B: how Big
+  Brother would twist it, built on two 1984 reference cards. The tool writes the
+  lead-ins, quotation marks and citations; every judgment and every "because"
+  is the student's.
+
+  CONTENT-SWAPPABLE: CHANGES, PURPOSES, MOVES, STEMS, TOOLS and the GOAL_*
+  word targets at the top of the script.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Reform Machine</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; --paper:#ffffff; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  h3{ font-size:1rem; margin:1.4rem 0 .5rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  /* the page-shape diagram */
+  .shape{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1rem .7rem; margin:0 0 1.25rem; display:flex; gap:1rem; align-items:center }
+  .shape svg{ flex:0 0 auto }
+  .shape .legend{ font-size:.86rem; color:var(--soft); line-height:1.5 }
+  .shape .legend strong{ color:var(--ink) }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.sm{ font-size:.82rem; padding:.35rem .7rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea, .abox input[type=text]{ width:100%; border:0; outline:0; resize:vertical;
+        min-height:2.6rem; font:inherit; font-size:1rem; color:var(--ink);
+        background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .nospell{ color:var(--soft); font-size:.86rem; margin:.4rem 0 1.1rem }
+
+  /* text picker */
+  .picks{ display:grid; gap:.8rem; grid-template-columns:1fr 1fr; margin:0 0 1rem }
+  @media(max-width:640px){ .picks{ grid-template-columns:1fr } }
+  .pick{ text-align:left; font:inherit; cursor:pointer; background:var(--card);
+        border:2px solid var(--line); border-radius:10px; padding:.9rem 1rem; color:var(--ink) }
+  .pick:hover{ border-color:var(--accent) }
+  .pick.on{ border-color:var(--accent); background:var(--accent-soft) }
+  .pick b{ display:block; font-size:1rem; margin-bottom:.15rem }
+  .pick span{ display:block; font-size:.85rem; color:var(--soft) }
+
+  /* fact bank */
+  .bank{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+         padding:1rem 1.1rem; margin:1rem 0 }
+  .bankhead{ display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; margin:0 0 .6rem }
+  .bankhead h3{ margin:0; font-size:1rem }
+  .count{ font-size:.85rem; color:var(--soft); margin-left:auto }
+  .empty{ font-size:.92rem; color:var(--soft); font-style:italic; margin:.4rem 0 }
+
+  .fact{ display:flex; gap:.6rem; align-items:flex-start; background:#fff;
+         border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; margin:0 0 .5rem }
+  .fact .badge{ flex:0 0 auto; margin-top:.15rem }
+  .fact .ft{ flex:1 1 auto; font-size:.95rem; line-height:1.5 }
+  .fact .src{ display:block; font-size:.8rem; color:var(--soft); margin-top:.2rem }
+  .fact .del{ flex:0 0 auto; background:none; border:0; font:inherit; font-size:1rem;
+        color:#9aa5ae; cursor:pointer; padding:0 .2rem }
+  .fact .del:hover{ color:#a33 }
+
+  .tagpick{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.4rem 0 .9rem }
+  .tagbtn{ font:inherit; font-size:.88rem; cursor:pointer; background:#fff; color:var(--ink);
+        border:2px solid var(--line); border-radius:999px; padding:.35rem .85rem;
+        display:inline-flex; align-items:center; gap:.4rem }
+  .tagbtn.on{ border-color:var(--accent); background:var(--accent-soft); font-weight:700 }
+
+  .srcform{ display:none; background:var(--warn-soft); border:1px dashed #ddbf94;
+        border-radius:8px; padding:.9rem 1.1rem; margin:.6rem 0 1rem }
+  .srcform.show{ display:block }
+  .grid2{ display:grid; gap:.6rem; grid-template-columns:1fr 1fr }
+  @media(max-width:640px){ .grid2{ grid-template-columns:1fr } }
+  .fld{ margin:0 0 .6rem }
+  .fld label{ display:block; font-size:.8rem; font-weight:700; color:var(--soft); margin:0 0 .2rem }
+  .fld input, .fld select{ width:100%; font:inherit; font-size:.95rem; padding:.45rem .6rem;
+        border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink) }
+  .hintline{ font-size:.84rem; color:var(--soft); margin:.1rem 0 .6rem }
+
+  .look{ background:var(--accent-soft); border:1px solid #c3dbe7; border-radius:8px;
+         padding:.85rem 1.1rem; margin:.8rem 0 1rem; font-size:.92rem }
+  .look p{ margin:0 0 .35rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent) }
+  .look ul{ margin:0; padding-left:1.2rem } .look li{ margin-bottom:.25rem }
+  .look a{ color:var(--accent) }
+
+  /* done looks like */
+  .donelooks{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+        border-radius:8px; padding:.8rem 1.1rem; margin:1.2rem 0 .9rem; font-size:.93rem }
+  .donelooks .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .45rem }
+  .donelooks ul{ list-style:none; margin:0; padding:0 }
+  .donelooks li{ display:flex; gap:.55rem; align-items:flex-start; margin:0 0 .3rem; line-height:1.5 }
+  .donelooks li .mk{ flex:0 0 1.2rem; font-weight:700; color:#b3aca0 }
+  .donelooks li.ok .mk{ color:var(--calm) }
+  .donelooks li.ok{ color:var(--soft) }
+
+  /* restored-work notice */
+  .restored{ background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:8px;
+        padding:.7rem 1rem; margin:0 0 1rem; font-size:.9rem; display:flex; gap:.7rem;
+        align-items:center; flex-wrap:wrap }
+  .restored button{ font:inherit; font-size:.82rem; background:none; border:0;
+        color:var(--accent); text-decoration:underline; cursor:pointer; padding:0 }
+
+  /* chips used when writing */
+  .chips{ display:flex; flex-direction:column; gap:.45rem; margin:.5rem 0 1rem }
+  .chip{ text-align:left; font:inherit; font-size:.92rem; cursor:pointer; background:#fff;
+        border:2px solid var(--line); border-radius:8px; padding:.55rem .8rem;
+        color:var(--ink); display:flex; gap:.55rem; align-items:flex-start; line-height:1.5 }
+  .chip:hover{ border-color:var(--accent) }
+  .chip.on{ border-color:var(--calm); background:var(--calm-soft) }
+  .chip .num{ flex:0 0 1.4rem; font-weight:700; color:var(--calm) }
+  .chip .cite{ color:var(--soft); font-size:.85rem }
+
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  /* the paper */
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .paperbox{ background:var(--paper); border:1px solid var(--line); border-radius:8px;
+        padding:1.25rem 1.4rem; margin:1rem 0; font-size:.95rem; line-height:1.9 }
+  .paperbox[contenteditable]:focus{ outline:3px solid var(--accent); outline-offset:2px }
+  .paperbox .hdr{ font-size:.9rem; line-height:1.6; margin:0 0 .9rem }
+  .paperbox .ttl{ text-align:center; font-weight:700; margin:0 0 .9rem }
+  .paperbox p{ margin:0 0 .9rem; text-indent:1.6rem }
+  .paperbox .wc h4{ margin:1.2rem 0 .5rem; text-align:center; font-size:.95rem }
+  .paperbox .wc p{ text-indent:0; padding-left:1.6rem; margin:0 0 .5rem }
+  .meta{ display:grid; gap:.6rem; grid-template-columns:1fr 1fr; margin:0 0 1rem }
+  @media(max-width:640px){ .meta{ grid-template-columns:1fr } }
+  .wcount{ font-size:.86rem; color:var(--soft); margin:.2rem 0 1rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:14rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+
+  /* ---- added for the Argument Machine ---- */
+  .sides{ display:grid; gap:.8rem; grid-template-columns:1fr 1fr; margin:.6rem 0 1rem }
+  @media(max-width:640px){ .sides{ grid-template-columns:1fr } }
+  .side{ text-align:left; font:inherit; cursor:pointer; background:var(--card);
+        border:2px solid var(--line); border-radius:10px; padding:1rem 1.1rem; color:var(--ink) }
+  .side:hover{ border-color:var(--accent) }
+  .side.on{ border-color:var(--calm); background:var(--calm-soft) }
+  .side .big{ display:block; font-size:1.6rem; line-height:1; margin-bottom:.35rem }
+  .side b{ display:block; font-size:1.05rem }
+  .side span.s{ display:block; font-size:.86rem; color:var(--soft); margin-top:.2rem }
+  .vid{ position:relative; width:100%; padding-top:56.25%; border-radius:10px; overflow:hidden;
+        background:#000; margin:.4rem 0 .5rem }
+  .vid iframe{ position:absolute; inset:0; width:100%; height:100%; border:0 }
+  .chip .qt{ display:block }
+  .chip mark{ background:#ffe9a8; color:inherit; padding:0 .1rem; border-radius:3px }
+  .chip .plain{ display:block; font-size:.84rem; color:var(--soft); margin-top:.25rem; line-height:1.45 }
+  .who{ display:flex; gap:.6rem; align-items:center; background:var(--accent-soft);
+        border:1px solid #c3dbe7; border-radius:8px; padding:.6rem .9rem; margin:0 0 .9rem; font-size:.92rem }
+  .who svg{ flex:0 0 auto }
+  .made{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.6rem .9rem; margin:.4rem 0 1rem; font-size:.9rem; color:var(--soft) }
+  .made b{ color:var(--ink) }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+  .pgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(13rem,1fr)); gap:.5rem; margin:.4rem 0 .8rem }
+  .pgrid .chip{ margin:0 }
+  .chip .ttl{ display:block; font-weight:700 }
+  .movetag{ display:flex; flex-wrap:wrap; gap:.4rem; margin:.3rem 0 .8rem }
+  .movetag button{ font:inherit; font-size:.85rem; cursor:pointer; background:#fff; color:var(--ink);
+        border:2px solid var(--line); border-radius:999px; padding:.2rem .75rem }
+  .movetag button.on{ border-color:var(--calm); background:var(--calm-soft) }
+  .tally{ font-size:.9rem; color:var(--soft); margin:.2rem 0 .6rem }
+  .tally b{ color:var(--ink) }
+  .bbcard{ border:2px solid #b9433a; border-radius:10px; background:#fbeceb; padding:.7rem .9rem; margin:.4rem 0 .8rem; font-size:.95rem }
+  .bbcard .qt{ font-style:italic }
+  .paperbox .ttl2{ text-align:center; margin:1.6rem 0 .4rem }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The Reform Machine</h1>
+  <p class="sub">Pick one thing about America you'd change. Write a short piece to the world about it, using real language moves. Then imagine Big Brother from <em>1984</em> getting hold of your words, and explain how he'd twist them.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="shape">
+    <svg id="pageshape" width="232" height="150" viewBox="0 0 232 150" role="img"
+         aria-label="Diagram of what you are building: two pages. The left page is your reform piece, four paragraphs. The right page is your Big Brother analysis, three blocks plus a Works Cited strip. Each block turns green when its part is done.">
+      <rect x="1" y="1" width="110" height="148" rx="4" fill="#ffffff" stroke="#d8d2c8"/>
+      <rect x="121" y="1" width="110" height="148" rx="4" fill="#ffffff" stroke="#d8d2c8"/>
+      <text x="56" y="14" text-anchor="middle" font-size="8" fill="#555a63">Your piece</text>
+      <text x="176" y="14" text-anchor="middle" font-size="8" fill="#555a63">Big Brother analysis</text>
+      <g id="blk1"><rect x="14" y="22" width="84" height="26" rx="3" fill="#eee9e0"/></g>
+      <g id="blk2"><rect x="14" y="52" width="84" height="26" rx="3" fill="#eee9e0"/></g>
+      <g id="blk3"><rect x="14" y="82" width="84" height="26" rx="3" fill="#eee9e0"/></g>
+      <g id="blk4"><rect x="14" y="112" width="84" height="26" rx="3" fill="#eee9e0"/></g>
+      <g id="blk5"><rect x="134" y="22" width="84" height="30" rx="3" fill="#eee9e0"/></g>
+      <g id="blk6"><rect x="134" y="56" width="84" height="30" rx="3" fill="#eee9e0"/></g>
+      <g id="blk7"><rect x="134" y="90" width="84" height="34" rx="3" fill="#eee9e0"/></g>
+      <g id="blkwc"><rect x="134" y="130" width="84" height="8" rx="2" fill="#eee9e0"/></g>
+      <text x="6" y="38" font-size="7" fill="#9aa5ae">1</text>
+      <text x="6" y="68" font-size="7" fill="#9aa5ae">2</text>
+      <text x="6" y="98" font-size="7" fill="#9aa5ae">3</text>
+      <text x="6" y="128" font-size="7" fill="#9aa5ae">4</text>
+    </svg>
+    <div class="legend">
+      <strong>What you're building.</strong><br>
+      <strong>Left:</strong> your piece to the world, in four short paragraphs.<br>
+      <strong>Right:</strong> how Big Brother would twist it, in three paragraphs.<br>
+      Bottom strip: Works Cited, built for you.
+    </div>
+  </div>
+
+  <div class="steps">
+    <p>Plan: about two class periods. Your work saves, so you can stop anywhere.</p>
+    <ol>
+      <li><strong>Pick your change and your purpose</strong> (5 min)</li>
+      <li><strong>Pick your language moves</strong> (5 min)</li>
+      <li><strong>Write your piece, one paragraph at a time</strong> (about 6 min each)</li>
+      <li><strong>Meet Big Brother</strong> (5 min)</li>
+      <li><strong>Twist your words, then explain how</strong> (about 6 min each)</li>
+      <li><strong>Read it, copy it, paste into Canvas</strong> (3 min)</li>
+    </ol>
+  </div>
+
+  <!-- ============ S1 — change + purpose ============ -->
+  <section class="stage active" id="s1" data-title="Pick your change and your purpose">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1: Your change</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1: What would you change about America?</h2>
+      <p>Pick one. Any of these can get a full grade.</p>
+      <div class="pgrid" id="changes"></div>
+      <div class="fld" id="ownWrap" style="display:none"><label for="ownIdea">Your own idea, in a few words</label>
+        <input type="text" id="ownIdea" placeholder="e.g. a four-day school week"></div>
+
+      <h3>Why are you writing? Pick your purpose.</h3>
+      <div class="pgrid" id="purposes"></div>
+      <p class="nospell">Spelling doesn't count. You can say any answer out loud and your teacher will type it.</p>
+
+      <div class="donelooks" id="dl-s1"></div>
+      <div class="fb" id="fb-s1" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s1')">That's my change →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ S2 — language moves ============ -->
+  <section class="stage" id="s2" data-title="Pick your language moves">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2: Your language moves</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2: Pick your language moves</h2>
+      <p>Your piece has to use <strong>different kinds of language choices</strong>. These are the moves. Tap <strong>at least three</strong> you want to try. You'll tag them as you use them.</p>
+      <div class="pgrid" id="moves"></div>
+      <p class="tally" id="planTally"></p>
+      <div class="fb" id="fb-s2" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s2')">Those are my moves →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ S3–S6 — the piece, built by script ============ -->
+  <section class="stage" id="s3" data-title="Piece, paragraph 1">
+    <button class="donebar" onclick="LL.toggle('s3')"><span class="tick">✓</span> <strong>Part 3: Grab them</strong><span class="sum" id="sum-s3"></span></button>
+    <div class="stage-body" id="body-s3"></div>
+  </section>
+  <section class="stage" id="s4" data-title="Piece, paragraph 2">
+    <button class="donebar" onclick="LL.toggle('s4')"><span class="tick">✓</span> <strong>Part 4: The problem</strong><span class="sum" id="sum-s4"></span></button>
+    <div class="stage-body" id="body-s4"></div>
+  </section>
+  <section class="stage" id="s5" data-title="Piece, paragraph 3">
+    <button class="donebar" onclick="LL.toggle('s5')"><span class="tick">✓</span> <strong>Part 5: The change</strong><span class="sum" id="sum-s5"></span></button>
+    <div class="stage-body" id="body-s5"></div>
+  </section>
+  <section class="stage" id="s6" data-title="Piece, paragraph 4">
+    <button class="donebar" onclick="LL.toggle('s6')"><span class="tick">✓</span> <strong>Part 6: Your last word</strong><span class="sum" id="sum-s6"></span></button>
+    <div class="stage-body" id="body-s6"></div>
+  </section>
+
+  <!-- ============ S7 — meet Big Brother ============ -->
+  <section class="stage" id="s7" data-title="Meet Big Brother">
+    <button class="donebar" onclick="LL.toggle('s7')">
+      <span class="tick">✓</span> <strong>Part 7: Big Brother's tools</strong>
+      <span class="sum" id="sum-s7"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 7: Meet Big Brother</h2>
+      <div class="bbcard"><strong>Big Brother</strong> is the face of the Party that rules Oceania in <em>1984</em>. Nobody knows if he's real. The Party doesn't ban good ideas. It <strong>takes them and bends the words</strong> until they mean what the Party wants.</div>
+      <p>Here are five of the Party's tools from the book. Tap the <strong>two</strong> you think Big Brother would use on <em>your</em> piece. These become your references from the text.</p>
+      <div class="chips" id="tools"></div>
+      <div class="fb" id="fb-s7" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s7')">Those are his two tools →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ S8 — the twist ============ -->
+  <section class="stage" id="s8" data-title="Twist your words">
+    <button class="donebar" onclick="LL.toggle('s8')">
+      <span class="tick">✓</span> <strong>Part 8: The twist</strong>
+      <span class="sum" id="sum-s8"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 8: Be Big Brother for a minute</h2>
+      <p><strong>Step 1.</strong> What would Big Brother use your change <em>for</em>?</p>
+      <div class="pgrid" id="uses"></div>
+
+      <p><strong>Step 2.</strong> Pick one sentence from your piece.</p>
+      <div class="fld"><label for="origSent">My sentence</label><select id="origSent"></select></div>
+
+      <p class="q"><strong>Q5.</strong> <strong>Step 3.</strong> Rewrite it the way the Party would. Keep some of your words, but bend them so they help the Party instead.</p>
+      <div class="abox"><p class="lab">Big Brother's version</p>
+        <textarea data-q="Q5. Big Brother's version of one sentence from the piece." id="twist" rows="2" placeholder="e.g. 'Free lunch for every student' → 'The Party feeds every loyal child.'"></textarea></div>
+
+      <p class="q"><strong>Q6.</strong> <strong>Step 4.</strong> Start your analysis. Fill in the blanks.</p>
+      <div class="abox"><p class="lab">Analysis, paragraph 1</p>
+        <textarea data-q="Q6. Analysis opening: what the piece was for, and what Big Brother would use it for." id="a0" rows="3"></textarea></div>
+      <div class="fb" id="fb-s8" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s8')">Done with the twist →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ S9–S10 — one per tool, built by script ============ -->
+  <section class="stage" id="s9" data-title="Analysis, tool 1">
+    <button class="donebar" onclick="LL.toggle('s9')"><span class="tick">✓</span> <strong>Part 9: His first tool</strong><span class="sum" id="sum-s9"></span></button>
+    <div class="stage-body" id="body-s9"></div>
+  </section>
+  <section class="stage" id="s10" data-title="Analysis, tool 2 and last word">
+    <button class="donebar" onclick="LL.toggle('s10')"><span class="tick">✓</span> <strong>Part 10: His second tool</strong><span class="sum" id="sum-s10"></span></button>
+    <div class="stage-body" id="body-s10"></div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Your piece and your analysis</h2>
+        <p class="lede">Built from your choices and your sentences. Click into it and change any word before you copy it.</p>
+        <div class="meta">
+          <div class="fld"><label for="mName">Your name</label><input type="text" id="mName"></div>
+          <div class="fld"><label for="mTeacher">Teacher</label><input type="text" id="mTeacher"></div>
+          <div class="fld"><label for="mCourse">Course</label><input type="text" id="mCourse" value="English 12A"></div>
+          <div class="fld"><label for="mDate">Date</label><input type="text" id="mDate"></div>
+        </div>
+        <div class="fld"><label for="mTitle">A title for your piece</label><input type="text" id="mTitle" placeholder="leave blank and the machine will make one"></div>
+        <div class="row" style="margin:.6rem 0 .4rem">
+          <button class="btn" id="rebuild">↻ Build it / rebuild it</button>
+        </div>
+        <div class="paperbox" id="paperbox" contenteditable="true" spellcheck="true" aria-label="Your piece and analysis, editable"></div>
+        <p class="wcount" id="wcount"></p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy both</button>
+          <button class="btn ghost" id="showPrev">Show me the plain text</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Part 1: Your change", "questions": ["Pick one reform to American society (six offered, or her own idea).", "Pick a purpose: inform, persuade, entertain, describe or reflect."] },
+  { "title": "Part 2: Language moves", "questions": ["Pick at least three language moves to try: rhetorical question, repetition, metaphor or simile, power word, short punchy sentence, appeal to feelings, list of three."] },
+  { "title": "Parts 3 to 6: The piece", "questions": ["Q1. Paragraph 1: grab them (stem set by purpose).", "Q2. Paragraph 2: the problem.", "Q3. Paragraph 3: the change.", "Q4. Paragraph 4: your last word.", "Each paragraph: tag the language moves used; at least three different by the end."] },
+  { "title": "Part 7: Big Brother's tools", "questions": ["Pick two of five 1984 reference cards: Newspeak, Ministry of Truth, Party slogans, telescreens and posters, Two Minutes Hate."] },
+  { "title": "Part 8: The twist", "questions": ["Pick what Big Brother would use the change for.", "Q5. Rewrite one of her own sentences the way the Party would.", "Q6. Analysis opening, filled stem."] },
+  { "title": "Parts 9 and 10: The analysis", "questions": ["Q7. How the first tool twists her words (the machine places the 1984 reference and citation).", "Q8. How the second tool twists her words.", "Q9. Last line: what this shows about words and power."] },
+  { "title": "Turn in", "questions": ["Piece and analysis assembled with MLA heading and Works Cited, editable, one button copies both into a Canvas Text Submission."] }
+]
+</script>
+<script>
+/* ============================================================
+   CONTENT — swap these for another reform / distortion task.
+   ============================================================ */
+const GOAL_PIECE = 200;      /* the Canvas prompt says 300; lowered for this build */
+const GOAL_ANALYSIS = 150;   /* "one page" in the Canvas prompt */
+
+const CHANGES = [
+  { k:'start',   t:'Later school start times',         s:'Teenagers need more sleep.' },
+  { k:'lunch',   t:'Free lunch for every student',     s:'Nobody should learn hungry.' },
+  { k:'vote16',  t:'Voting at 16',                     s:'Young people get a say.' },
+  { k:'phones',  t:'Phone-free schools',               s:'Less scrolling, more learning.' },
+  { k:'college', t:'Cheaper college',                  s:'School without a lifetime of debt.' },
+  { k:'mental',  t:'Mental health days for students',  s:'A day off when your head needs it.' },
+  { k:'own',     t:'My own idea',                      s:'Type it in the box below.' }
+];
+
+const PURPOSES = [
+  { k:'inform',    t:'Inform',    s:'Tell people what they don’t know yet.' },
+  { k:'persuade',  t:'Persuade',  s:'Get people to agree and act.' },
+  { k:'entertain', t:'Entertain', s:'Make it funny or dramatic so people pay attention.' },
+  { k:'describe',  t:'Describe',  s:'Paint a picture so people can see the problem.' },
+  { k:'reflect',   t:'Reflect',   s:'Think out loud about what you’ve noticed.' }
+];
+
+const MOVES = [
+  { k:'question',   t:'Rhetorical question',      ex:'“How can anyone learn on an empty stomach?”' },
+  { k:'repeat',     t:'Repetition',               ex:'“Every student. Every day. Every school.”' },
+  { k:'figurative', t:'Metaphor or simile',       ex:'“A tired student is a phone on 2% battery.”' },
+  { k:'diction',    t:'A power word',             ex:'“starving” instead of “hungry”' },
+  { k:'short',      t:'A short, punchy sentence', ex:'After a long sentence: “It has to stop.”' },
+  { k:'feeling',    t:'An appeal to feelings',    ex:'“Picture your little brother, too tired to lift his head.”' },
+  { k:'three',      t:'A list of three',          ex:'“cheaper, fairer, and smarter”' }
+];
+
+/* {C} becomes the chosen change, in lower case. Every stem has blanks to fill. */
+const STEMS = {
+  inform:    ['Most people don’t know that ____. That needs to change, and {C} is how.',
+              'Right now, ____. This hurts ____ because ____.',
+              '{C} would mean ____. It would help because ____.',
+              'The facts are clear: ____. Now you know.'],
+  persuade:  ['Imagine ____. Now imagine that could change tomorrow.',
+              'Today, ____. That is not fair, because ____.',
+              '{C} is the answer. If we ____, then ____.',
+              'So I’m asking you to ____. Because ____.'],
+  entertain: ['Picture this: ____.',
+              'It gets worse. ____.',
+              'Now imagine a world with {C}. ____.',
+              'Sounds silly? ____. That’s why we need {C}.'],
+  describe:  ['Look closely at ____.',
+              'You can see it in ____, hear it in ____, and feel it when ____.',
+              'With {C}, the same place would look like ____.',
+              'The difference is ____.'],
+  reflect:   ['I used to think ____.',
+              'Then I noticed ____, and it made me realize ____.',
+              '{C} matters to me because ____.',
+              'Now I believe ____.']
+};
+const PARAS = [
+  { stage:'s3', n:1, q:'Q1.', head:'Grab them',       job:'Your first paragraph grabs the reader. Two or three sentences.' },
+  { stage:'s4', n:2, q:'Q2.', head:'The problem',     job:'What’s wrong right now, and who it hurts. Two or three sentences.' },
+  { stage:'s5', n:3, q:'Q3.', head:'The change',      job:'Your change, and what it would fix. Two or three sentences.' },
+  { stage:'s6', n:4, q:'Q4.', head:'Your last word',  job:'End strong. What should the reader do, feel or remember? Two or three sentences.' }
+];
+
+/* 1984 reference cards. Quotes kept short; citations by part and chapter. */
+const TOOLS = [
+  { k:'newspeak', t:'Newspeak',
+    plain:'The Party is building a new, smaller language. If there’s no word for an idea, people can’t think it.',
+    lead:'In 1984, Syme explains that the whole point of Newspeak is to', quote:'narrow the range of thought', cite:'Orwell, pt. 1, ch. 5',
+    how:'cut my words down so ____' },
+  { k:'truth', t:'The Ministry of Truth',
+    plain:'Winston’s job is rewriting old newspapers so the Party is always right. The past changes whenever the Party wants.',
+    lead:'The Party’s slogan in 1984 says,', quote:'Who controls the past controls the future', cite:'Orwell, pt. 1, ch. 3',
+    how:'rewrite what I said so ____' },
+  { k:'slogans', t:'Party slogans (doublethink)',
+    plain:'The Party glues opposite words together, like “War is Peace,” until people stop noticing they don’t make sense.',
+    lead:'One of the Party’s slogans in 1984 is', quote:'War is Peace', cite:'Orwell, pt. 1, ch. 1',
+    how:'turn my words into a slogan that ____' },
+  { k:'watching', t:'Telescreens and posters',
+    plain:'Screens and posters everywhere remind people they are always being watched, so they watch what they say.',
+    lead:'Posters all over Oceania in 1984 say', quote:'Big Brother is watching you', cite:'Orwell, pt. 1, ch. 1',
+    how:'use my words to watch people who ____' },
+  { k:'hate', t:'The Two Minutes Hate',
+    plain:'Every day, people scream at a screen showing the Party’s enemy. The Party points everyone’s anger wherever it wants.',
+    lead:'In 1984, the Party runs a daily Two Minutes Hate, where people scream at the face of an enemy on a screen', quote:'', cite:'Orwell, pt. 1, ch. 1',
+    how:'turn my words against people who ____' }
+];
+const USES = [
+  'control what people do',
+  'make people love the Party',
+  'find “enemies” to blame',
+  'stop people from thinking for themselves'
+];
+const A0_STEM = 'In my piece, I wrote about {C} so that people would ____. But if Big Brother got hold of my idea, he would use it to ____.';
+const TOOL_STEM = t => 'Big Brother could use this to ' + t.how + '. For example, he could take my words “____” and make them mean ____, because ____.';
+const CLOSE_STEM = 'This shows that words have power, because ____.';
+const WORKS = 'Orwell, George. <em>1984</em>. 1949.';
+const BLANK = '____';
+
+/* ---------------- state ---------------- */
+let CHANGE = null, PURPOSE = null, USE = null;
+let PLAN = [];                      /* moves picked in Part 2 */
+let TAGS = { s3:[], s4:[], s5:[], s6:[] };
+let PICKED = [];                    /* two tool keys, in order */
+
+/* ---------------- helpers ---------------- */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $ = id => document.getElementById(id);
+function say(stage, kind, head, body){
+  const fb = $('fb-' + stage); if (!fb) return;
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+function clearSay(stage){ const fb = $('fb-' + stage); if (fb) fb.className = 'fb'; }
+function hasBlank(s){ return !s || s.indexOf(BLANK) > -1; }
+function changeName(){
+  if (!CHANGE) return 'my change';
+  if (CHANGE === 'own') return ($('ownIdea').value.trim() || 'my change');
+  return CHANGES.find(c => c.k === CHANGE).t;
+}
+const lc = s => s.charAt(0).toLowerCase() + s.slice(1);
+const fillC = s => s.replace(/\{C\}/g, m => lc(changeName())).replace(/^([a-z])/, m => m.toUpperCase());
+function toolByKey(k){ return TOOLS.find(t => t.k === k); }
+/* a textarea is "untouched" if empty or still exactly a stem the machine wrote */
+function untouched(el, stems){ const v = el.value.trim(); return !v || stems.some(s => s === v); }
+
+/* ---------------- Part 1 ---------------- */
+function chipHtml(attr, key, title, sub, on){
+  return '<button class="chip' + (on ? ' on' : '') + '" ' + attr + '="' + key + '">' +
+    '<span><span class="ttl">' + esc(title) + '</span>' + (sub ? '<span class="plain">' + esc(sub) + '</span>' : '') + '</span></button>';
+}
+function renderPart1(){
+  $('changes').innerHTML = CHANGES.map(c => chipHtml('data-c', c.k, c.t, c.s, c.k === CHANGE)).join('');
+  $('purposes').innerHTML = PURPOSES.map(p => chipHtml('data-p', p.k, p.t, p.s, p.k === PURPOSE)).join('');
+  $('ownWrap').style.display = CHANGE === 'own' ? '' : 'none';
+  $('changes').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { CHANGE = b.dataset.c; afterChoice(); }));
+  $('purposes').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { PURPOSE = b.dataset.p; afterChoice(); }));
+  const li = (ok, txt) => '<li class="' + (ok ? 'ok' : '') + '"><span class="mk" aria-hidden="true">' + (ok ? '✓' : '☐') + '</span><span>' + txt + '</span></li>';
+  const changeOk = CHANGE && (CHANGE !== 'own' || $('ownIdea').value.trim());
+  $('dl-s1').innerHTML = '<p class="lab">Done looks like</p><ul>' +
+    li(changeOk, '<strong>One change picked</strong> (or your own idea typed in).') +
+    li(!!PURPOSE, '<strong>One purpose picked.</strong>') + '</ul>';
+}
+function afterChoice(){
+  renderPart1(); fillStems(); renderTools(); refreshSentences();
+  if (CHANGE && PURPOSE) LL.summary.s1 = changeName() + ' · ' + PURPOSES.find(p => p.k === PURPOSE).t;
+  saveBank();
+}
+$('ownIdea').addEventListener('input', () => { renderPart1(); fillStems(); saveBank(); });
+
+/* put the purpose's stems into any box the student hasn't written in yet */
+function setAuto(el, val){
+  if (!el) return;
+  if (!el.value.trim() || el.value.trim() === (el.dataset.auto || '')){ el.value = val; }
+  el.dataset.auto = val;
+}
+function fillStems(){
+  if (PURPOSE) PARAS.forEach((p, i) => setAuto($('p-' + p.stage), fillC(STEMS[PURPOSE][i])));
+  setAuto($('a0'), fillC(A0_STEM));
+}
+
+/* ---------------- Part 2 ---------------- */
+function renderMoves(){
+  $('moves').innerHTML = MOVES.map(m => chipHtml('data-m', m.k, m.t, m.ex, PLAN.includes(m.k))).join('');
+  $('moves').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.m, i = PLAN.indexOf(k);
+    if (i > -1) PLAN.splice(i, 1); else PLAN.push(k);
+    clearSay('s2'); renderMoves(); renderTags(); saveBank();
+  }));
+  $('planTally').innerHTML = 'Picked: <b>' + PLAN.length + '</b> (three or more is the goal).';
+}
+
+/* ---------------- Parts 3–6: the piece ---------------- */
+function usedMoves(){
+  const s = new Set(); Object.values(TAGS).forEach(a => a.forEach(k => s.add(k))); return s;
+}
+function buildParaStages(){
+  PARAS.forEach(p => {
+    $('body-' + p.stage).innerHTML =
+      '<h2>Part ' + (p.n + 2) + ': ' + esc(p.head) + '</h2>' +
+      '<p>' + esc(p.job) + ' Fill the blanks, then add a sentence of your own if you can.</p>' +
+      '<p class="q"><strong>' + p.q + '</strong> Paragraph ' + p.n + ' of your piece.</p>' +
+      '<div class="abox"><p class="lab">Paragraph ' + p.n + '</p>' +
+        '<textarea data-q="' + p.q + ' Piece, paragraph ' + p.n + ' (' + esc(p.head) + ')." id="p-' + p.stage + '" rows="4"></textarea></div>' +
+      '<p><strong>Which moves did you use in this paragraph?</strong> Tap them.</p>' +
+      '<div class="movetag" id="tag-' + p.stage + '"></div>' +
+      '<p class="tally" id="tally-' + p.stage + '"></p>' +
+      '<div class="fb" id="fb-' + p.stage + '" role="status" aria-live="polite"></div>' +
+      '<div class="row"><button class="btn go" onclick="LL.finish(\'' + p.stage + '\')">' +
+        (p.n < 4 ? 'Done with this paragraph →' : 'My piece is done →') + '</button></div>';
+  });
+}
+function renderTags(){
+  const used = usedMoves();
+  PARAS.forEach(p => {
+    const box = $('tag-' + p.stage); if (!box) return;
+    /* planned moves first, the rest after, so the plan is the easy path */
+    const order = PLAN.concat(MOVES.map(m => m.k).filter(k => !PLAN.includes(k)));
+    box.innerHTML = order.map(k => {
+      const m = MOVES.find(x => x.k === k);
+      return '<button class="' + (TAGS[p.stage].includes(k) ? 'on' : '') + '" data-s="' + p.stage + '" data-m="' + k + '" title="' + esc(m.ex) + '">' +
+        (TAGS[p.stage].includes(k) ? '✓ ' : '') + esc(m.t) + '</button>';
+    }).join('');
+    box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      const a = TAGS[b.dataset.s], i = a.indexOf(b.dataset.m);
+      if (i > -1) a.splice(i, 1); else a.push(b.dataset.m);
+      clearSay(b.dataset.s); renderTags(); saveBank();
+    }));
+    $('tally-' + p.stage).innerHTML = 'Different moves in your whole piece so far: <b>' + used.size + '</b> of 3.';
+  });
+}
+
+/* ---------------- Part 7: tools ---------------- */
+function refSentence(t){
+  return t.quote ? t.lead + ' “' + t.quote + '” (' + t.cite + ').' : t.lead + ' (' + t.cite + ').';
+}
+function renderTools(){
+  $('tools').innerHTML = TOOLS.map(t => {
+    const pos = PICKED.indexOf(t.k);
+    return '<button class="chip' + (pos > -1 ? ' on' : '') + '" data-t="' + t.k + '">' +
+      '<span class="num">' + (pos > -1 ? pos + 1 : '○') + '</span>' +
+      '<span><span class="ttl">' + esc(t.t) + '</span>' +
+      (t.quote ? '<span class="qt">“' + esc(t.quote) + '” <span class="cite">(' + esc(t.cite) + ')</span></span>' : '<span class="cite">(' + esc(t.cite) + ')</span>') +
+      '<span class="plain">' + esc(t.plain) + '</span></span></button>';
+  }).join('');
+  $('tools').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.t, i = PICKED.indexOf(k);
+    if (i > -1) PICKED.splice(i, 1);
+    else {
+      if (PICKED.length >= 2){ say('s7','hint','Two is the number.','Tap one of your green cards to take it out first.'); return; }
+      PICKED.push(k);
+    }
+    clearSay('s7'); renderTools(); updateToolStages(); saveBank();
+  }));
+}
+
+/* ---------------- Part 8: the twist ---------------- */
+function pieceSentences(){
+  const out = [];
+  PARAS.forEach(p => {
+    const v = ($('p-' + p.stage) ? $('p-' + p.stage).value : '').trim();
+    if (!v || hasBlank(v)) return;
+    (v.match(/[^.!?]+[.!?]+["”’]?|[^.!?]+$/g) || []).forEach(s => { s = s.trim(); if (s.length > 8) out.push(s); });
+  });
+  return out;
+}
+function refreshSentences(){
+  const sel = $('origSent'), keep = sel.value;
+  const ss = pieceSentences();
+  sel.innerHTML = '<option value="">Pick one…</option>' + ss.map(s => '<option' + (s === keep ? ' selected' : '') + '>' + esc(s) + '</option>').join('');
+  if (keep && !ss.includes(keep)){ const o = document.createElement('option'); o.textContent = keep; o.selected = true; sel.appendChild(o); }
+}
+$('origSent').addEventListener('change', saveBank);
+function renderUses(){
+  $('uses').innerHTML = USES.map((u, i) => chipHtml('data-u', String(i), 'to ' + u, '', USE === i)).join('');
+  $('uses').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { USE = +b.dataset.u; clearSay('s8'); renderUses(); saveBank(); }));
+}
+
+/* ---------------- Parts 9–10: one per tool ----------------
+   Built ONCE, so the answer boxes always exist and keep constant data-q text
+   (student.js fingerprints the box count and restores by question text).
+   Picking tools only updates the heading, the reference and the stem. */
+function buildToolStages(){
+  ['s9','s10'].forEach((st, i) => {
+    $('body-' + st).innerHTML =
+      '<h2 id="th-' + st + '">Part ' + (9 + i) + '</h2>' +
+      '<div class="made" id="ref-' + st + '"></div>' +
+      '<p class="q"><strong>Q' + (7 + i) + '.</strong> Now explain how this tool would twist <em>your</em> words. Fill in every blank.</p>' +
+      '<div class="abox"><p class="lab">Analysis, paragraph ' + (2 + i) + '</p>' +
+        '<textarea data-q="Q' + (7 + i) + '. How Big Brother’s ' + (i ? 'second' : 'first') + ' tool twists the piece." id="a' + (i + 1) + '" rows="4"></textarea></div>' +
+      '<div class="stems"><p class="lab">Ideas for the “because”, use one if you want</p>' +
+        '<p>• …because people would stop seeing ____.<br>• …because the Party wants people to ____.<br>• …because then nobody could ____.</p></div>' +
+      (i === 1 ? '<p class="q"><strong>Q9.</strong> Last line of your analysis.</p>' +
+        '<div class="abox"><p class="lab">Your last line</p><textarea data-q="Q9. Closing line: what this shows about words and power." id="a3" rows="2"></textarea></div>' : '') +
+      '<div class="fb" id="fb-' + st + '" role="status" aria-live="polite"></div>' +
+      '<div class="row"><button class="btn go" onclick="LL.finish(\'' + st + '\')">' + (i === 0 ? 'Done with this tool →' : 'Build both pages →') + '</button></div>';
+  });
+  setAuto($('a3'), CLOSE_STEM);
+}
+function updateToolStages(){
+  ['s9','s10'].forEach((st, i) => {
+    const t = toolByKey(PICKED[i]);
+    $('th-' + st).textContent = 'Part ' + (9 + i) + ': ' + (t ? t.t : 'pick two tools in Part 7 first');
+    $('ref-' + st).innerHTML = t ? '<b>The machine writes your reference to the book:</b><br>' + esc(refSentence(t))
+                                 : 'Go back to Part 7 and tap two of Big Brother’s tools.';
+    const a = $('a' + (i + 1));
+    /* swap the stem only if she hasn't written in it, or it's still another tool's stem */
+    if (t && (!a.value.trim() || TOOLS.some(x => TOOL_STEM(x) === a.value.trim()))){ a.value = TOOL_STEM(t); }
+    if (t) a.dataset.auto = TOOL_STEM(t);
+  });
+}
+
+/* ---------------- the two pages ---------------- */
+function pieceTitle(){
+  const t = $('mTitle').value.trim();
+  return t || (changeName().charAt(0).toUpperCase() + changeName().slice(1) + ': A Change America Needs');
+}
+function val(id){ const el = $(id); if (!el) return ''; const v = el.value.trim(); return hasBlank(v) ? '' : v; }
+function analysisParas(){
+  const out = [];
+  const o = $('origSent').value.trim(), tw = $('twist').value.trim();
+  let p1 = val('a0');
+  if (o && tw) p1 += (p1 ? ' ' : '') + 'For example, I wrote, “' + o.replace(/["“”]/g,'') + '” The Party could twist that into “' + tw.replace(/["“”]/g,'') + '”';
+  if (p1) out.push(p1);
+  PICKED.forEach((k, i) => {
+    const t = toolByKey(k); if (!t) return;
+    const a = val('a' + (i + 1));
+    out.push(refSentence(t) + (a ? ' ' + a : ''));
+  });
+  const c = val('a3'); if (c) out.push(c);
+  return out;
+}
+function buildPaperHtml(){
+  if (!CHANGE || !PURPOSE) return '<p>Pick your change and your purpose in Part 1 first.</p>';
+  const name = $('mName').value.trim() || 'Your Name';
+  const teach = $('mTeacher').value.trim() || 'Teacher';
+  const course = $('mCourse').value.trim() || 'English 12A';
+  const date = $('mDate').value.trim() || mlaDate();
+  const piece = PARAS.map(p => val('p-' + p.stage)).filter(Boolean);
+  return '<div class="hdr">' + esc(name) + '<br>' + esc(teach) + '<br>' + esc(course) + '<br>' + esc(date) + '</div>' +
+    '<div class="ttl">' + esc(pieceTitle()) + '</div>' +
+    piece.map(p => '<p>' + esc(p) + '</p>').join('') +
+    '<div class="ttl ttl2">How Big Brother Would Twist My Words</div>' +
+    analysisParas().map(p => '<p>' + esc(p) + '</p>').join('') +
+    '<div class="wc"><h4>Works Cited</h4><p>' + WORKS + '</p></div>';
+}
+function mlaDate(){
+  const d = new Date();
+  return d.getDate() + ' ' + d.toLocaleDateString('en-US',{month:'long'}) + ' ' + d.getFullYear();
+}
+function paperPlain(){
+  let out = '';
+  $('paperbox').childNodes.forEach(n => {
+    if (n.nodeType !== 1) return;
+    if (n.classList && n.classList.contains('wc')){
+      out += '\nWorks Cited\n';
+      n.querySelectorAll('p').forEach(p => out += p.innerText.trim() + '\n');
+    } else out += n.innerText.trim() + '\n\n';
+  });
+  return out.trim() + '\n';
+}
+const words = s => s.trim().split(/\s+/).filter(Boolean).length;
+function countWords(){
+  const pw = PARAS.reduce((n, p) => n + words(val('p-' + p.stage)), 0);
+  const aw = analysisParas().reduce((n, p) => n + words(p), 0);
+  const note = (n, goal) => n >= goal ? '✓ that’s the target' : 'aim for about ' + goal;
+  $('wcount').textContent = 'Your piece: about ' + pw + ' words (' + note(pw, GOAL_PIECE) + '). ' +
+    'Your analysis: about ' + aw + ' words (' + note(aw, GOAL_ANALYSIS) + ').';
+}
+function rebuild(){ $('paperbox').innerHTML = buildPaperHtml(); countWords(); }
+$('rebuild').addEventListener('click', rebuild);
+
+/* ---------------- copy ---------------- */
+function copyFeedback(kind, head, body){
+  const box = $('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+$('copyAll').addEventListener('click', async () => {
+  if (!$('paperbox').innerHTML.trim()) rebuild();
+  const plain = paperPlain();
+  const html = '<div style="font-family:Georgia,serif;font-size:12pt;line-height:2;">' +
+    $('paperbox').innerHTML.replace(/text-indent:1.6rem/g,'text-indent:0.5in') + '</div>';
+  $('previewText').value = plain;
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html],{type:'text/html'}),
+        'text/plain': new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = $('previewText'); $('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+  if(ok) copyFeedback('good','✓ Copied — your piece and your analysis.',
+    'Go to your Canvas assignment, click <strong>Text Submission</strong>, click in the box and paste (Ctrl+V). Then Submit.');
+  else {
+    $('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — two seconds.',
+      'Both pages are in the box below. Click in it, press <strong>Ctrl+A</strong>, then <strong>Ctrl+C</strong>.');
+  }
+});
+$('showPrev').addEventListener('click', () => {
+  if (!$('paperbox').innerHTML.trim()) rebuild();
+  $('previewText').value = paperPlain();
+  $('preview').classList.toggle('show');
+});
+
+/* ---------------- stage engine ---------------- */
+const ACTIVITY_TITLE = 'The Reform Machine — Words, Power, and Big Brother';
+const ORDER = ['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10'];
+const REWARDS = {
+  s1:  { star:'★', msg:'Change picked. You know what you’re fighting for.' },
+  s2:  { star:'★', msg:'Moves picked. Now use them.' },
+  s3:  { star:'★', msg:'You grabbed them.' },
+  s4:  { star:'★', msg:'Problem named.' },
+  s5:  { star:'★', msg:'The change is on the page.' },
+  s6:  { star:'★', msg:'Your piece is done. That’s half the assessment.' },
+  s7:  { star:'★', msg:'You know his tools now.' },
+  s8:  { star:'★', msg:'You twisted your own words. That’s the hard part.' },
+  s9:  { star:'★', msg:'One tool explained.' },
+  s10: { star:'★', msg:'Both pages done. Go build them.' }
+};
+const BLOCKS = { s3:'blk1', s4:'blk2', s5:'blk3', s6:'blk4', s8:'blk5', s9:'blk6', s10:'blk7' };
+
+const LL = {
+  extra:{}, summary:{}, done:new Set(),
+  finish(id, extraEvidence){
+    /* Gates. The button is never hidden; pressing it too early explains what's missing. */
+    if (id === 's1'){
+      if (!CHANGE){ say('s1','hint','Pick a change first.','Tap one of the cards at the top. Your own idea counts too.'); return; }
+      if (CHANGE === 'own' && !$('ownIdea').value.trim()){ say('s1','hint','Type your idea.','A few words in the box is enough.'); return; }
+      if (!PURPOSE){ say('s1','hint','Pick a purpose.','Inform, persuade, entertain, describe or reflect. Any of them can get a full grade.'); return; }
+    }
+    if (id === 's2' && PLAN.length < 3){
+      say('s2','hint','Pick at least three.','The assignment asks for <strong>varied</strong> language, so three different moves is the floor. You can pick more.'); return;
+    }
+    const p = PARAS.find(x => x.stage === id);
+    if (p){
+      if (hasBlank($('p-' + id).value)){ say(id,'hint','There’s still a blank.','Replace every <strong>____</strong> with your own words.'); return; }
+      if (!TAGS[id].length){ say(id,'hint','Tag your moves.','Tap at least one move you used in this paragraph. If you didn’t use one yet, add a sentence that does.'); return; }
+      if (id === 's6' && usedMoves().size < 3){
+        say(id,'hint','Three different moves, please.','So far your piece uses ' + usedMoves().size + '. Add one more kind of move somewhere, then tag it. A short punchy sentence is the quickest one to add.'); return;
+      }
+      LL.summary[id] = TAGS[id].map(k => MOVES.find(m => m.k === k).t).join(' · ');
+      refreshSentences();
+    }
+    if (id === 's7' && PICKED.length !== 2){
+      say('s7','hint','Pick two tools.','Tap two cards. They turn green and get a number.'); return;
+    }
+    if (id === 's7') LL.summary.s7 = PICKED.map(k => toolByKey(k).t).join(' + ');
+    if (id === 's8'){
+      if (USE === null){ say('s8','hint','Step 1 first.','Tap what Big Brother would use your change for.'); return; }
+      if (!$('origSent').value){ say('s8','hint','Pick one of your sentences.','Step 2: choose it from the list.'); return; }
+      if (!$('twist').value.trim()){ say('s8','hint','Write Big Brother’s version.','Step 3: one sentence is enough. Say it out loud first if that’s easier.'); return; }
+      if (hasBlank($('a0').value)){ say('s8','hint','There’s still a blank.','Step 4: fill both <strong>____</strong>.'); return; }
+    }
+    if ((id === 's9' || id === 's10') && hasBlank($('a' + (id === 's9' ? 1 : 2)).value)){
+      say(id,'hint','There’s still a blank.','Fill every <strong>____</strong>. The “because” is the part your teacher is grading.'); return;
+    }
+    if (id === 's10' && hasBlank($('a3').value)){ say('s10','hint','One more blank.','Finish your last line.'); return; }
+    clearSay(id);
+    const stage = $(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active','open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    LL.paint(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+    if (!ORDER.some(x => !LL.done.has(x))){ $('blkwc').querySelector('rect').setAttribute('fill','#cfe4d8'); rebuild(); }
+    saveBank();
+  },
+  paint(id){ const b = BLOCKS[id]; if (b) $(b).querySelector('rect').setAttribute('fill','#cfe4d8'); },
+  refreshSummary(id){
+    const sum = $('sum-' + id); if (!sum) return;
+    const fields = [...$(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => hasBlank(el.value.trim())).length;
+    if (blanks) sum.textContent = blanks + ' blank left — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = $('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span'); s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span'); m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = $(nextId || 'turnin');
+    t.classList.add('active');
+    if (nextId === 's8') refreshSentences();
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+  toggle(id){ $(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+  if (e.target.closest && e.target.closest('#paperbox')) countWords();
+});
+
+/* ---------------- saving the choices ----------------
+   student.js saves every [data-q] box. The choices (change, purpose, moves,
+   tags, tools, use, picked sentence) live in JS state, so they get their own
+   small layer. Every storage call is wrapped. */
+const BANK_KEY = 'llbank:' + location.pathname;
+const BANK_MAX_AGE = 45 * 24 * 60 * 60 * 1000;
+const BSTORE = (function(){
+  try { const s = window.localStorage; s.setItem('__bprobe','1'); s.removeItem('__bprobe'); return s; }
+  catch(e){ return null; }
+})();
+let bankTimer = null;
+function saveBank(){
+  if (!BSTORE) return;
+  clearTimeout(bankTimer);
+  bankTimer = setTimeout(() => {
+    try {
+      BSTORE.setItem(BANK_KEY, JSON.stringify({
+        t: Date.now(), change: CHANGE, own: $('ownIdea').value, purpose: PURPOSE,
+        plan: PLAN, tags: TAGS, picked: PICKED, use: USE, orig: $('origSent').value,
+        name: $('mName').value, teacher: $('mTeacher').value, course: $('mCourse').value, title: $('mTitle').value
+      }));
+    } catch(e){}
+  }, 300);
+}
+function restoreBank(){
+  if (!BSTORE) return;
+  let s = null;
+  try { s = JSON.parse(BSTORE.getItem(BANK_KEY) || 'null'); } catch(e){ return; }
+  if (!s) return;
+  if (Date.now() - (s.t || 0) > BANK_MAX_AGE){ try { BSTORE.removeItem(BANK_KEY); } catch(e){} return; }
+  if (!s.change && !s.purpose) return;
+  CHANGE = s.change || null; PURPOSE = s.purpose || null;
+  $('ownIdea').value = s.own || '';
+  PLAN = s.plan || []; TAGS = Object.assign({ s3:[], s4:[], s5:[], s6:[] }, s.tags || {});
+  PICKED = s.picked || []; USE = (s.use === 0 || s.use) ? s.use : null;
+  ['name','teacher','course','title'].forEach(k => { const el = $('m' + k.charAt(0).toUpperCase() + k.slice(1)); if (s[k]) el.value = s[k]; });
+  afterChoice(); renderMoves(); renderTags(); renderUses(); updateToolStages();
+  if (s.orig){ const o = document.createElement('option'); o.textContent = s.orig; o.selected = true; $('origSent').appendChild(o); }
+  const note = document.createElement('div');
+  note.className = 'restored';
+  note.innerHTML = '<span>✓ Your change, purpose, moves and tools came back from last time.</span>';
+  const btn = document.createElement('button');
+  btn.textContent = 'Clear them and start fresh';
+  btn.addEventListener('click', () => {
+    if (!confirm('Clear your change, purpose, moves and tools?')) return;
+    try { BSTORE.removeItem(BANK_KEY); } catch(e){}
+    location.reload();
+  });
+  note.appendChild(btn);
+  const b1 = $('s1').querySelector('.stage-body');
+  b1.insertBefore(note, b1.firstChild);
+}
+['mName','mTeacher','mCourse','mTitle'].forEach(i => $(i).addEventListener('input', saveBank));
+$('twist').addEventListener('input', saveBank);
+
+/* ---------------- go ---------------- */
+$('mDate').value = mlaDate();
+buildParaStages();
+buildToolStages();
+renderPart1();
+renderMoves();
+renderTags();
+renderTools();
+renderUses();
+updateToolStages();
+refreshSentences();
+restoreBank();
+</script>
+
+<script src="../assets/student.js"></script>
+</body>
+</html>
