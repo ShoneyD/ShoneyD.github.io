@@ -14,7 +14,10 @@
   from Range 3 the sight sways if a full draw is held too long. Per-range
   knobs live on each RANGES entry: R (target radius, m), dist ([near, far] m),
   guide (which targets get a gold landing ✕ while drawing, 0–1 from nearest to farthest), wind (max m/s² sideways),
-  sway (px).
+  sway (px), move ([slide px, bob m, Hz]: all targets slide together so
+  their words never overlap; each bobs on its own rhythm; they freeze when
+  the round is solved, and stay still under prefers-reduced-motion or the
+  Targets: still toggle).
 
   CONTENT-SWAPPABLE. Everything grammar-specific lives in two constants at the
   top of the script:
@@ -207,6 +210,7 @@
         <li><strong>Aim:</strong> move the mouse. The sight ⊕ follows it. (Keys: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>.)</li>
         <li><strong>Draw:</strong> press and <strong>hold</strong> the mouse button (or <kbd>Space</kbd>) to pull the string back. Let go to shoot. A full draw flies flatter and faster.</li>
         <li>Far targets need you to aim a little <strong>above</strong> them, because arrows drop. While you draw, a gold ✕ shows where the arrow will land on the target you're aiming at. In later ranges it only shows on the nearer targets.</li>
+        <li>The targets slide and bob. Aim a little ahead of where yours is going, or shoot as it slows down to turn around. (Teacher: the ↔ button freezes them.)</li>
         <li>Missing is fine. Grab another arrow. Only the word you hit counts.</li>
         <li>Five ranges. At the end, one button copies everything for Canvas.</li>
       </ol>
@@ -347,6 +351,7 @@
         <span id="windTxt">Wind: calm</span>
         <span id="aimTxt"></span>
         <span class="sp">
+          <button class="btn ghost small" id="moveBtn" aria-pressed="true">↔ Targets: moving</button>
           <button class="btn ghost small" id="easyBtn" aria-pressed="false">🎯 Easy aim: off</button>
           <button class="btn ghost small" id="sndBtn" aria-pressed="false">🔇 Sound: off</button>
         </span>
@@ -429,7 +434,7 @@ const LEARN = {
 const UNCLEAR = '🤔 Unclear';
 
 const RANGES = {
-  s1: { name:'Range 1', R:1.15, dist:[15,26], guide:1.0, wind:0, sway:0, warmup:true,
+  s1: { name:'Range 1', R:1.15, dist:[15,26], guide:1.0, wind:0, sway:0, move:[0, .22, .20], warmup:true,
     blocks:[ { learn:'nouns',
       tip:'Ask: could this be ANY one, or is it ONE specific person, place, day, team, or event? Specific ones wear capitals.',
       rounds:[
@@ -461,7 +466,7 @@ const RANGES = {
            ['Uncle Dev',0,'With his name attached, this is one specific person. Proper.']] }
     ]} ] },
 
-  s2: { name:'Range 2', R:1.05, dist:[17,32], guide:0.65, wind:0, sway:0,
+  s2: { name:'Range 2', R:1.05, dist:[17,32], guide:0.65, wind:0, sway:0, move:[35, .15, .10],
     blocks:[
     { learn:'ante',
       tip:'Swap each noun in for the pronoun and read the sentence again. The one that makes sense is the antecedent.',
@@ -496,7 +501,7 @@ const RANGES = {
            ['Jess',0,'Maybe! But Maya fits too. When a reader can’t tell, the right call is Unclear.']] }
     ]} ] },
 
-  s3: { name:'Range 3', R:1.0, dist:[19,38], guide:0.45, wind:0, sway:5,
+  s3: { name:'Range 3', R:1.0, dist:[19,38], guide:0.45, wind:0, sway:5, move:[50, .2, .12],
     blocks:[
     { learn:'demo',
       tip:'Look for this, that, these, or those standing on its own, pointing at something.',
@@ -534,7 +539,7 @@ const RANGES = {
            ['party',0,'Party is a noun. Look right after “coach.”']] }
     ]} ] },
 
-  s4: { name:'Range 4', R:0.95, dist:[21,44], guide:0.3, wind:1.6, sway:8,
+  s4: { name:'Range 4', R:0.95, dist:[21,44], guide:0.3, wind:1.6, sway:8, move:[60, .22, .13],
     blocks:[
     { learn:'refl',
       tip:'Look for a word ending in -self or -selves. The doer and the receiver are the same.',
@@ -571,7 +576,7 @@ const RANGES = {
            ['name',0,'Name is a noun.']] }
     ]} ] },
 
-  s5: { name:'Range 5', R:0.9, dist:[23,52], guide:0.18, wind:3.0, sway:11, final:true,
+  s5: { name:'Range 5', R:0.9, dist:[23,52], guide:0.18, wind:3.0, sway:11, move:[70, .25, .14], final:true,
     blocks:[ { learn:'champ',
       tip:'Reflexive or intensive? Take the -self word out. Broken = reflexive; still fine = intensive. Demonstratives stand ALONE. Relatives open a clue right after a noun.',
       rounds:[
@@ -732,6 +737,8 @@ for (const id in RANGES){
 
 let game = null;
 let soundOn = false, easyOn = false, actx = null;
+/* Moving targets are on unless the student's system asks for reduced motion. */
+let movesOn = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function plain(html){ const d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
@@ -788,13 +795,15 @@ function setupRound(r){
   const heights = shuffle([1.0, 1.35, 1.7, 2.05, 2.4]).slice(0, n);
   const targets = ts.map((t, i) => {
     const sx = n === 1 ? W / 2 : 150 + (W - 300) * i / (n - 1);
-    return { label: t[0], ok: !!t[1], why: t[2], z: depths[i], y: heights[i],
-             x: (sx - W / 2) * depths[i] / FOC, state: '' };
+    return { label: t[0], ok: !!t[1], why: t[2], z: depths[i], y: heights[i], hy: heights[i], hx: sx,
+             ph: Math.random() * 6.28, x: (sx - W / 2) * depths[i] / FOC, state: '' };
   });
   const wmax = game.R.wind;
   const wind = wmax ? Math.round((Math.random() * 2 - 1) * wmax * 10) / 10 : 0;
   game.round = { r, targets, stuck: [], wrongs: [], arrows: 0, solved: false, wind };
   game.fly = null; game.drawing = false; game.power = 0; game.hold = 0;
+  game.mt = Math.random() * 20;                 /* movement clock: a fresh starting pose each round */
+  moveTargets(0);
 
   const real = game.list.filter(x => !x.warm).length;
   const k = game.list.slice(0, game.ri + 1).filter(x => !x.warm).length;
@@ -809,6 +818,23 @@ function setupRound(r){
   $('gfb').className = 'fb';
   renderEasy();
   draw();
+  if (moving()) loop();
+}
+
+/* ---------- moving targets ----------
+   One shared slide for every target (so the words never run into each other)
+   plus a small bob each on its own rhythm. Smooth back-and-forth: they slow
+   down to turn around at each end, which is the easy moment to shoot. */
+function moving(){ return movesOn && game && game.round && !game.round.solved && game.R.move &&
+                          (game.R.move[0] > 0 || game.R.move[1] > 0); }
+function moveTargets(dt){
+  if (moving()) game.mt += dt;
+  const m = game.R.move || [0, 0, 0], w = 2 * Math.PI * m[2], k = movesOn ? 1 : 0;
+  const slide = k * m[0] * Math.sin(w * game.mt);
+  game.round.targets.forEach(t => {
+    t.x = (t.hx + slide - W / 2) * t.z / FOC;
+    t.y = t.hy + k * m[1] * Math.sin(w * 1.35 * game.mt + t.ph);
+  });
 }
 
 function windWord(w, long){
@@ -844,11 +870,31 @@ function launch(power, from){
   return { p: { x: dx / dz * z0, y: EYE + dy / dz * z0, z: z0 }, v: { x: dx * v, y: dy * v, z: dz * v } };
 }
 
+/* ---------- the bow, as one rigid piece ----------
+   Your drawing hand sits at the cheek (N0, low right). The arrow always lies
+   on the line from that hand to the sight; the bow's rest sits on that same
+   line, so when you aim, the whole bow + arrow swing together. Drawing slides
+   the nock back along the line and the arrow through the rest. */
+const ARROW_OVER = 86, DRAW_PX = 74;
+function bowGeom(){
+  const S = sightPoint(), p = game.power;
+  const N0 = { x: W / 2 + 150, y: H - 34 };
+  const R = { x: N0.x + (S.x - N0.x) * .36, y: N0.y + (S.y - N0.y) * .36 };
+  let ux = S.x - R.x, uy = S.y - R.y; const n = Math.hypot(ux, uy) || 1; ux /= n; uy /= n;
+  const back = Math.hypot(R.x - N0.x, R.y - N0.y) + p * DRAW_PX;
+  const N = { x: R.x - ux * back, y: R.y - uy * back };
+  const tip = { x: R.x + ux * (ARROW_OVER - p * (DRAW_PX - 8)), y: R.y + uy * (ARROW_OVER - p * (DRAW_PX - 8)) };
+  const cant = (S.x - W / 2) * .00025;                       /* a slight lean toward where you aim */
+  const T = { x: R.x - 14 + 150 * Math.sin(cant), y: R.y - 150 };
+  const B = { x: R.x + 14 - 190 * Math.sin(cant), y: R.y + 190 };
+  return { S, N0, R, N, tip, T, B, ux, uy };
+}
+
 /* ---------- shooting ---------- */
 function fire(){
   if (!canShoot()) return;
   const L = launch(Math.max(.05, game.power));
-  game.fly = { p: L.p, v: L.v, t: 0, passes: [] };
+  game.fly = { p: L.p, v: L.v, t: 0, passes: [], from: bowGeom().tip };
   game.drawing = false; game.power = 0; game.hold = 0;
   game.round.arrows++;
   sfx('twang'); loop();
@@ -856,7 +902,7 @@ function fire(){
 function fireEasy(t){
   if (!canShoot()) return;
   game.stats.easy = true;
-  game.fly = { magic: true, to: t, t: 0, dur: .55, p: { x: 0, y: EYE - .1, z: 1 }, v: { x: 0, y: 0, z: 1 } };
+  game.fly = { magic: true, to: t, t: 0, dur: .55, p: { x: 0, y: EYE - .1, z: 1 }, v: { x: 0, y: 0, z: 1 }, from: bowGeom().tip };
   game.round.arrows++;
   sfx('twang'); loop();
 }
@@ -866,7 +912,7 @@ function step(dt){
   if (f.magic){
     f.t += dt;
     const k = Math.min(1, f.t / f.dur), e = 1 - Math.pow(1 - k, 2);
-    f.p = { x: f.to.x * e, y: (EYE - .1) + (f.to.y - (EYE - .1)) * e + Math.sin(k * Math.PI) * .6, z: 1 + (f.to.z - 1) * e };
+    f.p = { x: f.to.x * e, y: (EYE - .1) + (f.to.y - (EYE - .1)) * e + Math.sin(k * Math.PI) * .6, z: 1 + (f.to.z - 1) * e };   /* chases a moving target */
     if (k >= 1) landHit(f.to, { x: f.to.x, y: f.to.y, z: f.to.z }, -1);
     return;
   }
@@ -891,7 +937,7 @@ function step(dt){
 }
 
 function landHit(t, at, ring){
-  game.round.stuck.push({ x: at.x, y: at.y, z: at.z });
+  game.round.stuck.push({ t, dx: at.x - t.x, dy: at.y - t.y, z: t.z });   /* rides along with its target */
   game.fly = null;
   sfx('thunk');
   const R = game.round, r = R.r, S = game.stats;
@@ -932,8 +978,13 @@ function landMiss(where){
   else if (Math.abs(near.dy) >= Math.abs(near.dx))
     msg = near.dy < 0 ? 'Went under. Aim a little higher (farther targets need more height) or draw fuller.'
                       : 'Went over the top. Aim a little lower.';
-  else msg = 'Drifted ' + (near.dx > 0 ? 'right' : 'left') + '. ' +
-             (Math.abs(game.round.wind) >= .3 ? 'That’s the wind. Aim a little into it.' : 'Nudge your sight the other way.');
+  else {
+    const slid = movesOn && game.R.move && game.R.move[0] > 0;
+    msg = 'Missed to the ' + (near.dx > 0 ? 'right' : 'left') + '. ' +
+          (Math.abs(game.round.wind) >= .3 ? 'The wind pushes your arrow. Aim a little into it. ' : '') +
+          (slid ? 'The targets keep sliding while your arrow flies. Aim a little ahead of where yours is going, or wait and shoot when it slows to turn around.'
+                : (Math.abs(game.round.wind) >= .3 ? '' : 'Nudge your sight the other way.'));
+  }
   say('info', 'Missed. Grab another arrow.', msg + ' Missing doesn’t count against you.');
   draw();
 }
@@ -949,9 +1000,10 @@ function loop(){
       game.power = Math.min(1, game.power + dt / FULL_DRAW);
       if (game.power >= 1) game.hold += dt;
     }
+    moveTargets(dt);
     step(dt);
     draw();
-    if (game && (game.fly || game.drawing)) requestAnimationFrame(tick);
+    if (game && (game.fly || game.drawing || moving())) requestAnimationFrame(tick);
     else rafOn = false;
   };
   requestAnimationFrame(tick);
@@ -1021,6 +1073,15 @@ function renderEasy(){
     row.appendChild(b);
   });
 }
+function syncMoveBtn(){
+  $('moveBtn').setAttribute('aria-pressed', movesOn);
+  $('moveBtn').textContent = movesOn ? '↔ Targets: moving' : '⏸ Targets: still';
+}
+$('moveBtn').onclick = () => {
+  movesOn = !movesOn; syncMoveBtn();
+  if (game && game.round){ moveTargets(0); draw(); if (moving()) loop(); }
+};
+syncMoveBtn();
 $('easyBtn').onclick = () => {
   easyOn = !easyOn;
   $('easyBtn').setAttribute('aria-pressed', easyOn);
@@ -1078,7 +1139,7 @@ function draw(){
     .concat(R.stuck.map(s => ({ z: s.z - .01, f: () => drawStuck(s) })));
   things.sort((a, b) => b.z - a.z).forEach(o => o.f());
   R.targets.forEach(drawSign);
-  if (game.fly) drawFlying(game.fly.p);
+  if (game.fly) drawFlying(game.fly);
   drawWind(R.wind);
   drawBow();
   if (canShoot() || game.drawing) drawSight();
@@ -1155,7 +1216,8 @@ function roundRect(x, y, w, h, r){
 
 /* An arrow stuck in a target, seen from behind: a short shaft and fletching. */
 function drawStuck(s){
-  const p = proj(s.x, s.y, s.z), L = Math.max(6, Math.min(40, p.s * .55));
+  const sx = s.t ? s.t.x + s.dx : s.x, sy = s.t ? s.t.y + s.dy : s.y, sz = s.t ? s.t.z : s.z;
+  const p = proj(sx, sy, sz), L = Math.max(6, Math.min(40, p.s * .55));
   ctx.save(); ctx.lineCap = 'round';
   ctx.strokeStyle = C.wood; ctx.lineWidth = Math.max(1.5, L * .09);
   ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + L * .25, p.y + L * .7); ctx.stroke();
@@ -1164,8 +1226,12 @@ function drawStuck(s){
   ctx.restore();
 }
 /* The arrow in flight, from behind: a nock with three vanes, shrinking with distance. */
-function drawFlying(p){
-  const q = proj(p.x, p.y, Math.max(p.z, .8)), r = Math.max(3, Math.min(34, q.s * .09));
+function drawFlying(f){
+  const p = f.p, q = proj(p.x, p.y, Math.max(p.z, .8));
+  /* for the first instant it leaves from the bow, then it's out on the range */
+  const k = Math.min(1, f.t / .12);
+  if (f.from && k < 1){ q.x = f.from.x + (q.x - f.from.x) * k; q.y = f.from.y + (q.y - f.from.y) * k; q.s = q.s * k + 300 * (1 - k); }
+  const r = Math.max(3, Math.min(34, q.s * .09));
   ctx.save(); ctx.translate(q.x, q.y);
   ctx.strokeStyle = C['ring-red']; ctx.lineWidth = Math.max(1.5, r * .35); ctx.lineCap = 'round';
   for (let i = 0; i < 3; i++){ const a = i * 2.094 - 1.57; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); ctx.stroke(); }
@@ -1209,49 +1275,53 @@ function drawSight(){
   ctx.restore();
 }
 
-/* Your bow in the foreground. It leans toward the sight, the string comes
-   back toward you as you draw, and the arrow sits on the rest pointing out. */
+/* Your bow in the foreground — one rigid piece built by bowGeom(). The arrow
+   lies on the rest and points at the sight; the string runs from each limb
+   tip to the nock at your hand. After a shot the string snaps straight and
+   the next arrow appears once you can shoot again. */
 function drawBow(){
-  const a = sightPoint(), p = game.power;
-  const ox = (a.x - W / 2) * .07, oy = (a.y - HZ) * .05;
-  /* held low, so the bow never covers a target or its word */
-  const rx = W / 2 - 60 + ox, ry = H - 52 + Math.max(-10, Math.min(10, oy));   /* arrow rest */
-  const top = { x: rx + 30, y: ry - 140 }, bot = { x: rx + 30, y: ry + 200 };
-  const nock = { x: rx + 110 + p * 140, y: ry + 40 + p * 50 };
+  const g = bowGeom(), loaded = canShoot() || game.drawing;
   ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  /* string */
-  ctx.strokeStyle = C.string; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(top.x, top.y); ctx.lineTo(canShoot() || game.drawing ? nock.x : rx + 110, canShoot() || game.drawing ? nock.y : ry + 40); ctx.lineTo(bot.x, bot.y); ctx.stroke();
-  /* limbs + riser */
-  ctx.strokeStyle = C.wood; ctx.lineWidth = 14;
-  ctx.beginPath(); ctx.moveTo(top.x, top.y); ctx.quadraticCurveTo(rx - 40, ry, bot.x, bot.y); ctx.stroke();
-  ctx.fillStyle = '#4a3020'; roundRect(rx - 24, ry - 6, 28, 70, 8); ctx.fill();          /* grip */
-  /* arrow on the rest, aimed at the sight */
-  if (canShoot() || game.drawing){
-    const dx = a.x - rx, dy = a.y - ry, n = Math.hypot(dx, dy) || 1;
-    const out = 46 - p * 34, tip = { x: rx + dx / n * out, y: ry + dy / n * out };
+  /* string: to the nock while loaded, straight when it has just been released */
+  ctx.strokeStyle = C.string; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(g.T.x, g.T.y);
+  if (loaded) ctx.lineTo(g.N.x, g.N.y);
+  ctx.lineTo(g.B.x, g.B.y); ctx.stroke();
+  /* limbs bend away from you, riser in the middle */
+  ctx.strokeStyle = C.wood; ctx.lineWidth = 13;
+  ctx.beginPath(); ctx.moveTo(g.T.x, g.T.y); ctx.quadraticCurveTo(g.R.x - 46, g.R.y + 10, g.B.x, g.B.y); ctx.stroke();
+  ctx.fillStyle = '#4a3020'; roundRect(g.R.x - 30, g.R.y + 6, 26, 66, 8); ctx.fill();        /* grip, just under the rest */
+  ctx.fillStyle = '#3a2618'; ctx.beginPath(); ctx.arc(g.R.x - 17, g.R.y + 2, 5, 0, Math.PI * 2); ctx.fill();   /* the rest */
+  if (loaded){
+    /* shaft from the nock, across the rest, out to the tip */
     ctx.strokeStyle = C.wood; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.moveTo(nock.x, nock.y); ctx.lineTo(tip.x, tip.y); ctx.stroke();
-    ctx.fillStyle = '#6b6f76'; ctx.beginPath(); ctx.arc(tip.x, tip.y, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(g.N.x, g.N.y); ctx.lineTo(g.tip.x, g.tip.y); ctx.stroke();
+    ctx.fillStyle = '#6b6f76';
+    const a = Math.atan2(g.uy, g.ux);
+    ctx.save(); ctx.translate(g.tip.x, g.tip.y); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-4, -6); ctx.lineTo(-4, 6); ctx.closePath(); ctx.fill(); ctx.restore();
+    /* fletching near the nock */
     ctx.fillStyle = C['ring-red'];
-    ctx.save(); ctx.translate(nock.x, nock.y); ctx.rotate(Math.atan2(tip.y - nock.y, tip.x - nock.x));
-    [-1, 1].forEach(sg => { ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(34, 0); ctx.lineTo(14, sg * 13); ctx.closePath(); ctx.fill(); });
+    ctx.save(); ctx.translate(g.N.x, g.N.y); ctx.rotate(a);
+    [-1, 1].forEach(sg => { ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(36, 0); ctx.lineTo(14, sg * 13); ctx.closePath(); ctx.fill(); });
     ctx.restore();
+    /* your hand on the string */
+    ctx.fillStyle = '#c99b78'; ctx.beginPath(); ctx.ellipse(g.N.x + 10, g.N.y + 14, 22, 16, a, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
 }
 
 function drawWind(w){
-  const x = 26, y = 22, a = Math.abs(w);
+  const x = 92, y = 18, a = Math.abs(w);
   ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,.8)'; roundRect(x - 10, y - 12, 150, 46, 8); ctx.fill();
-  ctx.strokeStyle = C.wood; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(x, y + 28); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.8)'; roundRect(14, 8, 156, 54, 8); ctx.fill();
+  ctx.strokeStyle = C.wood; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 18); ctx.stroke();
   ctx.fillStyle = C.warn; ctx.beginPath();
-  if (a < .3){ ctx.moveTo(x, y - 6); ctx.lineTo(x + 5, y + 12); ctx.lineTo(x, y + 14); }
-  else { const len = 12 + a * 12, d = w > 0 ? 1 : -1; ctx.moveTo(x, y - 6); ctx.lineTo(x + d * len, y + 1); ctx.lineTo(x, y + 8); }
+  if (a < .3){ ctx.moveTo(x, y - 4); ctx.lineTo(x + 5, y + 10); ctx.lineTo(x, y + 12); }
+  else { const len = Math.min(64, 14 + a * 14), d = w > 0 ? 1 : -1; ctx.moveTo(x, y - 4); ctx.lineTo(x + d * len, y + 2); ctx.lineTo(x, y + 8); }
   ctx.fill();
-  ctx.fillStyle = C.ink; ctx.font = '700 13px "Atkinson Hyperlegible", Verdana, sans-serif';
-  ctx.fillText('wind: ' + windWord(w), x + 48, y + 14);
+  ctx.fillStyle = C.ink; ctx.font = '700 13px "Atkinson Hyperlegible", Verdana, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('wind: ' + windWord(w), x, y + 36);
   ctx.restore();
 }
 
