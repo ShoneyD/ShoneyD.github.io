@@ -23,7 +23,9 @@
   top of the script:
 
       LEARN    the mini-lesson card shown above the range for each block
-      RANGES   five stages → blocks → rounds. A round is
+      RANGES   five stages → blocks → rounds. Each block is a bank;
+               pick = how many are drawn per play, mix = tags (k) that
+               must each appear once. A round is
                { ask, s, t:[[label, isRight, why], …] }
                s marks candidate words {like this} and the focus pronoun [like this].
 
@@ -158,6 +160,7 @@
         touch-action:none; cursor:none; background:var(--sky2) }
   canvas#cv:focus-visible{ outline:3px solid var(--accent); outline-offset:3px }
   .controls{ font-size:.85rem; color:var(--soft); margin:.5rem 0 .6rem }
+  .keyhint{ font-size:.88rem; color:var(--soft) }
   #easyRow{ display:none; flex-wrap:wrap; gap:.5rem; margin:0 0 .8rem }
   #easyRow.show{ display:flex }
   #easyRow .lab{ width:100%; font-size:.8rem; color:var(--soft); margin:0 }
@@ -212,6 +215,7 @@
         <li>Far targets need you to aim a little <strong>above</strong> them, because arrows drop. While you draw, a gold ✕ shows where the arrow will land on the target you're aiming at. In later ranges it only shows on the nearer targets.</li>
         <li>The targets slide and bob. Aim a little ahead of where yours is going, or shoot as it slows down to turn around. (Teacher: the ↔ button freezes them.)</li>
         <li>Missing is fine. Grab another arrow. Only the word you hit counts.</li>
+        <li>Hit the right word, read why, then press <kbd>Space</kbd> or <kbd>Enter</kbd> for the next round.</li>
         <li>Five ranges. At the end, one button copies everything for Canvas.</li>
       </ol>
     </div>
@@ -260,14 +264,14 @@
   </section>
 
   <!-- ============ RANGE 3 ============ -->
-  <section class="stage" id="s3" data-title="Range 3 — Demonstrative & Relative Pronouns">
+  <section class="stage" id="s3" data-title="Range 3 — Demonstrative, Relative & Indefinite Pronouns">
     <button class="donebar" onclick="LL.toggle('s3')">
-      <span class="tick">✓</span> <strong>Range 3 — Pointers &amp; Clue-Starters</strong>
+      <span class="tick">✓</span> <strong>Range 3 — Pointers, Clue-Starters &amp; Mystery Words</strong>
       <span class="sum" id="sum-s3"></span>
     </button>
     <div class="stage-body">
-      <h2>Range 3 — Pointers &amp; Clue-Starters</h2>
-      <p class="done-looks"><strong>Done looks like:</strong> three demonstrative rounds, then three relative rounds.</p>
+      <h2>Range 3 — Pointers, Clue-Starters &amp; Mystery Words</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> three demonstrative rounds, then three relative, then three indefinite.</p>
       <div class="learn"></div>
       <div class="mount"></div>
       <div class="log"></div>
@@ -297,7 +301,7 @@
     </button>
     <div class="stage-body">
       <h2>Range 5 — The Championship</h2>
-      <p class="done-looks"><strong>Done looks like:</strong> eight mixed rounds (anything from Ranges 1–4, plus a couple of traps), then two short sentences of your own.</p>
+      <p class="done-looks"><strong>Done looks like:</strong> nine mixed rounds (anything from Ranges 1–4, plus a couple of traps), then two short sentences of your own.</p>
       <div class="learn"></div>
       <div class="mount"></div>
 
@@ -367,6 +371,7 @@
       <div class="fb" id="gfb" role="status" aria-live="polite"></div>
       <div class="row" id="nextRow" style="display:none">
         <button class="btn go" id="nextBtn">Next round →</button>
+        <span class="keyhint">or press <kbd>Space</kbd> or <kbd>Enter</kbd></span>
       </div>
     </div>
   </div>
@@ -408,6 +413,14 @@ const LEARN = {
     <div class="linkdemo"><p>The <span data-a="1">kid</span> <span data-p="1">who</span> sits behind me plays chess.</p></div>
     <p class="test">Which kid? The one <em>who sits behind me</em>. “Who” opens the clue.</p></div>`,
 
+  indef: `<div class="learn-card"><p class="lab">Indefinite pronouns: the mystery words <span class="new">NEW</span></p>
+    <div class="chips"><span class="chip">someone</span><span class="chip">everyone</span><span class="chip">anyone</span><span class="chip">no one</span><span class="chip">nobody</span><span class="chip">something</span><span class="chip">nothing</span><span class="chip">each</span><span class="chip">both</span><span class="chip">few</span><span class="chip">many</span><span class="chip">several</span><span class="chip">all</span><span class="chip">some</span><span class="chip">none</span></div>
+    <p>They stand in for people or things <strong>without saying exactly who or what</strong>.</p>
+    <table class="pair"><tr><th>Specific (not indefinite)</th><th>Indefinite</th></tr>
+    <tr><td><strong>She</strong> cheered. (one person you know)</td><td><strong>Everyone</strong> cheered. (who, exactly?)</td></tr>
+    <tr><td><strong>Those</strong> are mine. (pointing)</td><td><strong>Some</strong> are mine. (which ones?)</td></tr></table>
+    <p class="test"><strong>Test:</strong> Can you point at exactly who or what it means? No → indefinite.</p></div>`,
+
   refl: `<div class="learn-card"><p class="lab">Reflexive pronouns: doer = receiver</p>
     <div class="chips"><span class="chip">myself</span><span class="chip">yourself</span><span class="chip">himself</span><span class="chip">herself</span><span class="chip">itself</span><span class="chip">ourselves</span><span class="chip">themselves</span></div>
     <div class="linkdemo"><p><span data-a="1">Kai</span> pushed <span data-p="1">himself</span> up the hill.</p></div>
@@ -426,6 +439,7 @@ const LEARN = {
       <tr><td>Antecedent</td><td>the noun a pronoun stands for. Count, then meaning, then Unclear</td></tr>
       <tr><td>Demonstrative</td><td>this, that, these, those, <em>standing alone</em></td></tr>
       <tr><td>Relative</td><td>who, whom, whose, which, that. Starts a clue about the noun before it</td></tr>
+      <tr><td>Indefinite</td><td>someone, nobody, everyone, few, several… Doesn’t say exactly who or what, and stands alone</td></tr>
       <tr><td>Reflexive</td><td>-self word; take it out → sentence breaks</td></tr>
       <tr><td>Intensive</td><td>-self word; take it out → still works (emphasis)</td></tr>
     </table></details>`
@@ -435,7 +449,7 @@ const UNCLEAR = '🤔 Unclear';
 
 const RANGES = {
   s1: { name:'Range 1', R:1.15, dist:[15,26], guide:1.0, wind:0, sway:0, move:[0, .22, .20], warmup:true,
-    blocks:[ { learn:'nouns',
+    blocks:[ { learn:'nouns', pick:6,
       tip:'Ask: could this be ANY one, or is it ONE specific person, place, day, team, or event? Specific ones wear capitals.',
       rounds:[
       { ask:'Hit the <b>proper</b> noun.', s:'Our {team} rode a {bus} to {Lake Placid} for the {final}.',
@@ -463,12 +477,44 @@ const RANGES = {
       { ask:'Hit the <b>common</b> noun.', s:'We watched the {game} on {Thanksgiving} with {Uncle Dev}.',
         t:[['game',1,'Yes! Could be any game. Common.'],
            ['Thanksgiving',0,'Holidays are proper nouns: one specific day, with a capital.'],
-           ['Uncle Dev',0,'With his name attached, this is one specific person. Proper.']] }
+           ['Uncle Dev',0,'With his name attached, this is one specific person. Proper.']] },
+      { ask:'Hit the <b>proper</b> noun.', s:'{Grandpa Joe} drove us to the {stadium} in a {van}.',
+        t:[['Grandpa Joe',1,'Yes! Grandpa plus his name is one specific person. Proper, with capitals.'],
+           ['stadium',0,'“The stadium” could be any stadium. Common.'],
+           ['van',0,'Any van is a van. Common.']] },
+      { ask:'Hit the <b>common</b> noun.', s:'The {Tigers} beat the {Hawks} by one {goal}.',
+        t:[['goal',1,'Yes! Any goal is a goal. Common.'],
+           ['Tigers',0,'Here it’s the name of one specific team. Proper, with a capital T.'],
+           ['Hawks',0,'Team name, so it’s proper. Real hawks in the sky would be common.']] },
+      { ask:'Hit the <b>proper</b> noun.', s:'In {June}, our {family} camped by the {lake}.',
+        t:[['June',1,'Yes! Months are proper nouns. Always a capital.'],
+           ['family',0,'Any family is a family. Common.'],
+           ['lake',0,'“The lake” isn’t named, so it’s common. Lake Erie would be proper.']] },
+      { ask:'Hit the <b>common</b> noun.', s:'{Mr. Patel} led {Riverside} to a {championship}.',
+        t:[['championship',1,'Yes! Could be any championship. Common.'],
+           ['Mr. Patel',0,'A title plus a name is one specific person. Proper.'],
+           ['Riverside',0,'Here Riverside is the name of a specific school team. Proper.']] },
+      { ask:'Hit the <b>proper</b> noun.', s:'Her {sister} threw a {frisbee} across {Central Park}.',
+        t:[['Central Park',1,'Yes! One specific park with a name. Proper.'],
+           ['sister',0,'“Her sister” isn’t a name. Common.'],
+           ['frisbee',0,'Any flying disc you throw. Common here.']] },
+      { ask:'Hit the <b>common</b> noun.', s:'{Maria} bought new {cleats} at {Big Sky Sports}.',
+        t:[['cleats',1,'Yes! Any cleats are cleats. Common.'],
+           ['Maria',0,'A name of one specific person. Proper.'],
+           ['Big Sky Sports',0,'That’s the name of one specific store. Proper.']] },
+      { ask:'Hit the <b>proper</b> noun.', s:'{Archery} is a popular {sport} in {Korea}.',
+        t:[['Korea',1,'Yes! Countries are proper nouns.'],
+           ['Archery',0,'Trap! It only has a capital because it starts the sentence. Sports like archery and soccer are common nouns.'],
+           ['sport',0,'Any sport. Common.']] },
+      { ask:'Hit the <b>common</b> noun.', s:'The {Eagles} practice at {Hillcrest Park} every {afternoon}.',
+        t:[['afternoon',1,'Yes! Any afternoon. Common.'],
+           ['Eagles',0,'Here it’s a team name. Proper.'],
+           ['Hillcrest Park',0,'One specific park with a name. Proper.']] }
     ]} ] },
 
   s2: { name:'Range 2', R:1.05, dist:[17,32], guide:0.65, wind:0, sway:0, move:[35, .15, .10],
     blocks:[
-    { learn:'ante',
+    { learn:'ante', pick:3,
       tip:'Swap each noun in for the pronoun and read the sentence again. The one that makes sense is the antecedent.',
       rounds:[
       { ask:'Who or what does <b>he</b> point back to?', s:'{Jordan} grabbed the {bow} because [he] wanted one more {round}.',
@@ -481,29 +527,52 @@ const RANGES = {
            ['bus',0,'Bus is just one thing, and “their” is plural. Look for more than one person.']] },
       { ask:'Who or what does <b>it</b> point back to?', s:'{Lena} polished the {trophy} until [it] sparkled.',
         t:[['trophy',1,'Yes! The trophy is what sparkled.'],
-           ['Lena',0,'“It” isn’t used for a person. What got polished and sparkled?']] }
+           ['Lena',0,'“It” isn’t used for a person. What got polished and sparkled?']] },
+      { ask:'Who or what does <b>her</b> point back to?', s:'The {coach} blew [her] {whistle} to start the {race}.',
+        t:[['coach',1,'Yes! The coach is the one who owns the whistle.'],
+           ['whistle',0,'The whistle is what belongs to her. Who does it belong to?'],
+           ['race',0,'A race can’t own a whistle. Look for a person.']] },
+      { ask:'Who or what does <b>they</b> point back to?', s:'{Marcus and Tia} packed {snacks}, and then [they] left for the {meet}.',
+        t:[['Marcus and Tia',1,'Yes! “They” is both of them together.'],
+           ['snacks',0,'Snacks is plural, but snacks don’t leave for a meet. Who left?'],
+           ['meet',0,'The meet is where they went, not who went.']] },
+      { ask:'Who or what does <b>it</b> point back to?', s:'The {puppy} chased the {ball} until [it] popped.',
+        t:[['ball',1,'Yes! Balls pop. Puppies don’t.'],
+           ['puppy',0,'“It” can be used for an animal, but puppies don’t pop. What does?']] }
     ]},
-    { learn:'murky',
+    { learn:'murky', pick:3, mix:['unclear','solvable'],
       tip:'Count first (one or more than one?), then check meaning. Only shoot Unclear if two nouns STILL both fit.',
       rounds:[
-      { ask:'Who or what does <b>it</b> point back to?', s:'Lena set her {bow} on the {bench}. After twenty minutes of stretching, she picked [it] up again.',
+      { k:'solvable', ask:'Who or what does <b>it</b> point back to?', s:'Lena set her {bow} on the {bench}. After twenty minutes of stretching, she picked [it] up again.',
         t:[['bow',1,'Yes! A careful reader can tell. She set the bow down to stretch, so the thing she picks up again is the bow.'],
            ['bench',0,'Grammar-wise it could be the bench, but why would she pick up a bench? Meaning points to the thing she set down.'],
            [UNCLEAR,0,'Close call, but a careful reader CAN tell: she put the bow down to stretch and picks it back up. Meaning solves this one.']] },
-      { ask:'Who or what does <b>they</b> point back to?', s:'When the {referee} showed the {players} the {scoreboard}, [they] groaned.',
+      { k:'solvable', ask:'Who or what does <b>they</b> point back to?', s:'When the {referee} showed the {players} the {scoreboard}, [they] groaned.',
         t:[['players',1,'Yes! “They” is plural. The referee is one person and the scoreboard is one thing, so only the players fit.'],
            ['referee',0,'There’s one referee, but “they” means more than one here. Count first.'],
            ['scoreboard',0,'Scoreboards don’t groan, and there’s only one. Who could groan, and is there more than one of them?'],
            [UNCLEAR,0,'Count first! Only one noun in this sentence is plural, so that one is the antecedent.']] },
-      { ask:'Who does <b>she</b> point back to?', s:'{Maya} passed the ball to {Jess}, and [she] scored.',
+      { k:'unclear', ask:'Who does <b>she</b> point back to?', s:'{Maya} passed the ball to {Jess}, and [she] scored.',
         t:[[UNCLEAR,1,'Yes! This one is truly murky. Either girl could have scored. A writer fixes it by using the name: “…and Jess scored.”'],
            ['Maya',0,'Could be, but could it also be Jess? If both fit, the pronoun is unclear.'],
-           ['Jess',0,'Maybe! But Maya fits too. When a reader can’t tell, the right call is Unclear.']] }
+           ['Jess',0,'Maybe! But Maya fits too. When a reader can’t tell, the right call is Unclear.']] },
+      { k:'unclear', ask:'Who does <b>she</b> point back to?', s:'When {Jada} met {Kim} at the pool, [she] waved.',
+        t:[[UNCLEAR,1,'Yes! Either girl could have waved. Fix it with a name: “…Kim waved.”'],
+           ['Jada',0,'Could be, but Kim fits too. If both fit, it’s unclear.'],
+           ['Kim',0,'Could be, but Jada fits too. If both fit, it’s unclear.']] },
+      { k:'solvable', ask:'Who does <b>he</b> point back to?', s:'The {coaches} yelled at the {referee} because [he] made a bad call.',
+        t:[['referee',1,'Yes! Coaches is plural, so “he” can only be the one referee.'],
+           ['coaches',0,'Count! There’s more than one coach, but “he” is one person.'],
+           [UNCLEAR,0,'Count first. Only one noun here is a single person.']] },
+      { k:'unclear', ask:'Who does <b>his</b> point back to?', s:'{Dad} told {Sam} that [his] shoelace was untied.',
+        t:[[UNCLEAR,1,'Yes! Dad and Sam could both own that shoelace. Fix: “Dad told Sam, ‘Your shoelace is untied.’”'],
+           ['Dad',0,'Maybe, but Sam fits too. When both fit, it’s unclear.'],
+           ['Sam',0,'Maybe, but Dad fits too. When both fit, it’s unclear.']] }
     ]} ] },
 
   s3: { name:'Range 3', R:1.0, dist:[19,38], guide:0.45, wind:0, sway:5, move:[50, .2, .12],
     blocks:[
-    { learn:'demo',
+    { learn:'demo', pick:3,
       tip:'Look for this, that, these, or those standing on its own, pointing at something.',
       rounds:[
       { ask:'Hit the <b>demonstrative</b> pronoun.', s:'{That} was the best {shot} of the {day}!',
@@ -517,9 +586,22 @@ const RANGES = {
       { ask:'Hit the <b>demonstrative</b> pronoun.', s:'{Those} are the {gloves} {I} wanted.',
         t:[['Those',1,'Yes! “Those” points at more than one thing that’s far away.'],
            ['gloves',0,'Gloves is a noun. It’s the thing being pointed at, not the pointer.'],
-           ['I',0,'I is a pronoun, but a personal one. It stands for the speaker. Which word points?']] }
+           ['I',0,'I is a pronoun, but a personal one. It stands for the speaker. Which word points?']] },
+      { ask:'Hit the <b>demonstrative</b> pronoun.', s:'{This} is my {favorite} {bow}.',
+        t:[['This',1,'Yes! “This” stands alone and points at something near.'],
+           ['favorite',0,'Favorite describes the bow. It’s an adjective.'],
+           ['bow',0,'Bow is a noun.']] },
+      { ask:'Hit the <b>demonstrative</b> pronoun.', s:'Can you hand me {those}? {I} left {mine} at {home}.',
+        t:[['those',1,'Yes! “Those” points at things that are farther away.'],
+           ['I',0,'I is a personal pronoun. It stands for the speaker.'],
+           ['mine',0,'Mine shows ownership. It’s possessive.'],
+           ['home',0,'Home is a noun.']] },
+      { ask:'Hit the <b>demonstrative</b> pronoun.', s:'{These} feel {lighter} than my old {skates}.',
+        t:[['These',1,'Yes! “These” points at more than one thing that’s near.'],
+           ['lighter',0,'Lighter describes. It’s an adjective.'],
+           ['skates',0,'Skates is a noun.']] }
     ]},
-    { learn:'rel',
+    { learn:'rel', pick:3,
       tip:'Look right after a noun for who, whom, whose, which, or that. It starts a clue about that noun.',
       rounds:[
       { ask:'Hit the <b>relative</b> pronoun.', s:'The {girl} {who} won the {race} is {my} cousin.',
@@ -536,12 +618,53 @@ const RANGES = {
         t:[['whose',1,'Yes! “Whose” starts a clue about the coach, and it shows ownership: the coach’s team.'],
            ['coach',0,'Coach is the noun the clue describes. What word comes right after it?'],
            ['team',0,'Team is a noun inside the clue.'],
-           ['party',0,'Party is a noun. Look right after “coach.”']] }
+           ['party',0,'Party is a noun. Look right after “coach.”']] },
+      { ask:'Hit the <b>relative</b> pronoun.', s:'The {arrow} {that} split the {target} is in a {museum}.',
+        t:[['that',1,'Yes! “That” starts a clue about the arrow. Which arrow? The one that split the target.'],
+           ['arrow',0,'Arrow is the noun the clue is about.'],
+           ['target',0,'Target is a noun inside the clue.'],
+           ['museum',0,'Museum is a noun.']] },
+      { ask:'Hit the <b>relative</b> pronoun.', s:'{Coach Diaz}, {whom} the players trust, picked the {team}.',
+        t:[['whom',1,'Yes! “Whom” starts extra info about Coach Diaz.'],
+           ['Coach Diaz',0,'That’s the noun the clue is about. Look right after it.'],
+           ['team',0,'Team is a noun.']] },
+      { ask:'Hit the <b>relative</b> pronoun.', s:'{We} swam in the {lake}, {which} was {freezing}.',
+        t:[['which',1,'Yes! “Which” starts extra info about the lake.'],
+           ['We',0,'We is a personal pronoun (the speakers). Look right after “lake.”'],
+           ['lake',0,'Lake is the noun the clue is about.'],
+           ['freezing',0,'Freezing describes. It’s an adjective.']] }
+    ]},
+    { learn:'indef', pick:3,
+      tip:'Indefinite pronouns don’t name anyone or anything specific: someone, everyone, nobody, something, both, few, many, several, all, some, none.',
+      rounds:[
+      { ask:'Hit the <b>indefinite</b> pronoun.', s:'{Everyone} on the {team} cheered for {her}.',
+        t:[['Everyone',1,'Yes! Who exactly? It doesn’t say. Everyone is indefinite.'],
+           ['team',0,'Team is a noun.'],
+           ['her',0,'Her points to one specific person, so it’s a personal pronoun. Which word is vague?']] },
+      { ask:'Hit the <b>indefinite</b> pronoun.', s:'{Nobody} hit the {bullseye} on the first {try}.',
+        t:[['Nobody',1,'Yes! Nobody doesn’t name a specific person. Indefinite.'],
+           ['bullseye',0,'Bullseye is a noun.'],
+           ['try',0,'Try is a noun here.']] },
+      { ask:'Hit the <b>indefinite</b> pronoun.', s:'Does {anyone} have an extra {arrow} for {me}?',
+        t:[['anyone',1,'Yes! Anyone could be any person at all. Indefinite.'],
+           ['arrow',0,'Arrow is a noun.'],
+           ['me',0,'Me is personal. You know exactly who: the speaker.']] },
+      { ask:'Hit the <b>indefinite</b> pronoun.', s:'{Something} is stuck in the {net}!',
+        t:[['Something',1,'Yes! What is it? Nobody knows yet. Indefinite.'],
+           ['net',0,'Net is a noun.']] },
+      { ask:'Hit the <b>indefinite</b> pronoun.', s:'{Both} of the {runners} tripped, but {they} finished.',
+        t:[['Both',1,'Yes! “Both of the runners” doesn’t name them. Indefinite.'],
+           ['runners',0,'Runners is a noun.'],
+           ['they',0,'They is personal. It points back to the runners.']] },
+      { ask:'Hit the <b>indefinite</b> pronoun.', s:'{Several} of my {friends} play {volleyball}.',
+        t:[['Several',1,'Yes! How many, and which ones? It doesn’t say. Indefinite.'],
+           ['friends',0,'Friends is a noun.'],
+           ['volleyball',0,'Volleyball is a noun (a sport).']] }
     ]} ] },
 
   s4: { name:'Range 4', R:0.95, dist:[21,44], guide:0.3, wind:1.6, sway:8, move:[60, .22, .13],
     blocks:[
-    { learn:'refl',
+    { learn:'refl', pick:3,
       tip:'Look for a word ending in -self or -selves. The doer and the receiver are the same.',
       rounds:[
       { ask:'Hit the <b>reflexive</b> pronoun.', s:'{Ava} taught {herself} to shoot with {her} left {hand}.',
@@ -557,9 +680,21 @@ const RANGES = {
         t:[['himself',1,'Yes! The goalie blamed the goalie. Take it out and “blamed ___” breaks.'],
            ['goalie',0,'The goalie is the doer. Who got blamed?'],
            ['his',0,'His shows ownership (his team). Look for -self.'],
-           ['team',0,'Team is a noun.']] }
+           ['team',0,'Team is a noun.']] },
+      { ask:'Hit the <b>reflexive</b> pronoun.', s:'{I} reminded {myself} to breathe before the {shot}.',
+        t:[['myself',1,'Yes! I reminded me. Take it out and “reminded ___” breaks.'],
+           ['I',0,'I is the doer. Who got reminded?'],
+           ['shot',0,'Shot is a noun.']] },
+      { ask:'Hit the <b>reflexive</b> pronoun.', s:'The {twins} splashed {themselves} with cold {water}.',
+        t:[['themselves',1,'Yes! The twins splashed the twins.'],
+           ['twins',0,'The twins are the doers. Who got splashed?'],
+           ['water',0,'Water is a noun.']] },
+      { ask:'Hit the <b>reflexive</b> pronoun.', s:'Did {you} hurt {yourself} at {practice}?',
+        t:[['yourself',1,'Yes! You hurt you. “Did you hurt ___ at practice?” breaks without it.'],
+           ['you',0,'You is the doer, a personal pronoun. Look for -self.'],
+           ['practice',0,'Practice is a noun here.']] }
     ]},
-    { learn:'inten',
+    { learn:'inten', pick:3,
       tip:'Find the -self word, then take it out. If the sentence still works, it was just there for emphasis.',
       rounds:[
       { ask:'Hit the <b>intensive</b> pronoun.', s:'The {coach} {herself} carried the heavy {target}.',
@@ -573,51 +708,105 @@ const RANGES = {
       { ask:'Hit the <b>intensive</b> pronoun.', s:'The {players} {themselves} picked the team {name}.',
         t:[['themselves',1,'Yes! “The players picked the team name” still works. Themselves stresses it was the players, not the coach.'],
            ['players',0,'Players is a noun. Find the -self word.'],
-           ['name',0,'Name is a noun.']] }
+           ['name',0,'Name is a noun.']] },
+      { ask:'Hit the <b>intensive</b> pronoun.', s:'The {mayor} {himself} handed out the {medals}.',
+        t:[['himself',1,'Yes! “The mayor handed out the medals” still works. Himself adds “wow, the mayor!”'],
+           ['mayor',0,'Mayor is a noun.'],
+           ['medals',0,'Medals is a noun.']] },
+      { ask:'Hit the <b>intensive</b> pronoun.', s:'{We} built the {ramp} {ourselves}.',
+        t:[['ourselves',1,'Yes! “We built the ramp” still works, so ourselves is there for emphasis.'],
+           ['We',0,'We is the doer, a personal pronoun.'],
+           ['ramp',0,'Ramp is a noun.']] },
+      { ask:'Hit the <b>intensive</b> pronoun.', s:'{You} {yourself} said the {game} was fun!',
+        t:[['yourself',1,'Yes! “You said the game was fun!” still works. Yourself adds punch.'],
+           ['You',0,'You is the doer, a personal pronoun.'],
+           ['game',0,'Game is a noun.']] }
     ]} ] },
 
   s5: { name:'Range 5', R:0.9, dist:[23,52], guide:0.18, wind:3.0, sway:11, move:[70, .25, .14], final:true,
-    blocks:[ { learn:'champ',
-      tip:'Reflexive or intensive? Take the -self word out. Broken = reflexive; still fine = intensive. Demonstratives stand ALONE. Relatives open a clue right after a noun.',
+    blocks:[ { learn:'champ', pick:9, mix:['self','demo','rel','ante','ante','noun','indef','indef'],
+      tip:'Reflexive or intensive? Take the -self word out. Broken = reflexive; still fine = intensive. Demonstratives and indefinites stand ALONE (not in front of a noun). Relatives open a clue right after a noun.',
       rounds:[
-      { ask:'What kind of pronoun is <b>herself</b>?', s:'Nadia [herself] painted the team banner.',
+      { k:'self', ask:'What kind of pronoun is <b>herself</b>?', s:'Nadia [herself] painted the team banner.',
         t:[['Intensive',1,'Yes! Take it out: “Nadia painted the team banner.” Still works, so it’s emphasis.'],
            ['Reflexive',0,'Take it out: “Nadia painted the team banner.” Still works! A reflexive one would leave the sentence broken.'],
            ['Demonstrative',0,'Demonstratives point: this, that, these, those.'],
            ['Relative',0,'Relatives start a clue: who, whom, whose, which, that.']] },
-      { ask:'What kind of pronoun is <b>themselves</b>?', s:'The runners timed [themselves] on the track.',
+      { k:'self', ask:'What kind of pronoun is <b>themselves</b>?', s:'The runners timed [themselves] on the track.',
         t:[['Reflexive',1,'Yes! “The runners timed ___ on the track” is broken. Timed WHO? The runners timed the runners.'],
            ['Intensive',0,'Take it out: “The runners timed on the track.” Timed who? It breaks, so it’s doing a real job. That’s reflexive.'],
            ['Relative',0,'Relatives start a clue: who, whom, whose, which, that.'],
            ['Demonstrative',0,'Demonstratives point: this, that, these, those.']] },
-      { ask:'Hit the demonstrative <b>pronoun</b>.', s:'{This} {arrow} is bent, but {that} is {fine}.',
+      { k:'demo', ask:'Hit the demonstrative <b>pronoun</b>.', s:'{This} {arrow} is bent, but {that} is {fine}.',
         t:[['that',1,'Yes! “That” stands alone. Nothing comes after it for it to point at.'],
            ['This',0,'Trap! “This” is pointing at the noun arrow (which arrow?), so here it’s working like an adjective. A demonstrative PRONOUN stands alone.'],
            ['arrow',0,'Arrow is a noun.'],
            ['fine',0,'Fine describes. It’s an adjective.']] },
-      { ask:'What kind of pronoun is <b>that</b>?', s:'The team [that] trains the hardest usually wins.',
+      { k:'rel', ask:'What kind of pronoun is <b>that</b>?', s:'The team [that] trains the hardest usually wins.',
         t:[['Relative',1,'Yes! “That” starts a clue about the team. Which team? The one that trains the hardest.'],
            ['Demonstrative',0,'“That” CAN be demonstrative, but here it comes right after “team” and starts a clue about it. That’s the relative job.'],
            ['Intensive',0,'Intensives are -self words.'],
            ['Reflexive',0,'Reflexives are -self words.']] },
-      { ask:'Who does <b>her</b> point back to?', s:'Before the game, {Coach Kim} told {Ms. Ortiz} that [her] whistle was broken.',
+      { k:'ante', ask:'Who does <b>her</b> point back to?', s:'Before the game, {Coach Kim} told {Ms. Ortiz} that [her] whistle was broken.',
         t:[[UNCLEAR,1,'Yes! Both are women, and either could own the whistle. Fix: “Coach Kim told Ms. Ortiz, ‘My whistle is broken.’”'],
            ['Coach Kim',0,'Maybe, but Ms. Ortiz fits too. If both fit, it’s unclear.'],
            ['Ms. Ortiz',0,'Maybe, but Coach Kim fits too. If both fit, it’s unclear.']] },
-      { ask:'What does <b>they</b> point back to?', s:'The {bow} sat next to the {arrows}, but [they] were too short for the new {archer}.',
+      { k:'ante', ask:'What does <b>they</b> point back to?', s:'The {bow} sat next to the {arrows}, but [they] were too short for the new {archer}.',
         t:[['arrows',1,'Yes! “They” is plural, and arrows is the only plural noun.'],
            ['bow',0,'There’s one bow, but “they” means more than one.'],
            ['archer',0,'There’s one archer, and the archer is who they’re too short FOR.'],
            [UNCLEAR,0,'Count! Only one noun here is plural.']] },
-      { ask:'Hit the <b>proper</b> noun.', s:'We watched the {World Cup} at my {grandma}’s {house}.',
+      { k:'noun', ask:'Hit the <b>proper</b> noun.', s:'We watched the {World Cup} at my {grandma}’s {house}.',
         t:[['World Cup',1,'Yes! One specific event, with capitals on both words.'],
            ['grandma',0,'Sneaky one: with “my” in front, grandma is common. As a name on its own (“Grandma said hi”), it would be proper.'],
            ['house',0,'Could be any house. Common.']] },
-      { ask:'Who does <b>who</b> point back to?', s:'{Malik} cheered for the {runner} [who] tripped at the {start}.',
+      { k:'rel', ask:'Who does <b>who</b> point back to?', s:'{Malik} cheered for the {runner} [who] tripped at the {start}.',
         t:[['runner',1,'Yes! Relative pronouns have antecedents too. “Who tripped” is a clue about the runner.'],
            ['Malik',0,'Malik did the cheering. Who tripped?'],
            ['start',0,'The start is a thing, and “who” is for people.'],
-           [UNCLEAR,0,'Look where “who” sits: right after “runner.” A relative pronoun hooks onto the noun just before it.']] }
+           [UNCLEAR,0,'Look where “who” sits: right after “runner.” A relative pronoun hooks onto the noun just before it.']] },
+      { k:'indef', ask:'Hit the indefinite <b>pronoun</b>.', s:'{Few} {players} showed up, so {everyone} played the whole {game}.',
+        t:[['everyone',1,'Yes! “Everyone” stands alone and doesn’t name anyone specific.'],
+           ['Few',0,'Trap! “Few” is pointing at players (few players), so here it’s working like an adjective. On its own (“Few showed up”) it would be a pronoun.'],
+           ['players',0,'Players is a noun.'],
+           ['game',0,'Game is a noun.']] },
+      { k:'indef', ask:'What kind of pronoun is <b>nothing</b>?', s:'[Nothing] beats a win in the rain.',
+        t:[['Indefinite',1,'Yes! Nothing doesn’t name a specific thing.'],
+           ['Demonstrative',0,'Demonstratives point at something specific: this, that, these, those.'],
+           ['Relative',0,'Relatives start a clue after a noun: who, which, that…'],
+           ['Reflexive',0,'Reflexives are -self words.']] },
+      { k:'indef', ask:'What kind of pronoun is <b>someone</b>?', s:'[Someone] left a water bottle on the bench.',
+        t:[['Indefinite',1,'Yes! Who? We don’t know. That’s indefinite.'],
+           ['Intensive',0,'Intensives are -self words used for emphasis.'],
+           ['Demonstrative',0,'Demonstratives point: this, that, these, those.'],
+           ['Relative',0,'Relatives start a clue after a noun.']] },
+      { k:'ante', ask:'Who does <b>she</b> point back to?', s:'{Ana} told {Rosa} that [she] made the team.',
+        t:[[UNCLEAR,1,'Yes! Either girl could have made the team. Fix: “Ana told Rosa, ‘You made the team!’”'],
+           ['Ana',0,'Maybe, but Rosa fits too. If both fit, it’s unclear.'],
+           ['Rosa',0,'Maybe, but Ana fits too. If both fit, it’s unclear.']] },
+      { k:'self', ask:'What kind of pronoun is <b>myself</b>?', s:'I [myself] painted the bullseye.',
+        t:[['Intensive',1,'Yes! “I painted the bullseye” still works. It’s emphasis.'],
+           ['Reflexive',0,'Take it out: “I painted the bullseye.” Still works, so it’s not reflexive.'],
+           ['Indefinite',0,'Indefinite pronouns are vague: someone, many, nobody…'],
+           ['Relative',0,'Relatives start a clue after a noun.']] },
+      { k:'self', ask:'What kind of pronoun is <b>itself</b>?', s:'The kitten licked [itself] clean.',
+        t:[['Reflexive',1,'Yes! “The kitten licked ___ clean” breaks. The kitten licked the kitten.'],
+           ['Intensive',0,'Take it out: “The kitten licked clean.” Licked what? Broken, so it’s reflexive.'],
+           ['Demonstrative',0,'Demonstratives point: this, that, these, those.'],
+           ['Indefinite',0,'Indefinite pronouns are vague: someone, many, nobody…']] },
+      { k:'noun', ask:'Hit the <b>common</b> noun.', s:'On {Saturday} we drove to {Ohio} for a {tournament}.',
+        t:[['tournament',1,'Yes! Any tournament. Common.'],
+           ['Saturday',0,'Days of the week are proper.'],
+           ['Ohio',0,'States are proper.']] },
+      { k:'rel', ask:'Who does <b>whose</b> point back to?', s:'The {girl} [whose] {bow} broke borrowed {mine}.',
+        t:[['girl',1,'Yes! “Whose bow broke” is a clue about the girl. It’s her bow.'],
+           ['bow',0,'The bow is what belongs to someone. “Whose” points back to the owner.'],
+           ['mine',0,'Mine is the speaker’s bow. Who owned the broken one?']] },
+      { k:'demo', ask:'What kind of pronoun is <b>those</b>?', s:'[Those] are the best seats in the stadium.',
+        t:[['Demonstrative',1,'Yes! “Those” stands alone and points at specific seats.'],
+           ['Indefinite',0,'Indefinite pronouns are vague (someone, many). “Those” points at specific seats.'],
+           ['Relative',0,'Relatives start a clue after a noun.'],
+           ['Intensive',0,'Intensives are -self words.']] }
     ]} ] }
 };
 
@@ -633,7 +822,7 @@ const ORDER = ['s1','s2','s3','s4','s5'];
 const REWARDS = {
   s1: { star:'🎯', msg:'Range 1 cleared!' },
   s2: { star:'🎯', msg:'Antecedents: tracked down!' },
-  s3: { star:'🎯', msg:'Pointers and clue-starters done!' },
+  s3: { star:'🎯', msg:'Pointers, clue-starters, and mystery words done!' },
   s4: { star:'🎯', msg:'The -self words: sorted!' },
   s5: { star:'🏆', msg:'All done. Go turn it in.' }
 };
@@ -726,12 +915,22 @@ function readColors(){
    .forEach(k => C[k] = cs.getPropertyValue('--' + k).trim() || '#888');
 }
 
-/* Shuffle rounds once on load, inside each block. Blocks stay in order. */
+/* Each block is a BANK of sentences. Every page load draws b.pick of them at
+   random (all of them if pick is missing), so a replay gets mostly new
+   sentences. b.mix lists round tags (k) that must each be represented once
+   before the rest is filled at random, e.g. the murky block always has one
+   truly unclear sentence and one that can be solved. Blocks stay in order. */
+function pickRounds(b){
+  const bank = shuffle(b.rounds), n = Math.min(b.pick || bank.length, bank.length), out = [];
+  (b.mix || []).forEach(k => { const i = bank.findIndex(r => r.k === k && !out.includes(r)); if (i >= 0 && out.length < n) out.push(bank[i]); });
+  bank.forEach(r => { if (out.length < n && !out.includes(r)) out.push(r); });
+  return shuffle(out);
+}
 const PLAY = {};
 for (const id in RANGES){
   const R = RANGES[id], list = [];
   if (R.warmup) list.push(Object.assign({ block:0 }, WARMUP));
-  R.blocks.forEach((b, bi) => shuffle(b.rounds).forEach(r => list.push(Object.assign({ block:bi }, r))));
+  R.blocks.forEach((b, bi) => pickRounds(b).forEach(r => list.push(Object.assign({ block:bi }, r))));
   PLAY[id] = list;
 }
 
@@ -943,7 +1142,7 @@ function landHit(t, at, ring){
   const R = game.round, r = R.r, S = game.stats;
   const ringTxt = ring < 0 ? 'Guided shot.' : RING_NAMES[ring];
   if (t.ok){
-    R.solved = true; t.state = 'right';
+    R.solved = true; R.solvedAt = performance.now(); t.state = 'right';
     if (!r.warm){
       S.rounds++; S.arrows += R.arrows;
       if (!R.wrongs.length) S.first++;
@@ -1096,10 +1295,24 @@ $('sndBtn').onclick = () => {
 };
 
 /* ---------- next / finish ---------- */
-$('nextBtn').onclick = () => {
+$('nextBtn').onclick = () => goNext();
+/* Space or Enter moves on once a round is solved. Ignored while typing, on a
+   focused button (it already clicks itself), and for a moment after the hit so
+   a key held from the shot can't skip the explanation. */
+document.addEventListener('keydown', e => {
+  if (e.key !== ' ' && e.key !== 'Enter') return;
+  if (!game || !game.round || !game.round.solved || e.repeat) return;
+  if ($('nextRow').style.display === 'none') return;
+  const tag = (e.target && e.target.tagName) || '';
+  if (/^(TEXTAREA|INPUT|SELECT|BUTTON|SUMMARY|A)$/.test(tag)) return;
+  if (performance.now() - (game.round.solvedAt || 0) < 400) return;
+  e.preventDefault();
+  goNext();
+});
+function goNext(){
   if (!game || !game.round.solved) return;
   const last = game.ri === game.list.length - 1;
-  if (!last){ nextRound(); return; }
+  if (!last){ nextRound(); if (document.activeElement === $('nextBtn')) cv.focus({ preventScroll: true }); return; }
   if (game.R.final){
     $('nextRow').style.display = 'none';
     LL.extra.s5 = evidence('s5');
@@ -1145,6 +1358,21 @@ function draw(){
   if (canShoot() || game.drawing) drawSight();
   drawGuide();                       /* on top of the sight, or the near dots hide under it */
   if (game.drawing) drawPowerBar();
+  if (R.solved && $('nextRow').style.display !== 'none') drawNextBanner();
+}
+
+/* A banner on the range itself once the round is solved, so the student
+   knows how to move on without hunting for the button. */
+function drawNextBanner(){
+  const last = game.ri === game.list.length - 1;
+  const what = !last ? 'the next round' : (game.R.final ? 'the last step' : 'finish ' + game.R.name);
+  const msg = '✓ Press Space or Enter for ' + what;
+  ctx.save(); ctx.font = '700 18px "Atkinson Hyperlegible", Verdana, sans-serif';
+  const w = ctx.measureText(msg).width + 36, x = W / 2 - w / 2, y = H - 64;
+  ctx.fillStyle = C.calm; roundRect(x, y, w, 40, 20); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(msg, W / 2, y + 21);
+  ctx.restore();
 }
 
 function drawScene(){
@@ -1477,18 +1705,19 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
 <script type="application/json" id="qsummary">
 [
   { "title": "Range 1 — Common vs. Proper Nouns",
-    "questions": [ "Warm-up shot, then six rounds: shoot the PROPER (or COMMON) noun in a sports sentence. Traps include “my coach” vs. “Coach Rivera” and team names like the Dolphins." ] },
+    "questions": [ "Warm-up shot, then 6 rounds drawn from a bank of 14: shoot the PROPER (or COMMON) noun in a sports sentence. Traps include “my coach” vs. “Coach Rivera”, team names like the Dolphins, and “Archery” capitalized only because it starts the sentence." ] },
   { "title": "Range 2 — Pronoun Antecedents",
-    "questions": [ "Three clear rounds: shoot the noun the highlighted pronoun points back to.",
-                   "Three murky rounds with a 🤔 Unclear target: solve by number, then meaning; one is truly ambiguous (“Maya passed the ball to Jess, and she scored”)." ] },
-  { "title": "Range 3 — Demonstrative & Relative Pronouns",
-    "questions": [ "Three rounds: shoot the demonstrative pronoun (this/that/these/those standing alone), with personal and possessive pronouns as decoys.",
-                   "Three rounds: shoot the relative pronoun (who/which/whose)." ] },
+    "questions": [ "3 clear rounds (bank of 6): shoot the noun the highlighted pronoun points back to.",
+                   "3 murky rounds (bank of 6) with a 🤔 Unclear target: solve by number, then meaning; always at least one truly ambiguous and one solvable." ] },
+  { "title": "Range 3 — Demonstrative, Relative & Indefinite Pronouns",
+    "questions": [ "3 rounds: shoot the demonstrative pronoun (this/that/these/those standing alone).",
+                   "3 rounds: shoot the relative pronoun (who/whom/whose/which/that).",
+                   "3 rounds: shoot the indefinite pronoun (everyone, nobody, anyone, something, both, several), with personal pronouns as decoys." ] },
   { "title": "Range 4 — Reflexive & Intensive Pronouns",
-    "questions": [ "Three rounds: shoot the reflexive pronoun.",
-                   "Three rounds: shoot the intensive pronoun (take-it-out test). Wind starts." ] },
+    "questions": [ "3 rounds: shoot the reflexive pronoun.",
+                   "3 rounds: shoot the intensive pronoun (take-it-out test)." ] },
   { "title": "Range 5 — The Championship (mixed)",
-    "questions": [ "Eight mixed rounds: label -self words reflexive vs. intensive, demonstrative pronoun vs. demonstrative adjective trap, relative “that”, murky antecedents, “my grandma” common-noun trap, antecedent of a relative pronoun.",
+    "questions": [ "9 mixed rounds from a bank of 17, always including -self words, demonstrative, relative, two antecedents, nouns, and two indefinite: label pronoun types, demonstrative-adjective and “few players” traps, murky antecedents, “my grandma” common-noun trap.",
                    "Q1. Rewrite “Maya passed the ball to Jess, and she scored” so a reader knows who scored.",
                    "Q2. Write a sports sentence with a reflexive OR intensive pronoun and say which kind and how you know." ] }
 ]
