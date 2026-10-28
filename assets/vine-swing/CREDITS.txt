@@ -1,0 +1,7 @@
+Vine Swing assets
+- monkey.glb: "Monkey 3D model. Rigged. FBX." from OpenGameArt.org
+  (https://opengameart.org/content/monkey-3d-model-rigged-fbx), CC0 / public domain.
+  Converted to GLB; materials re-shaded; textures re-encoded at 1024 px.
+- audio/*.mp3: cut from "Canopy Crossing", supplied by the teacher.
+- Three.js r160 (MIT licence, see ../vendor/three-r160/LICENSE).
+- Everything else (jungle, vines, platforms) is generated in code in world.js / game.js.

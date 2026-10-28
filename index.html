@@ -239,6 +239,18 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'English',
+    file: 'activities/vine-swing.html',
+    engine: 'swing3d', variant: 'transitions-hs', version: 2, updated: '2026-10-27',
+    title: 'Vine Swing',
+    tag: '3D swing game',
+    desc: 'One continuous third-person 3D run through an endless cartoon jungle canyon. Free swings: hold the mouse or Space to hang, let go near the front of the swing to fly, hold again to catch the next vine, A/D to steer into bananas. Skill checks: time slows to a crawl and a sentence with a blank appears over three vines: a STRONG transition (right type), a WEAK one (real transition, wrong type: the vine sags) and a DECOY that is not a transition (it snaps, the monkey falls, bounces on a giant leaf and lands on the strong vine). A/D pick, click or Space grabs. Practice is built into the start (tutorial captions, symbols showing), then three 8-check canopies, each opened with a Timed (gold \u00d72, free banana) or Race-the-clock choice and closed at a checkpoint where the monkey dances and the finished sentences and score are tallied. Bonus canopies can follow.',
+    skills: 'Transitions \u00b7 addition, comparison, contrast, concession, cause/effect, sequence, time, example, emphasis, summary, clarification, space, condition, purpose \u00b7 sentence logic \u00b7 grades 8\u201312',
+    note: 'v2: rebuilt on Three.js r160 as an ES module: the engine lives in assets/vine-swing/ (game.js flow and input, world.js endless recycled jungle, monkey.js bone-aim posing of the CC0 OpenGameArt monkey, monkey.glb, audio/ cut from the teacher\u2019s \u201cCanopy Crossing\u201d track) and the library in assets/vendor/three-r160/. About 4 MB in total, so the first load takes a few seconds. Sound starts ON at the teacher\u2019s request (mute button in the toolbar). Toolbar: \u23f1 Time \u00d71/\u00d71.5/\u00d72, \ud83e\udd16 Auto-swing (hangs, lets go and catches for the student so only the sentences need them), \ud83d\udc22 Calm motion, \ud83d\udd24 Bigger text. Graphics drop to a lighter setting on 4-core machines (add ?q=high or ?q=low to the URL to force it). Bank of 168 sentences (14 types \u00d7 12); each canopy uses one per type, least-used first, unseen preferred. Content-swappable: TYPES, DECOYS, PRACTICE_TYPES, BANK, ROUNDS in the page script. Evidence per checkpoint: mode, strong/weak/snapped/timed-out, best streak, score, every miss by content; the turn-in adds a by-type tally and bonus canopies. Needs WebGL; without it the page says so. About 15\u201320 minutes.',
+    height: 1000
+  },
+  {
+    type: 'activity',
+    course: 'English',
     file: 'activities/bullseye.html',
     engine: 'archery', variant: 'nouns-pronouns-6', version: 3, updated: '2026-10-27',
     title: 'Bullseye',

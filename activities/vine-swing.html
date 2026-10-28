@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<!--
+  VINE SWING — engine: swing3d · variant: transitions-hs · version 2
+
+  A continuous third-person 3D run through an endless jungle canyon. Free
+  swings: HOLD mouse/Space to hang, LET GO near the front of the swing to fly,
+  HOLD again to catch the next vine, A/D to steer (bananas hang off the line).
+  Skill checks: as the monkey passes the bottom of the swing before a trio of
+  vines, time slows to a crawl and a sentence with a blank appears. Vines are
+  STRONG (right transition type), WEAK (real transition, wrong type: the vine
+  sags) and DECOY (not a transition: it snaps, he falls, bounces on a giant
+  leaf and lands on the strong vine). A/D move the highlight, click/Space grab.
+
+  Practice is the first segment (4 checks, symbols on, tutorial captions).
+  Then three canopies of 8 checks, each starting with a Timed / Race choice and
+  ending at a checkpoint (dance, confetti, the finished sentences, score).
+
+  CONTENT-SWAPPABLE: TYPES, DECOYS, PRACTICE_TYPES, BANK, ROUNDS in the first
+  script. The 3D engine source is ../assets/vine-swing/game.js, world.js and
+  monkey.js (ES modules, Three.js r160); vine-swing.bundle.js is those three
+  bundled with esbuild into one classic script, and assets.js carries the
+  monkey (CC0 OpenGameArt) and the sounds as base64, so the page runs from a
+  double-clicked file as well as from GitHub Pages. Edit the sources, then
+  rebuild the bundle.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vine Swing</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --bad:#b23a3a; --bad-soft:#fbe9e7; --gold:#c68a1a;
+         --jungle:#1f3a2a; --hud:rgba(16,32,22,.82); }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:62rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem; margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold); animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1rem; font-size:.95rem;
+          display:flex; gap:1.2rem; align-items:center; flex-wrap:wrap }
+  .steps .txt{ flex:1 1 22rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+  .steps svg{ flex:0 0 auto; width:250px; max-width:100%; height:auto }
+  kbd{ font:inherit; font-size:.85em; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:0 .35em; background:#fff; color:var(--ink) }
+
+  details.remind{ border:1px solid var(--line); border-radius:8px; background:var(--card); padding:.5rem 1rem; margin:0 0 1.5rem; font-size:.93rem }
+  details.remind summary{ cursor:pointer; font-weight:700; color:var(--accent) }
+  .keygrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(13.5rem,1fr)); gap:.5rem; margin:.7rem 0 .3rem }
+  .keygrid div{ border:1px solid var(--line); border-radius:8px; padding:.4rem .6rem; background:#fff; line-height:1.45 }
+  .keygrid b{ display:block } .keygrid .s{ font-size:1.25rem; margin-right:.3rem }
+  .keygrid i{ font-style:normal; color:var(--soft); font-size:.85rem; display:block }
+  .keygrid em{ font-style:normal; font-size:.85rem; color:var(--accent) }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem; color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+  .done-looks{ font-size:.92rem; color:var(--soft); margin:-.4rem 0 1rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer; border-radius:8px;
+        padding:.6rem 1.15rem; border:1px solid var(--accent); background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.small{ font-size:.82rem; padding:.3rem .7rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .log{ font-size:.88rem; white-space:pre-wrap; color:var(--soft); background:var(--card);
+        border:1px solid var(--line); border-radius:8px; padding:.7rem 1rem; display:none }
+  .stage.done .log{ display:block }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px; padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace; font-size:.82rem; line-height:1.6;
+        padding:.9rem 1.1rem; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+  .bonus{ border-top:1px dashed var(--line); margin-top:1.4rem; padding-top:1rem }
+
+  /* ================= the jungle ================= */
+  #jungle{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.7rem; margin:0 0 1rem }
+  .jbar{ display:flex; flex-wrap:wrap; gap:.4rem .8rem; align-items:center; font-size:.85rem; color:var(--soft); margin:0 0 .5rem }
+  .jbar .rnd{ font-weight:700; color:var(--ink) }
+  .jbar .modechip{ font-weight:700; border-radius:999px; padding:0 .6rem; background:var(--accent-soft); color:var(--accent) }
+  .jbar .modechip.gold{ background:#fff3d6; color:#8a5c00 }
+  .jbar .sp{ margin-left:auto; display:flex; gap:.35rem; flex-wrap:wrap }
+  #box{ position:relative; width:100%; aspect-ratio:16/9; border-radius:10px; overflow:hidden;
+        background:linear-gradient(#9fd3c7,#cfe9d9); user-select:none; -webkit-user-select:none }
+  #gl{ position:absolute; inset:0; width:100%; height:100%; display:block }
+
+  .sentence{ position:absolute; top:10px; left:50%; transform:translateX(-50%); width:min(94%,52rem);
+        background:rgba(255,253,250,.96); border-left:6px solid var(--accent); border-radius:8px;
+        padding:.5rem .9rem .45rem; box-shadow:0 3px 14px rgba(0,0,0,.18); z-index:3 }
+  .sentence .s{ font-size:1.13rem; line-height:1.6; margin:0 }
+  .sentence .blank{ display:inline-block; min-width:4.2em; border-bottom:3px solid var(--accent); text-align:center; color:var(--accent); font-weight:700 }
+  .sentence .fill{ font-weight:700; border-radius:5px; padding:0 .25rem }
+  .sentence .fill.strong{ background:var(--calm-soft); color:var(--calm); border:1px solid #9fcdb6 }
+  .sentence .coach{ font-size:.82rem; color:var(--soft); margin:.15rem 0 0 }
+  .tbar{ height:8px; border-radius:4px; background:#e6e0d6; margin:.35rem 0 .05rem; overflow:hidden; display:none }
+  .tbar i{ display:block; height:100%; width:100%; background:var(--calm); transform-origin:left center }
+  .tbar.low i{ background:var(--warn) }
+  .ttxt{ font-size:.8rem; font-weight:700; color:var(--soft); display:none }
+  .timed.deciding .tbar, .timed.deciding .ttxt{ display:block }
+
+  .vopt{ position:absolute; z-index:2; transform:translate(-50%,-50%); font:inherit; cursor:pointer;
+        background:#fffdfa; color:var(--ink); border:3px solid var(--accent); border-radius:12px;
+        padding:.3rem .7rem .35rem; min-width:6rem; max-width:11rem; text-align:center; line-height:1.25;
+        box-shadow:0 4px 14px rgba(0,0,0,.25); transition:opacity .25s }
+  .vopt:hover{ background:#fff; border-color:#1f5670 }
+  .vopt .key{ position:absolute; top:-.7rem; left:-.6rem; background:var(--accent); color:#fff; border-radius:6px;
+        font-size:.72rem; font-weight:700; padding:0 .35rem; line-height:1.5 }
+  .vopt .sym{ display:block; font-size:1.5rem; line-height:1.15; transition:opacity .3s }
+  .vopt .tn{ display:block; font-size:.7rem; color:var(--soft); font-weight:700; letter-spacing:.04em; text-transform:uppercase }
+  .vopt .w{ display:block; font-size:1.08rem; font-weight:700 }
+  .vopt .badge{ display:none; font-size:.68rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; margin-top:.15rem }
+  .vopt.nosym .sym, .vopt.nosym .tn{ display:none }
+  .vopt.faint .sym, .vopt.faint .tn{ opacity:.3 }
+  .vopt.revealed .sym, .vopt.revealed .tn{ display:block; opacity:1 }
+  .vopt.revealed .badge{ display:block }
+  .vopt.r-strong{ border-color:var(--calm) } .vopt.r-strong .badge{ color:var(--calm) }
+  .vopt.r-weak{ border-color:var(--warn) }   .vopt.r-weak .badge{ color:var(--warn) }
+  .vopt.r-decoy{ border-color:var(--bad) }   .vopt.r-decoy .badge{ color:var(--bad) }
+  .vopt.dim{ opacity:.55 }
+  .vopt:disabled{ cursor:default }
+
+  .hud{ position:absolute; left:10px; right:10px; bottom:10px; z-index:3; display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; pointer-events:none }
+  .pill{ background:var(--hud); color:#fff; border-radius:999px; padding:.1rem .7rem; font-size:.88rem; font-weight:700; white-space:nowrap }
+  .pill.gold{ background:rgba(138,92,0,.9) }
+  .pill.ahead{ background:rgba(46,125,91,.92) } .pill.behind{ background:rgba(168,100,27,.92) }
+  .pill .dim{ opacity:.75; font-weight:400 }
+  .hud .sp{ margin-left:auto }
+  .pill.pop{ animation:pop .4s cubic-bezier(.2,1.5,.4,1) }
+
+  .toast{ position:absolute; right:12px; bottom:52px; z-index:4; background:var(--hud); color:#fff; font-weight:700;
+        border-radius:10px; padding:.35rem .8rem; font-size:.95rem; display:none }
+  .toast.show{ display:block; animation:fadein .3s ease both }
+
+  .qte{ position:absolute; z-index:4; width:0; height:0; display:none; pointer-events:none }
+  .qte.show{ display:block }
+  .qte .target, .qte .ring{ position:absolute; left:0; top:0; border-radius:50%; transform:translate(-50%,-50%) }
+  .qte .target{ width:64px; height:64px; border:4px solid #fff; box-shadow:0 0 0 3px rgba(0,0,0,.35) }
+  .qte .ring{ width:64px; height:64px; border:4px solid #ffd54a }
+  .qte .k{ position:absolute; left:0; top:48px; transform:translateX(-50%); background:#fff; color:var(--ink);
+        border-radius:6px; font-size:.8rem; font-weight:700; padding:0 .5rem; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,.3) }
+  .qte.ok .target{ border-color:#7ee2a8 } .qte.no .target{ border-color:#f19a8f }
+  .flyban{ position:absolute; z-index:6; font-size:2rem; transition:left .7s ease-in, top .7s ease-in, opacity .7s; pointer-events:none }
+
+  .panel{ position:absolute; z-index:5; left:50%; bottom:52px; transform:translateX(-50%); width:min(92%,44rem);
+        background:var(--card); border-radius:12px; padding:.8rem 1.1rem; box-shadow:0 6px 24px rgba(0,0,0,.3);
+        border-top:6px solid var(--warn); font-size:.97rem; display:none; max-height:62%; overflow:auto }
+  .panel.show{ display:block; animation:fadein .25s ease both }
+  @keyframes fadein{ from{ opacity:0 } to{ opacity:1 } }
+  .panel.bad{ border-top-color:var(--bad) }
+  .panel h3{ margin:0 0 .3rem; font-size:1.05rem }
+  .panel p{ margin:.25rem 0 }
+  .panel .row{ margin:.6rem 0 0 }
+
+  .overlay{ position:absolute; inset:0; z-index:7; background:rgba(14,30,20,.55); display:none; align-items:center; justify-content:center; padding:1rem }
+  .overlay.show{ display:flex }
+  .card{ background:var(--card); border-radius:14px; padding:1rem 1.3rem; width:min(100%,46rem); max-height:100%; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.35) }
+  .card h3{ margin:0 0 .3rem; font-size:1.25rem }
+  .card .lede{ margin:0 0 .8rem; color:var(--soft); font-size:.92rem }
+  .modes{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem }
+  .mode{ font:inherit; text-align:left; cursor:pointer; border-radius:12px; padding:.8rem 1rem; border:3px solid var(--line); background:#fff; color:var(--ink); line-height:1.45 }
+  .mode:hover{ border-color:var(--accent) }
+  .mode b{ display:block; font-size:1.12rem } .mode .k{ float:right; font-size:.75rem; color:var(--soft) }
+  .mode.timed{ border-color:#e7c46b; background:#fffaf0 }
+  .mode .tag{ display:inline-block; background:var(--gold); color:#fff; border-radius:999px; font-size:.75rem; font-weight:700; padding:0 .55rem; margin:.25rem .2rem 0 0 }
+  .mode .tag.blue{ background:var(--accent) }
+  .mode small{ display:block; color:var(--soft); margin-top:.3rem; font-size:.85rem }
+  .chain{ margin:.2rem 0 .7rem; padding:0; list-style:none; font-size:.9rem; line-height:1.5 }
+  .chain li{ border-left:4px solid var(--line); padding:.05rem .6rem; margin:.2rem 0 }
+  .chain li.strong{ border-left-color:var(--calm) } .chain li.weak{ border-left-color:var(--warn) } .chain li.decoy, .chain li.miss{ border-left-color:var(--bad) }
+  .chain b{ background:var(--calm-soft); color:var(--calm); border-radius:4px; padding:0 .2rem }
+  .chain .mk{ font-size:.75rem; font-weight:700; color:var(--soft); margin-left:.3rem }
+  .cphead{ display:flex; gap:1rem; align-items:flex-start; justify-content:space-between }
+  .cpscore{ text-align:right; line-height:1.1 } .cpscore span{ display:block; font-size:.8rem; color:var(--soft); font-weight:700 }
+  .cpscore b{ font-size:2rem; color:var(--accent); font-variant-numeric:tabular-nums }
+  .chips{ display:flex; flex-wrap:wrap; gap:.35rem; margin:0 0 .6rem }
+  .chips .chip{ background:var(--accent-soft); border-radius:999px; padding:.05rem .65rem; font-size:.88rem; font-weight:700 }
+  .chips .chip.hidden{ visibility:hidden }
+  table.tally{ border-collapse:collapse; width:100%; font-size:.95rem; margin:.2rem 0 .6rem }
+  table.tally td{ padding:.2rem .4rem; border-bottom:1px solid var(--line) }
+  table.tally td:last-child{ text-align:right; font-weight:700; font-variant-numeric:tabular-nums }
+  table.tally tr.total td{ font-size:1.15rem; border-bottom:0; color:var(--accent) }
+  table.tally tr.hidden{ visibility:hidden }
+  .controls{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  /* flat fallback when WebGL is missing */
+  #box.flat{ background:linear-gradient(#9fd3c7,#5d9450) }
+  #box.flat .vopt{ top:58% !important }
+
+  /* bigger text option */
+  #box.big .sentence .s{ font-size:1.32rem }
+  #box.big .vopt .w{ font-size:1.25rem }
+
+  @media (max-width:700px){
+    .sentence .s{ font-size:.98rem } .vopt{ min-width:5.5rem; padding:.2rem .5rem } .vopt .w{ font-size:.92rem }
+    .vopt .sym{ font-size:1.15rem } .modes{ grid-template-columns:1fr } .pill{ font-size:.75rem }
+  }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+
+  /* v2 */
+  .stage:not(.done){ display:none !important }
+  #box:focus{ outline:none } #box:focus-visible{ outline:3px solid var(--accent); outline-offset:3px }
+  #box{ cursor:pointer; touch-action:none }
+  .vopt.hl{ border-color:var(--gold); box-shadow:0 0 0 4px rgba(242,194,48,.55), 0 6px 18px rgba(0,0,0,.35); transform:translate(-50%,-50%) scale(1.08) }
+  .sentence.live{ border-left-color:var(--gold) }
+  .tip{ position:absolute; left:50%; bottom:58px; transform:translateX(-50%); z-index:4; background:rgba(255,253,250,.95); border-radius:10px;
+        padding:.45rem .9rem; font-size:.95rem; box-shadow:0 4px 16px rgba(0,0,0,.25); display:none; max-width:min(92%,40rem); text-align:center }
+  .tip.show{ display:block; animation:fadein .3s ease both }
+  .steps1{ font-size:.92rem; color:var(--soft); margin:-.6rem 0 1rem }
+  .preview .tip2{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+  .progress h2{ font-size:1rem; margin:.5rem 0 .4rem; color:var(--soft) }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🐒 Vine Swing</h1>
+  <p class="sub">Swing through the jungle. When a sentence appears, time slows down: grab the vine with the transition that fits the blank.</p>
+  <p class="steps1"><b>Hold</b> mouse or <kbd>Space</kbd> = hang on · <b>let go</b> = fly · <kbd>A</kbd>/<kbd>D</kbd> = steer · in slow motion: <kbd>A</kbd>/<kbd>D</kbd> pick, <b>click</b> or <kbd>Space</kbd> grab · <kbd>B</kbd> = use a 🍌</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div id="jungle">
+    <div class="jbar">
+      <span class="rnd" id="rndName">Practice Swing</span>
+      <span class="modechip" id="modeChip">🌱 Practice</span>
+      <span class="sp">
+        <button class="btn ghost small" id="sndBtn" aria-pressed="true">🔊 Sound: on</button>
+        <button class="btn ghost small" id="timeBtn" title="More time on timed checks and on the fruit">⏱ Time: ×1</button>
+        <button class="btn ghost small" id="autoBtn" aria-pressed="false" title="Hangs on, lets go and catches for you, so only the sentences need you">🤖 Auto-swing: off</button>
+        <button class="btn ghost small" id="calmBtn" aria-pressed="false">🐢 Calm motion: off</button>
+        <button class="btn ghost small" id="bigBtn" aria-pressed="false">🔤 Bigger text: off</button>
+      </span>
+    </div>
+    <div id="box" tabindex="0" aria-label="The jungle. Hold the mouse button or Space to hang on, let go to fly.">
+      <canvas id="gl" aria-hidden="true"></canvas>
+      <div class="sentence" id="sentBox" aria-live="polite">
+        <p class="s" id="sent">Loading the jungle…</p>
+        <div class="tbar" id="tbar"><i id="tfill"></i></div>
+        <span class="ttxt" id="ttxt"></span>
+        <p class="coach" id="coach"></p>
+      </div>
+      <div id="opts"></div>
+      <div class="tip" id="tip"></div>
+      <div class="hud" id="hud">
+        <span class="pill" id="hStreak">🔥 0</span>
+        <span class="pill" id="hScore">⭐ 0</span>
+        <span class="pill" id="hClock" hidden>🏁 0:00.0</span>
+        <span class="pill" id="hBan">🍌 0</span>
+        <span class="pill sp" id="hHint">Hold to hang · let go to fly</span>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="qte" id="qte"><div class="target"></div><div class="ring" id="qRing"></div><div class="k" id="qKey">SPACE</div></div>
+      <div class="panel" id="panel" role="dialog" aria-live="assertive"></div>
+      <div class="overlay" id="ov"><div class="card" id="ovCard"></div></div>
+    </div>
+  </div>
+
+  <details class="remind" id="keyCard">
+    <summary>🗝️ Transition key: what each symbol means</summary>
+    <div class="keygrid" id="keyGrid"></div>
+  </details>
+
+  <div class="progress">
+  <!-- checkpoints: each appears as a green bar once reached; tap to see what was recorded -->
+  <section class="stage active" id="s1" data-title="Practice Swing">
+    <button class="donebar" onclick="LL.toggle('s1')"><span class="tick">✓</span> <strong>Practice Swing</strong><span class="sum" id="sum-s1"></span></button>
+    <div class="stage-body"><div class="log"></div></div>
+  </section>
+  <section class="stage" id="s2" data-title="Canopy 1">
+    <button class="donebar" onclick="LL.toggle('s2')"><span class="tick">✓</span> <strong>Canopy 1</strong><span class="sum" id="sum-s2"></span></button>
+    <div class="stage-body"><div class="log"></div></div>
+  </section>
+  <section class="stage" id="s3" data-title="Canopy 2">
+    <button class="donebar" onclick="LL.toggle('s3')"><span class="tick">✓</span> <strong>Canopy 2</strong><span class="sum" id="sum-s3"></span></button>
+    <div class="stage-body"><div class="log"></div></div>
+  </section>
+  <section class="stage" id="s4" data-title="Canopy 3">
+    <button class="donebar" onclick="LL.toggle('s4')"><span class="tick">✓</span> <strong>Canopy 3</strong><span class="sum" id="sum-s4"></span></button>
+    <div class="stage-body"><div class="log"></div></div>
+  </section>
+  </div>
+
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button collects every checkpoint, ready to paste into Canvas. You can keep swinging bonus canopies above; they get added too.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip2">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* =====================================================================
+   CONTENT — swap these constants to point the engine at another skill.
+   ---------------------------------------------------------------------
+   TYPES   the transition families. sym is the icon floated over a vine,
+           means finishes the sentence "A ___ transition …".
+   BANK    one item = one vine choice.
+             t     the type the blank needs (a TYPES key)
+             s     the sentence(s); ___ marks the blank. If the blank
+                   starts a sentence the options are capitalised,
+                   otherwise they are lowercased automatically.
+             ok    STRONG picks (right type, fits the slot); one is drawn
+             weak  WEAK picks: a real transition of the WRONG type that
+                   fits the slot; one is drawn
+           The third vine is a DECOY — a word that is not a transition at
+           all, drawn from DECOYS by the round's tier.
+   DECOYS  easy   = obviously not a connector (nouns, adjectives)
+           medium = little function words that look "grammar-y"
+           hard   = malformed transitions, keyed to the item's type so
+                    they look like the right answer. f = the fix shown.
+   ===================================================================== */
+const TYPES = {
+  addition:      { name:'Addition',         sym:'➕', means:'adds another point that pushes the same way' },
+  comparison:    { name:'Comparison',       sym:'👥', means:'shows two things are alike' },
+  contrast:      { name:'Contrast',         sym:'↔️', means:'shows the next idea goes against the first' },
+  concession:    { name:'Concession',       sym:'🤝', means:'admits one point, then pushes past it' },
+  cause:         { name:'Cause / Effect',   sym:'➡️', means:'shows one thing makes another happen' },
+  sequence:      { name:'Sequence',         sym:'🔢', means:'puts steps in order' },
+  time:          { name:'Time',             sym:'⏰', means:'shows when things happen' },
+  example:       { name:'Example',          sym:'👉', means:'gives a specific case of the idea' },
+  emphasis:      { name:'Emphasis',         sym:'❗', means:'makes a point stronger' },
+  summary:       { name:'Summary',          sym:'📦', means:'wraps everything up' },
+  clarification: { name:'Clarification',    sym:'🗣️', means:'says the same idea more clearly' },
+  space:         { name:'Space / Location', sym:'📍', means:'shows where things are' },
+  condition:     { name:'Condition',        sym:'🚦', means:'sets up what has to be true first' },
+  purpose:       { name:'Purpose',          sym:'🎯', means:'tells why someone does something' }
+};
+const DECOY_TYPE = { name:'Not a transition', sym:'🚫' };
+
+const DECOYS = {
+  easy:   ['Purple','Pancakes','Gigantic','Window','Thunder','Sleepy','Pickle','Elbow','Fluffy',
+           'Sandwich','Turtle','Crunchy','Basement','Spaghetti','Bubbly','Sneakers'],
+  medium: ['Very','Itself','Whom','Quite','Ourselves','Whose','Than','Yours','Whichever',
+           'Somewhat','Theirs','Hers'],
+  hard: {
+    addition:      [{w:'In additional', f:'The real phrase is “in addition.”'},
+                    {w:'Furthermost',   f:'“Furthermost” means farthest away. The transition is “furthermore.”'},
+                    {w:'Moreso',        f:'Not standard English. Try “moreover.”'}],
+    comparison:    [{w:'In a same way', f:'The real phrase is “in the same way.”'},
+                    {w:'Similar',       f:'“Similar” is an adjective. The transition is “similarly.”'},
+                    {w:'Just as so',    f:'Not a real phrase. Try “likewise.”'}],
+    contrast:      [{w:'On the contrast',     f:'Mixed-up phrase. The real ones are “on the contrary” and “in contrast.”'},
+                    {w:'In the other hand',   f:'The real phrase is “on the other hand.”'},
+                    {w:'On the opposite hand',f:'Not a real phrase. It’s “on the other hand.”'}],
+    concession:    [{w:'Despite of',     f:'Drop the “of”: it’s just “despite” (or “in spite of”).'},
+                    {w:'Even so though', f:'Two transitions jammed together. Pick one: “even so” or “even though.”'},
+                    {w:'Admitting',      f:'Not a transition. The word you want is “admittedly.”'}],
+    cause:         [{w:'Consequentially', f:'“Consequentially” means importantly. The transition is “consequently.”'},
+                    {w:'As a resulted',   f:'The real phrase is “as a result.”'},
+                    {w:'Due of',          f:'The real phrase is “due to.”'}],
+    sequence:      [{w:'Firstly of all', f:'Mixed-up phrase. Use “first” or “first of all.”'},
+                    {w:'Next of',        f:'Not a real phrase. Just “next.”'},
+                    {w:'At finally',     f:'Not a real phrase. Use “finally” or “at last.”'}],
+    time:          [{w:'In the meanwhile of', f:'Not a real phrase. Use “meanwhile.”'},
+                    {w:'Eventual',            f:'“Eventual” is an adjective. The transition is “eventually.”'},
+                    {w:'Simultaneous',        f:'“Simultaneous” is an adjective. The transition is “simultaneously.”'}],
+    example:       [{w:'For a example',   f:'No “a”: it’s “for example.”'},
+                    {w:'For instance of', f:'Drop the “of”: it’s “for instance.”'},
+                    {w:'To illustrating', f:'The real phrase is “to illustrate.”'}],
+    emphasis:      [{w:'In facts',    f:'The real phrase is “in fact,” with no s.'},
+                    {w:'Above of all',f:'Drop the “of”: it’s “above all.”'},
+                    {w:'Indeedly',    f:'Not a word. Just “indeed.”'}],
+    summary:       [{w:'In conclusive', f:'“Conclusive” is an adjective. The phrase is “in conclusion.”'},
+                    {w:'To summing up', f:'The real phrase is “to sum up.”'},
+                    {w:'On the wholly', f:'The real phrase is “on the whole.”'}],
+    clarification: [{w:'In another words', f:'The real phrase is “in other words.”'},
+                    {w:'To clarifying',    f:'The real phrase is “to clarify.”'},
+                    {w:'In other wording', f:'Not a real phrase. It’s “in other words.”'}],
+    space:         [{w:'Beyond of',   f:'Drop the “of”: it’s just “beyond.”'},
+                    {w:'In front to', f:'The real phrase is “in front of.”'},
+                    {w:'Adjacently',  f:'Not a transition. Use “adjacent to.”'}],
+    condition:     [{w:'Provided than',   f:'The real phrase is “provided that.”'},
+                    {w:'As long that',    f:'The real phrase is “as long as.”'},
+                    {w:'In the event if', f:'The real phrases are “in the event of” and “in the event that.”'}],
+    purpose:       [{w:'In order for to',    f:'The real phrase is “in order to.”'},
+                    {w:'So as that',         f:'Mixed-up phrase. Use “so that” or “so as to.”'},
+                    {w:'For the purpose to', f:'The real phrase is “for the purpose of.”'}]
+  }
+};
+
+/* Practice draws only from these: clear, familiar families. */
+const PRACTICE_TYPES = ['addition','contrast','cause','example'];
+
+const BANK = [
+/* ---------------- ADDITION ---------------- */
+{t:'addition', s:'Our robotics team built the fastest arm in the league. ___, it was the only one that never broke down.', ok:['Furthermore','In addition','Moreover','Also'], weak:['However','Nevertheless','In contrast']},
+{t:'addition', s:'Walking to school saves money on gas. ___, it gets you thirty minutes of exercise every day.', ok:['Furthermore','In addition','Moreover','Besides'], weak:['However','Nevertheless','In contrast']},
+{t:'addition', s:'The new library has quiet study rooms on every floor. ___, it stays open until midnight during finals.', ok:['In addition','Furthermore','Moreover','Also'], weak:['On the other hand','Nevertheless']},
+{t:'addition', s:'Volunteering looks good on a college application. ___, it connects you with people in your community.', ok:['Moreover','Besides','In addition','Furthermore'], weak:['In contrast','However']},
+{t:'addition', s:'This phone has a brighter screen than last year’s model. ___, its battery lasts almost a full day longer.', ok:['In addition','Furthermore','Moreover','Also'], weak:['However','In contrast','Nevertheless']},
+{t:'addition', s:'Learning a second language can help you travel. ___, it can open doors to jobs that pay more.', ok:['Furthermore','Moreover','In addition','Besides'], weak:['Nevertheless','In contrast']},
+{t:'addition', s:'The coach wants us at practice by six. ___, she expects us to bring our own water bottles.', ok:['Also','In addition','Furthermore'], weak:['However','In contrast']},
+{t:'addition', s:'The museum trip is free for students. ___, lunch will be provided at the café.', ok:['In addition','Also','Furthermore','Moreover'], weak:['However','On the other hand']},
+{t:'addition', s:'Solar panels lower a family’s electric bill. ___, they reduce the pollution that power plants produce.', ok:['Moreover','Furthermore','In addition','Also'], weak:['Nevertheless','In contrast']},
+{t:'addition', s:'Reading before bed helps many people relax. ___, it builds vocabulary without feeling like studying.', ok:['Besides','In addition','Moreover','Also'], weak:['However','Nevertheless']},
+{t:'addition', s:'Our school garden grows vegetables for the cafeteria. ___, it gives the biology classes a place to run experiments.', ok:['Furthermore','In addition','Also','Moreover'], weak:['On the other hand','However']},
+{t:'addition', s:'The concert raised two thousand dollars for the animal shelter. ___, three families signed up to adopt dogs that night.', ok:['In addition','Moreover','Furthermore','Also'], weak:['Nevertheless','In contrast']},
+
+/* ---------------- COMPARISON ---------------- */
+{t:'comparison', s:'Athletes need rest days so their muscles can recover. ___, students need breaks so their brains can absorb new material.', ok:['Similarly','Likewise','In the same way'], weak:['In contrast','However']},
+{t:'comparison', s:'A good map helps a hiker avoid getting lost. ___, a clear outline helps a writer stay on track.', ok:['In the same way','Similarly','Likewise'], weak:['On the other hand','Consequently']},
+{t:'comparison', s:'Some birds fly south when the weather turns cold. ___, monarch butterflies travel thousands of miles to warmer places each fall.', ok:['Similarly','Likewise','In the same way'], weak:['Therefore','Nevertheless']},
+{t:'comparison', s:'The first chapter ends with the main character alone in the rain. ___, the final chapter closes on her standing by herself in a storm.', ok:['Similarly','Likewise','In the same way'], weak:['As a result','In contrast']},
+{t:'comparison', s:'Musicians practice scales every day to build speed. ___, basketball players shoot free throws over and over to build muscle memory.', ok:['Likewise','Similarly','In the same way'], weak:['However','Consequently']},
+{t:'comparison', s:'In the 1920s, radio changed how families got their news. ___, the internet changed it again decades later.', ok:['Similarly','Likewise','In the same way'], weak:['Nevertheless','In contrast']},
+{t:'comparison', s:'A seed needs water and sunlight to grow. ___, a new friendship needs time and attention to grow.', ok:['In the same way','Similarly','Likewise'], weak:['Therefore','However']},
+{t:'comparison', s:'My older brother saved for a year to buy his first car. ___, I am saving my summer paychecks for a laptop.', ok:['Likewise','Similarly','In the same way'], weak:['In contrast','As a result']},
+{t:'comparison', s:'Doctors wash their hands before every patient to stop germs from spreading. ___, restaurant cooks wear gloves when they handle food.', ok:['Similarly','Likewise','In the same way'], weak:['However','Consequently']},
+{t:'comparison', s:'Ancient Egyptians recorded their history on stone walls. ___, the Maya carved important events into stone monuments.', ok:['Similarly','Likewise','In the same way'], weak:['Nevertheless','Therefore']},
+{t:'comparison', s:'Video games reward players for solving puzzles. ___, good teachers reward students for working through hard problems.', ok:['In the same way','Similarly','Likewise'], weak:['In contrast','As a result']},
+{t:'comparison', s:'Cats spend much of the day sleeping to save energy. ___, lions rest up to twenty hours a day between hunts.', ok:['Similarly','Likewise','In the same way'], weak:['However','Therefore']},
+
+/* ---------------- CONTRAST ---------------- */
+{t:'contrast', s:'The trail map said the hike was easy, ___ we were out of breath by the first hill.', ok:['but','yet'], weak:['so','because']},
+{t:'contrast', s:'Electric cars are quiet and cheap to run. ___, they can take hours to recharge.', ok:['However','On the other hand'], weak:['Furthermore','Similarly','As a result']},
+{t:'contrast', s:'My sister loves horror movies. ___, I can’t watch one without sleeping with the lights on.', ok:['In contrast','On the other hand','However'], weak:['Similarly','Therefore']},
+{t:'contrast', s:'Online classes let students work at their own pace. ___, they make it easy to fall behind without anyone noticing.', ok:['However','On the other hand'], weak:['Moreover','For instance']},
+{t:'contrast', s:'City life offers concerts, museums, and restaurants. ___, country life offers quiet nights and wide open space.', ok:['In contrast','On the other hand'], weak:['Likewise','As a result']},
+{t:'contrast', s:'The team lost its best player to an injury in October. ___, it still made the playoffs.', ok:['Nevertheless','However'], weak:['Consequently','Similarly']},
+{t:'contrast', s:'Sharks have a scary reputation. ___, they kill only a handful of people a year worldwide.', ok:['However'], weak:['Therefore','Likewise']},
+{t:'contrast', s:'Most of the class studied for weeks, ___ Marcus crammed the night before.', ok:['but','yet'], weak:['so','because']},
+{t:'contrast', s:'The book was slow at the start. ___, the last hundred pages were impossible to put down.', ok:['However','In contrast','On the other hand'], weak:['Furthermore','For example']},
+{t:'contrast', s:'Cheetahs are the fastest land animals over short distances. ___, they tire out after less than a minute of sprinting.', ok:['However'], weak:['Similarly','In addition']},
+{t:'contrast', s:'The recipe called for two hours of baking. ___, our cake was done in forty minutes.', ok:['However'], weak:['Therefore','Likewise']},
+{t:'contrast', s:'Some students like to study with music on. ___, others need complete silence to focus.', ok:['On the other hand','However','In contrast'], weak:['Similarly','As a result']},
+
+/* ---------------- CONCESSION ---------------- */
+{t:'concession', s:'___ the bus was twenty minutes late, we still made it to the first bell.', ok:['Although','Even though'], weak:['Because','Unless']},
+{t:'concession', s:'___ the rain, the outdoor graduation went on as planned.', ok:['Despite','In spite of'], weak:['Due to','Because of']},
+{t:'concession', s:'___, the movie is almost three hours long. Still, every minute of it is worth watching.', ok:['Granted','Admittedly'], weak:['For example','Similarly']},
+{t:'concession', s:'___ she had never played chess before, Jada beat her cousin in her first game.', ok:['Although','Even though'], weak:['Because','Provided that']},
+{t:'concession', s:'___ the high ticket price, the concert sold out in ten minutes.', ok:['Despite','In spite of'], weak:['Due to','Because of']},
+{t:'concession', s:'___, my first draft was messy. Even so, my teacher said the argument was strong.', ok:['Admittedly','Granted'], weak:['Therefore','In addition']},
+{t:'concession', s:'___ the test was hard, most of the class passed it.', ok:['Although','Even though'], weak:['Because','Unless']},
+{t:'concession', s:'___ his fear of heights, Theo climbed to the top of the rock wall.', ok:['Despite','In spite of'], weak:['Due to','Because of']},
+{t:'concession', s:'___ I don’t love vegetables, I eat them because they keep me healthy.', ok:['Although','Even though'], weak:['Because','As long as']},
+{t:'concession', s:'___, the old stadium has uncomfortable seats. Even so, fans love the noise and the history there.', ok:['Granted','Admittedly'], weak:['Similarly','As a result']},
+{t:'concession', s:'___ the long wait, the new roller coaster got great reviews.', ok:['Despite','In spite of'], weak:['Due to','Because of']},
+{t:'concession', s:'___ the team had a losing record, the fans showed up for every home game.', ok:['Even though','Although'], weak:['Because','Unless']},
+
+/* ---------------- CAUSE / EFFECT ---------------- */
+{t:'cause', s:'The power went out during the storm. ___, we ate dinner by candlelight.', ok:['As a result','Consequently','Therefore'], weak:['However','For instance']},
+{t:'cause', s:'Maya practiced her speech every night for a week. ___, she felt calm when she finally stood up in front of the class.', ok:['As a result','Consequently','Therefore'], weak:['Nevertheless','In contrast']},
+{t:'cause', s:'___ the road was covered in ice, school was canceled.', ok:['Because'], weak:['Although','Unless']},
+{t:'cause', s:'___ the snowstorm, every flight out of Denver was canceled.', ok:['Due to','Because of'], weak:['Despite','In spite of']},
+{t:'cause', s:'The bridge was closed for repairs. ___, drivers had to take a twenty-minute detour.', ok:['Therefore','Consequently','As a result','Thus'], weak:['Similarly','However']},
+{t:'cause', s:'Plants take in carbon dioxide and give off oxygen. ___, forests play a big role in keeping the air breathable.', ok:['Therefore','Thus','Hence','Consequently'], weak:['In contrast','For example']},
+{t:'cause', s:'I forgot to charge my phone last night. ___, it died halfway through the school day.', ok:['As a result','Consequently'], weak:['Likewise','Nevertheless']},
+{t:'cause', s:'___ the coach was sick, the assistant ran practice.', ok:['Because'], weak:['Although','Unless']},
+{t:'cause', s:'The price of concert tickets doubled this year. ___, fewer students could afford to go.', ok:['Consequently','As a result','Therefore'], weak:['On the other hand','Similarly']},
+{t:'cause', s:'___ heavy traffic, we missed the opening kickoff.', ok:['Due to','Because of'], weak:['Despite','In spite of']},
+{t:'cause', s:'Water expands when it freezes. ___, pipes can burst during a hard winter.', ok:['Therefore','Consequently','As a result','Thus'], weak:['However','Likewise']},
+{t:'cause', s:'The author uses short, choppy sentences in the chase scene. ___, the reader feels the character’s panic.', ok:['As a result','Consequently','Thus'], weak:['In contrast','Nevertheless']},
+
+/* ---------------- SEQUENCE ---------------- */
+{t:'sequence', s:'To make a paper airplane, fold the sheet in half the long way. ___, fold the top corners down to the center crease.', ok:['Next','Then','Second'], weak:['However','For example']},
+{t:'sequence', s:'Here is how to change a flat tire. ___, loosen the lug nuts while the car is still on the ground.', ok:['First'], weak:['Therefore','In contrast']},
+{t:'sequence', s:'Rinse the rice until the water runs clear. Add two cups of water and bring it to a boil. ___, cover the pot and let it simmer for eighteen minutes.', ok:['Then','Next','Finally'], weak:['Similarly','Nevertheless']},
+{t:'sequence', s:'We studied the map, packed our bags, and checked the weather. ___, we set off for the trailhead.', ok:['Finally','Then'], weak:['For instance','In contrast']},
+{t:'sequence', s:'Write your name at the top of the answer sheet. ___, read each question carefully before you choose an answer.', ok:['Next','Then','Second'], weak:['However','As a result']},
+{t:'sequence', s:'The first step in our science fair project was asking a question. ___, we did research to form a hypothesis.', ok:['Next','Then','Second'], weak:['Nevertheless','For example']},
+{t:'sequence', s:'Preheat the oven to 350 degrees. ___, mix the flour, sugar, and eggs in a large bowl.', ok:['Next','Then','Second'], weak:['In contrast','Therefore']},
+{t:'sequence', s:'The band first played in a garage. ___, they performed at local coffee shops, and within two years they were opening for touring acts.', ok:['Then','Next','Subsequently'], weak:['Similarly','However']},
+{t:'sequence', s:'To start the experiment, label three cups A, B, and C. ___, pour 100 mL of water into each one.', ok:['Next','Then','Second'], weak:['On the other hand','For instance']},
+{t:'sequence', s:'After the votes were counted, the results were posted on the school website. ___, the winners gave short speeches at the assembly.', ok:['Subsequently','Then','Next'], weak:['In contrast','For example']},
+{t:'sequence', s:'Save your file. Close all your other programs. ___, restart the computer to finish the update.', ok:['Finally','Then'], weak:['Similarly','Nevertheless']},
+{t:'sequence', s:'There are three good reasons to join the debate club. ___, it makes you a more confident speaker.', ok:['First'], weak:['Nevertheless','As a result']},
+
+/* ---------------- TIME ---------------- */
+{t:'time', s:'Dad grilled burgers in the backyard. ___, Mom set the table inside.', ok:['Meanwhile'], weak:['Therefore','For example']},
+{t:'time', s:'___ the movie, please silence your phones.', ok:['During','Before'], weak:['Despite','Due to']},
+{t:'time', s:'Ana spent months failing to land a kickflip. ___, she nailed one in front of the whole skate park.', ok:['Eventually'], weak:['Similarly','For instance']},
+{t:'time', s:'___ the game started, both teams lined up for the national anthem.', ok:['Before'], weak:['Although','Because']},
+{t:'time', s:'The pitcher wound up and threw. ___, the runner on first took off for second base.', ok:['Simultaneously','Meanwhile'], weak:['In contrast','For example']},
+{t:'time', s:'___ the fire drill, we lined up quietly in the parking lot.', ok:['During'], weak:['Despite','In spite of']},
+{t:'time', s:'___ we finished the hike, we jumped into the lake to cool off.', ok:['After'], weak:['Unless','Although']},
+{t:'time', s:'Scientists waited years for the comet to return. ___, it appeared in the night sky right on schedule.', ok:['Eventually'], weak:['For example','Similarly']},
+{t:'time', s:'___ the storm, the power flickered on and off for hours.', ok:['During'], weak:['Despite','In spite of']},
+{t:'time', s:'The chef chopped the onions. ___, her assistant heated oil in a large pan.', ok:['Meanwhile','Simultaneously'], weak:['Therefore','In other words']},
+{t:'time', s:'Please wash your hands ___ you handle any food.', ok:['before'], weak:['although','unless']},
+{t:'time', s:'___ the Civil War ended, millions of formerly enslaved people began building new lives.', ok:['After'], weak:['Although','Unless']},
+
+/* ---------------- EXAMPLE ---------------- */
+{t:'example', s:'Some animals change color to hide from predators. ___, the arctic fox turns white in the winter.', ok:['For example','For instance'], weak:['However','As a result']},
+{t:'example', s:'Our town has lots of free things to do, ___ hiking trails, a public pool, and outdoor movies.', ok:['such as'], weak:['despite','unless']},
+{t:'example', s:'Small habits can make a big difference. ___, reading for just ten minutes a night adds up to over sixty hours a year.', ok:['For example','For instance','To illustrate'], weak:['In contrast','Nevertheless']},
+{t:'example', s:'Many inventions came out of space research. ___, memory foam was first designed for NASA airplane seats.', ok:['For example','For instance'], weak:['However','Consequently']},
+{t:'example', s:'Some sports need very little equipment, ___ running and soccer.', ok:['such as'], weak:['unless','despite']},
+{t:'example', s:'The author shows that the main character is nervous. ___, he checks the lock on the door four times before bed.', ok:['For instance','For example','To illustrate'], weak:['In contrast','Similarly']},
+{t:'example', s:'Many words in English come from other languages. ___, “kindergarten” comes from German.', ok:['For example','For instance'], weak:['Nevertheless','As a result']},
+{t:'example', s:'The school offers clubs for creative students, ___ the art club, the film club, and the literary magazine.', ok:['such as'], weak:['despite','unless']},
+{t:'example', s:'Weather can change fast in the mountains. ___, a sunny morning can turn into a hailstorm by lunch.', ok:['For example','For instance','To illustrate'], weak:['However','Similarly']},
+{t:'example', s:'Some jobs didn’t exist twenty years ago. ___, there were no app developers before smartphones.', ok:['For example','For instance'], weak:['Nevertheless','In contrast']},
+{t:'example', s:'Only one planet in our solar system spins on its side, ___ Uranus.', ok:['namely'], weak:['although','despite']},
+{t:'example', s:'Kindness can be simple. ___, holding the door for someone takes two seconds but can brighten their day.', ok:['For example','For instance','To illustrate'], weak:['On the other hand','As a result']},
+
+/* ---------------- EMPHASIS ---------------- */
+{t:'emphasis', s:'The test was difficult. ___, only three students finished it on time.', ok:['In fact','Indeed'], weak:['However','Similarly']},
+{t:'emphasis', s:'A good leader is fair, honest, and organized. ___, a good leader listens.', ok:['Above all'], weak:['In contrast','Consequently']},
+{t:'emphasis', s:'I love all kinds of music, ___ old-school hip-hop.', ok:['especially','particularly'], weak:['unless','despite']},
+{t:'emphasis', s:'The new stadium is huge. ___, it holds more people than our entire town.', ok:['In fact','Indeed'], weak:['In contrast','Similarly']},
+{t:'emphasis', s:'When you go camping, bring a map, a flashlight, and extra socks. ___, bring plenty of water.', ok:['Above all'], weak:['In contrast','As a result']},
+{t:'emphasis', s:'Hummingbirds have incredibly fast hearts. ___, a hummingbird’s heart can beat over 1,200 times a minute.', ok:['In fact','Indeed'], weak:['However','Similarly']},
+{t:'emphasis', s:'The whole cast was great, ___ the actor who played the villain.', ok:['especially','particularly'], weak:['despite','unless']},
+{t:'emphasis', s:'Winning the championship wasn’t just a goal for the team. ___, it was the only thing they talked about all season.', ok:['In fact','Indeed'], weak:['Similarly','In contrast']},
+{t:'emphasis', s:'Protect your skin at the beach, ___ between noon and three o’clock, when the sun is strongest.', ok:['especially','particularly'], weak:['unless','although']},
+{t:'emphasis', s:'Sleep matters for students. ___, teens who sleep eight hours tend to score higher on tests.', ok:['In fact','Indeed'], weak:['However','In contrast']},
+{t:'emphasis', s:'To do well in this class, turn in your homework, ask questions, and study for quizzes. ___, never give up when it gets hard.', ok:['Above all'], weak:['For instance','As a result']},
+{t:'emphasis', s:'The Great Wall of China is enormous. ___, its sections add up to more than 13,000 miles.', ok:['In fact','Indeed'], weak:['However','Similarly']},
+
+/* ---------------- SUMMARY ---------------- */
+{t:'summary', s:'Uniforms save families money, cut down on morning stress, and reduce teasing. ___, our school should adopt them.', ok:['In conclusion','To sum up','On the whole'], weak:['For example','However']},
+{t:'summary', s:'There were some slow scenes and a couple of weak songs. ___, the musical was a huge success.', ok:['On the whole','In the end'], weak:['For example','Similarly']},
+{t:'summary', s:'We argued for an hour about where to eat. ___, we ordered pizza like always.', ok:['In the end'], weak:['For instance','Similarly']},
+{t:'summary', s:'Exercise improves your mood, your sleep, and your focus. ___, moving your body is good for your mind.', ok:['In brief','To sum up','In conclusion'], weak:['However','For example']},
+{t:'summary', s:'The essay has a clear thesis, strong evidence, and smooth transitions. ___, it is ready to turn in.', ok:['On the whole','To sum up','In brief'], weak:['In contrast','For instance']},
+{t:'summary', s:'The hero loses his home, his friends, and almost his life. ___, though, he saves the village.', ok:['In the end'], weak:['For example','Similarly']},
+{t:'summary', s:'Recycling saves energy, creates jobs, and keeps trash out of the ocean. ___, it is worth the extra effort.', ok:['In conclusion','To sum up','In brief'], weak:['For example','In contrast']},
+{t:'summary', s:'The trip had a few rainy days and one missed train. ___, it was the best vacation our family has taken.', ok:['On the whole','In the end'], weak:['For instance','Similarly']},
+{t:'summary', s:'The story follows a girl who leaves home, faces her fears, and returns stronger. ___, it is a story about growing up.', ok:['In brief','To sum up'], weak:['However','For example']},
+{t:'summary', s:'After three overtimes and two injuries, the game was finally over. ___, our team won by a single point.', ok:['In the end'], weak:['For example','Similarly']},
+{t:'summary', s:'Our survey found that students want longer lunches, more clubs, and later start times. ___, students want more say in how their day is planned.', ok:['To sum up','In brief','On the whole'], weak:['In contrast','For instance']},
+{t:'summary', s:'This report has shown the causes of the drought, its effects on farmers, and possible solutions. ___, the region needs a better water plan.', ok:['In conclusion','To sum up'], weak:['For example','Meanwhile']},
+
+/* ---------------- CLARIFICATION ---------------- */
+{t:'clarification', s:'The test is open-note but closed-book. ___, you can use your own notes, but not the textbook.', ok:['In other words','That is','To clarify'], weak:['Similarly','As a result']},
+{t:'clarification', s:'Photosynthesis is how plants turn sunlight into chemical energy. ___, plants make their own food from light.', ok:['In other words','In simpler terms','That is'], weak:['In contrast','Meanwhile']},
+{t:'clarification', s:'The coach said our defense was “porous.” ___, the other team could get through it easily.', ok:['In other words','In simpler terms','That is'], weak:['Similarly','Nevertheless']},
+{t:'clarification', s:'The meeting is postponed indefinitely. ___, it will happen later, but no one knows when.', ok:['In other words','That is','To clarify'], weak:['For example','Similarly']},
+{t:'clarification', s:'The novel has an unreliable narrator. ___, we can’t fully trust what the main character tells us.', ok:['In other words','That is','In simpler terms'], weak:['However','Meanwhile']},
+{t:'clarification', s:'The deadline is the 15th. ___, your project has to be uploaded by 11:59 p.m. that night, not handed in the next morning.', ok:['To clarify','That is','In other words'], weak:['For example','In contrast']},
+{t:'clarification', s:'The city has a curfew for minors. ___, people under eighteen can’t be out alone after 11 p.m.', ok:['In other words','That is','In simpler terms'], weak:['Similarly','Nevertheless']},
+{t:'clarification', s:'Inflation is rising. ___, the same twenty dollars buys less at the grocery store than it did last year.', ok:['In simpler terms','In other words','That is'], weak:['However','Meanwhile']},
+{t:'clarification', s:'The poem is written in free verse. ___, it doesn’t follow a set rhyme or rhythm.', ok:['That is','In other words','In simpler terms'], weak:['However','Similarly']},
+{t:'clarification', s:'I’m not saying the movie was bad. ___, I just think the book told the story better.', ok:['To clarify','In other words'], weak:['For example','As a result']},
+{t:'clarification', s:'The species is endangered. ___, so few are left that it could disappear completely.', ok:['In other words','That is','In simpler terms'], weak:['However','For example']},
+{t:'clarification', s:'Your essay needs to be concise. ___, say what you mean in as few words as possible.', ok:['In other words','In simpler terms','That is'], weak:['Nevertheless','Meanwhile']},
+
+/* ---------------- SPACE / LOCATION ---------------- */
+{t:'space', s:'The cabin sits at the edge of the lake. ___, a small dock stretches out over the water.', ok:['In front of it','Nearby'], weak:['Therefore','In contrast']},
+{t:'space', s:'___ the clouds, the plane flew into bright sunshine.', ok:['Above'], weak:['Despite','Due to']},
+{t:'space', s:'___ the old bridge, the river widens into a quiet pool.', ok:['Below','Beyond'], weak:['Despite','Due to']},
+{t:'space', s:'The main office is on the first floor. ___, you’ll find the nurse’s station.', ok:['Adjacent to it','Nearby'], weak:['However','As a result']},
+{t:'space', s:'___ the mountains, a desert stretches for hundreds of miles.', ok:['Beyond'], weak:['Despite','Due to']},
+{t:'space', s:'The stage was set for the play. ___, rows of folding chairs waited for the audience.', ok:['In front of it'], weak:['Despite this','Consequently']},
+{t:'space', s:'The treehouse was built twenty feet up an oak tree. ___, a hammock swung between two smaller trees.', ok:['Below it','Nearby'], weak:['Therefore','In other words']},
+{t:'space', s:'The new coffee shop is on Main Street. ___, there’s a bookstore with a reading nook.', ok:['Adjacent to it','Nearby'], weak:['Consequently','However']},
+{t:'space', s:'We climbed to the top of the lighthouse. ___ us, waves crashed against the rocks.', ok:['Below'], weak:['Despite','Due to']},
+{t:'space', s:'___ the fence, the neighbor’s dog barked at every car that passed.', ok:['Beyond'], weak:['Despite','Due to']},
+{t:'space', s:'Hang the painting above the couch. ___, place a small table with a lamp.', ok:['Below it','Nearby'], weak:['Therefore','In contrast']},
+{t:'space', s:'The campsite has a fire pit and a picnic table. ___, a trail leads down to the river.', ok:['Nearby'], weak:['However','As a result']},
+
+/* ---------------- CONDITION ---------------- */
+{t:'condition', s:'You can borrow my bike ___ you bring it back by six.', ok:['as long as','provided that'], weak:['although','because']},
+{t:'condition', s:'___ a fire, do not use the elevators.', ok:['In the event of'], weak:['Despite','Beyond']},
+{t:'condition', s:'We’ll play the game outside ___ it starts raining.', ok:['unless'], weak:['because','although']},
+{t:'condition', s:'___ you finish your homework, you can go to the game tonight.', ok:['As long as','Provided that'], weak:['Although','Even though']},
+{t:'condition', s:'___ a snow day, the test will move to Monday.', ok:['In the event of'], weak:['Despite','In front of']},
+{t:'condition', s:'You won’t get into the concert ___ you have a ticket.', ok:['unless'], weak:['because','although']},
+{t:'condition', s:'Dogs are welcome in the park ___ they stay on a leash.', ok:['as long as','provided that'], weak:['although','because']},
+{t:'condition', s:'___ a tie, the game goes into overtime.', ok:['In the event of'], weak:['Despite','Beyond']},
+{t:'condition', s:'I’ll be at practice tomorrow ___ my ride falls through.', ok:['unless'], weak:['because','although']},
+{t:'condition', s:'The plants will grow well ___ they get at least six hours of sunlight.', ok:['as long as','provided that'], weak:['although','even though']},
+{t:'condition', s:'___ an emergency, call the number on the back of your ID card.', ok:['In the event of'], weak:['Despite','Beyond']},
+{t:'condition', s:'You can retake the quiz ___ you meet with the teacher first.', ok:['provided that','as long as'], weak:['although','because']},
+
+/* ---------------- PURPOSE ---------------- */
+{t:'purpose', s:'She set three alarms ___ she wouldn’t oversleep on the day of the exam.', ok:['so that'], weak:['although','even though']},
+{t:'purpose', s:'We left an hour early ___ beat the traffic.', ok:['in order to'], weak:['despite','because of']},
+{t:'purpose', s:'The town built a new bike lane ___ make the streets safer for cyclists.', ok:['in order to'], weak:['despite','due to']},
+{t:'purpose', s:'Scientists tagged the sea turtles ___ tracking their migration across the ocean.', ok:['for the purpose of'], weak:['despite','because of']},
+{t:'purpose', s:'Speak clearly into the microphone ___ everyone in the back row can hear you.', ok:['so that'], weak:['although','unless']},
+{t:'purpose', s:'___ save money for college, Kai works weekends at the hardware store.', ok:['In order to'], weak:['Despite','Due to']},
+{t:'purpose', s:'The museum closed for a week ___ installing a new exhibit.', ok:['for the purpose of'], weak:['despite','in spite of']},
+{t:'purpose', s:'Label your folders by subject ___ you can find your notes quickly.', ok:['so that'], weak:['although','unless']},
+{t:'purpose', s:'The team watched film of their opponent ___ learn its weaknesses.', ok:['in order to'], weak:['despite','due to']},
+{t:'purpose', s:'Write the homework in your planner ___ you don’t forget it.', ok:['so that'], weak:['although','unless']},
+{t:'purpose', s:'The student council met ___ choosing a theme for the dance.', ok:['for the purpose of'], weak:['despite','in spite of']},
+{t:'purpose', s:'Ms. Lee recorded her lessons ___ students who were absent could still learn the material.', ok:['so that'], weak:['although','even though']}
+];
+
+/* Rounds. ORDER below must list the same ids. vines = skill checks per segment.
+   decoy = DECOYS tier; symbols: 'all' | 'fade' (full → faint → gone) | 'after'
+   (shown only once a vine is grabbed). secs = seconds per vine in Timed
+   mode before the accommodation multiplier. */
+const ROUNDS = {
+  s1: { name:'Practice Swing', vines:4, practice:true, decoy:'easy',            symbols:'all',   secs:0  },
+  s2: { name:'Canopy 1',       vines:8,                decoy:'easy',            symbols:'fade',  secs:16 },
+  s3: { name:'Canopy 2',       vines:8,                decoy:['medium','hard'], symbols:'after', secs:14 },
+  s4: { name:'Canopy 3',       vines:8,                decoy:'hard',            symbols:'after', secs:12 }
+};
+const BONUS_ROUND = { name:'Bonus Canopy', vines:8, decoy:'hard', symbols:'after', secs:12 };
+/* Race-the-clock par for a first try: seconds per skill check (free swings included). */
+const PAR_PER_VINE = 16;
+
+
+/* =====================================================================
+   STAGE ENGINE (from the activity shell)
+   ===================================================================== */
+const ACTIVITY_TITLE = 'Vine Swing: Transitions';
+const ORDER = ['s1','s2','s3','s4'];
+const REWARDS = {
+  s1: { star:'🌱', msg:'Practice done. Into the canopy!' },
+  s2: { star:'🍌', msg:'Canopy 1: checkpoint reached!' },
+  s3: { star:'🍌', msg:'Canopy 2: checkpoint reached!' },
+  s4: { star:'🏆', msg:'All done. Go turn it in.' }
+};
+
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+const LL = {
+  extra: {}, summary: {}, done: new Set(),
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    fillLog(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    sum.textContent = LL.summary[id] || 'tap to see it again';
+  },
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+  next(){
+    /* the game stays put; only the turn-in panel scrolls into view */
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    if (!nextId) setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'start'}), 120);
+  },
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+/* =====================================================================
+   SETTINGS, STORAGE, HELPERS
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const SET = { mult:1, calm:REDUCED, big:false, sound:true, auto:false, quality:'auto' };
+try { if (localStorage.getItem('vineswing:mute') === '1') SET.sound = false; } catch (e) {}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtTime(s){ s = Math.max(0, s); const m = Math.floor(s / 60), r = s - m * 60;
+  return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); }
+function fmtN(n){ return Math.round(n).toLocaleString('en-US'); }
+const easeIO = k => k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;
+const easeOut = k => 1 - Math.pow(1 - k, 3);
+const easeIn = k => k * k * k;
+const lerp = (a, b, k) => a + (b - a) * k;
+
+/* Per-browser convenience only: best race pace and which sentences this
+   browser has already seen (so replays prefer new ones). Every call is
+   wrapped; with storage blocked the game just forgets between visits. */
+const STORE_KEY = 'vineswing:v1';
+const MEM = (() => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch (e) { return {}; } })();
+MEM.seen = Array.isArray(MEM.seen) ? MEM.seen : [];
+function saveMem(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(MEM)); } catch (e) {} }
+
+/* blank at the start of a sentence? then capitalise, else lowercase */
+function blankStarts(s){ return /(^|[.!?][”"]?\s+)___/.test(s); }
+function caseFor(item, w){
+  if (blankStarts(item.s)) return w.charAt(0).toUpperCase() + w.slice(1);
+  return w.charAt(0).toLowerCase() + w.slice(1);
+}
+function sentHtml(s, fill, cls){
+  const parts = s.split('___');
+  const mid = fill ? '<span class="fill ' + (cls || '') + '">' + esc(fill) + '</span>'
+                   : '<span class="blank">?</span>';
+  return esc(parts[0]) + mid + esc(parts.slice(1).join('___'));
+}
+
+/* =====================================================================
+   ITEM DRAWING — distinct types inside a round, least-used types first so
+   three canopies cover all fourteen families; unseen sentences preferred.
+   ===================================================================== */
+const SESSION = { used:new Set(), typeUse:{} };
+Object.keys(TYPES).forEach(t => SESSION.typeUse[t] = 0);
+function drawItems(R){
+  const types = R.practice ? shuffle(PRACTICE_TYPES)
+    : shuffle(Object.keys(TYPES)).sort((a, b) => SESSION.typeUse[a] - SESSION.typeUse[b]);
+  const out = [];
+  for (const t of types){
+    if (out.length >= R.vines) break;
+    const idx = BANK.map((it, i) => i).filter(i => BANK[i].t === t && !SESSION.used.has(i));
+    if (!idx.length) continue;
+    const fresh = idx.filter(i => !MEM.seen.includes(i));
+    const i = pick(fresh.length ? fresh : idx);
+    out.push(i); SESSION.used.add(i); SESSION.typeUse[t]++;
+    MEM.seen.push(i);
+  }
+  if (MEM.seen.length > BANK.length - 30) MEM.seen = MEM.seen.slice(-60);   /* cycle */
+  saveMem();
+  return shuffle(out).map(i => Object.assign({ id:i }, BANK[i]));
+}
+function decoyTier(R, k){
+  const d = R.decoy;
+  if (Array.isArray(d)) return d[Math.min(d.length - 1, Math.floor(k * d.length / R.vines))];
+  return d;
+}
+function buildOptions(item, tier){
+  const strong = { kind:'strong', w:caseFor(item, pick(item.ok)), t:item.t };
+  const wk = pick(item.weak);
+  const weak = { kind:'weak', w:caseFor(item, wk), t:typeOfWord(wk, item.t) };
+  let decoy;
+  if (tier === 'hard'){ const d = pick(DECOYS.hard[item.t]); decoy = { kind:'decoy', w:caseFor(item, d.w), fix:d.f, tier }; }
+  else decoy = { kind:'decoy', w:caseFor(item, pick(DECOYS[tier])), tier };
+  return shuffle([strong, weak, decoy]);
+}
+/* Which family a weak word belongs to (for the symbol and the feedback). */
+const WORD_TYPE = {};
+BANK.forEach(it => it.ok.forEach(w => { WORD_TYPE[w.toLowerCase()] = it.t; }));
+Object.assign(WORD_TYPE, { 'because of':'cause', 'due to':'cause', 'in spite of':'concession', 'despite this':'concession',
+  'unless':'condition', 'provided that':'condition', 'as long as':'condition', 'meanwhile':'time', 'in other words':'clarification',
+  'so':'cause', 'and':'addition', 'beyond':'space', 'in front of':'space', 'even though':'concession', 'although':'concession',
+  'because':'cause', 'despite':'concession', 'for example':'example', 'for instance':'example', 'similarly':'comparison',
+  'likewise':'comparison', 'however':'contrast', 'nevertheless':'contrast', 'in contrast':'contrast',
+  'on the other hand':'contrast', 'therefore':'cause', 'consequently':'cause', 'as a result':'cause',
+  'furthermore':'addition', 'moreover':'addition', 'in addition':'addition' });
+function typeOfWord(w, notT){
+  const t = WORD_TYPE[w.toLowerCase()];
+  return (t && t !== notT) ? t : (t || 'addition');
+}
+
+/* =====================================================================
+   EVIDENCE for the turn-in panel
+   ===================================================================== */
+const TYPE_STATS = {};
+const bonusRuns = [];
+function typeTally(){
+  const rows = Object.keys(TYPES).filter(t => TYPE_STATS[t]).map(t => {
+    const s = TYPE_STATS[t], n = s.strong + s.weak + s.decoy + s.miss;
+    return '  ' + TYPES[t].name + ': ' + s.strong + '/' + n + ' strong' + (s.weak ? ', ' + s.weak + ' weak' : '') + (s.decoy ? ', ' + s.decoy + ' snapped' : '') + (s.miss ? ', ' + s.miss + ' timed out' : '');
+  });
+  return rows.length ? 'BY TRANSITION TYPE\n' + rows.join('\n') : '';
+}
+function fillLog(id){
+  const st = document.getElementById(id); if (!st) return;
+  const el = st.querySelector('.log');
+  if (el && LL.extra[id]) el.textContent = LL.extra[id];
+}
+
+let totalScore = 0;
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  bonusRuns.forEach((b, i) => parts.push('── BONUS RUN ' + (i + 1) + ' ──\n' + b));
+  const tt = typeTally(); if (tt) parts.push('── ' + tt.replace('\n', ' ──\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' rounds. Total score ' + fmtN(totalScore) + '.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const block = (title, txt) => '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">' + esc(title) + '</h4>' +
+    '<p style="margin:0 0 1rem;white-space:pre-wrap;">' + esc(txt).replace(/\n/g, '<br>') + '</p>';
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => block(document.getElementById(id).dataset.title, LL.collect(id).join('\n\n')));
+  bonusRuns.forEach((b, i) => parts.push(block('Bonus run ' + (i + 1), b)));
+  const tt = typeTally(); if (tt) parts.push(block('By transition type', tt.split('\n').slice(1).join('\n')));
+  return '<h3 style="margin:0 0 0.25rem;">' + esc(ACTIVITY_TITLE) + '</h3>' +
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed ' + LL.done.size + ' of ' + ORDER.length +
+         ' rounds. Total score ' + fmtN(totalScore) + '.</p>' + parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = $('copyFb'); box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+$('copyAll').addEventListener('click', async () => {
+  const plainTxt = buildPlain();
+  $('previewText').value = plainTxt;
+  let ok = false;
+  try {
+    if (navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()], { type:'text/html' }),
+        'text/plain': new Blob([plainTxt], { type:'text/plain' })
+      })]); ok = true;
+    } else if (navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plainTxt); ok = true;
+    }
+  } catch (e) { ok = false; }
+  if (!ok){
+    try { const ta = $('previewText'); $('preview').classList.add('show'); ta.focus(); ta.select(); ok = document.execCommand('copy'); }
+    catch (e) { ok = false; }
+  }
+  if (ok) copyFeedback('good', '✓ Copied.', 'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.');
+  else { $('preview').classList.add('show');
+    copyFeedback('hint', 'Copy it by hand. Takes two seconds.', 'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.'); }
+});
+$('showPrev').addEventListener('click', () => { $('previewText').value = buildPlain(); $('preview').classList.toggle('show'); });
+
+/* transition key */
+$('keyGrid').innerHTML = Object.keys(TYPES).map(t => {
+  const T = TYPES[t];
+  const ex = [...new Set(BANK.filter(b => b.t === t).flatMap(b => b.ok))].slice(0, 4).map(w => w.charAt(0).toLowerCase() + w.slice(1)).join(', ');
+  return '<div><b><span class="s">' + T.sym + '</span>' + esc(T.name) + '</b><i>' + esc(T.means) + '</i><em>' + esc(ex) + '</em></div>';
+}).join('') + '<div><b><span class="s">' + DECOY_TYPE.sym + '</span>Decoy</b><i>not a transition at all: the vine snaps</i></div>';
+
+</script>
+<script src="../assets/vine-swing/assets.js"></script>
+<script src="../assets/vine-swing/vine-swing.bundle.js"></script>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Practice Swing",
+    "questions": [ "In-game tutorial: hold to hang, let go to fly, hold to catch, A/D to steer, one banana. Then 4 slow-motion skill checks with symbols and type names showing (Addition, Contrast, Cause/Effect, Example): grab the vine with the transition that fits the blank. One STRONG (right type), one WEAK (real transition, wrong type), one decoy that isn't a transition." ] },
+  { "title": "Canopy 1",
+    "questions": [ "8 skill checks drawn from a 168-sentence bank (14 transition types × 12), one type per check, with free swings and bananas between. Timed (gold ×2) or Race the clock. Symbols fade out; decoys are everyday nouns and adjectives." ] },
+  { "title": "Canopy 2",
+    "questions": [ "8 checks, least-seen types first. Symbols appear only after the grab. Decoys move from function words (whom, itself) to malformed transitions." ] },
+  { "title": "Canopy 3",
+    "questions": [ "8 checks. Decoys are fake transitions built to look like the right answer for that type (“On the contrast”, “Despite of”, “In another words”), with the correct form shown after a snap. Bonus canopies can follow." ] }
+]
+
+</script>
+<script src="../assets/student.js"></script>
+</body>
+</html>
