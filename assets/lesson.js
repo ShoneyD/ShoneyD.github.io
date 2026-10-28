@@ -134,7 +134,26 @@ const LL = {
     const nextId = ORDER.find(x => !LL.done.has(x));
     const t = document.getElementById(nextId || 'turnin');
     t.classList.add('active');
-    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+    LL.land(t);
+  },
+
+  /* Put the TOP of the next part at the top of the screen. This used to be
+     block:'center', which on any part taller than the screen pushed its start
+     above the fold and dropped the student partway in. scrollIntoView also
+     scrolls the Canvas page around an iframe, so it lands there too. */
+  land(el){
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const go = how => el.scrollIntoView({ behavior: how, block: 'start' });
+    /* one frame first, so the finished part has collapsed before measuring */
+    requestAnimationFrame(() => {
+      go(reduce ? 'auto' : 'smooth');
+      /* a smooth scroll can stop short if the layout shifts mid-flight
+         (fonts loading, the collapse); if it missed, snap the rest of the way */
+      setTimeout(() => {
+        const top = el.getBoundingClientRect().top;
+        if (top < -4 || top > 60) go('auto');
+      }, 800);
+    });
   },
 
   toggle(id){ document.getElementById(id).classList.toggle('open'); }

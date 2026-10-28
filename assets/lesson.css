@@ -122,7 +122,7 @@ h3{ font-size:1rem; margin:1.25rem 0 .5rem }
 .partsep{ margin:2.5rem 0 1.25rem; padding-top:1.25rem; border-top:2px solid var(--line);
         font-size:1.2rem; font-weight:700 }
 
-.stage{ display:none }
+.stage{ display:none; scroll-margin-top:12px }  /* breathing room when a part is scrolled to */
 
 .stage.active{ display:block; animation:slide .3s ease both }
 

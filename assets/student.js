@@ -118,7 +118,28 @@
     if (pendingNext) { pendingNext = false; origNext(); }
   }
 
-  LL.finish = function (id, extraEvidence) { origFinish(id, extraEvidence); save(); };
+  /* Where was the student looking when they finished? Measured BEFORE the
+     engine collapses the part: once it collapses, everything they were reading
+     shrinks to a one-line bar far above them, and a card placed over that bar
+     lands off screen. Viewport-relative, so it survives the page shrinking. */
+  var lookAt = null;
+  function eyeLine(id) {
+    var st = document.getElementById(id);
+    var el = document.activeElement;
+    if (!el || !st || !st.contains(el) || el === document.body)
+      el = st ? [].slice.call(st.querySelectorAll('button.go')).pop() : null;
+    if (!el) return null;
+    var r = el.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if (r.bottom < 0 || r.top > vh) return null;    /* not on screen: no use */
+    return r.top + r.height / 2;
+  }
+  LL.finish = function (id, extraEvidence) {
+    lookAt = eyeLine(id);
+    origFinish(id, extraEvidence);
+    lookAt = null;
+    save();
+  };
 
   function silentComplete(id) {
     var st = document.getElementById(id);
@@ -224,7 +245,17 @@
                 : { left: 0, top: 0, width: document.documentElement.clientWidth, height: 240 };
     var cw = card.offsetWidth, ch = card.offsetHeight;
     var x  = window.scrollX + r.left + r.width / 2 - cw / 2;
-    var y  = window.scrollY + r.top + Math.min(r.height / 2, 170) - ch / 2;
+    var y;
+    if (lookAt !== null) {
+      /* just ABOVE the button they pressed — the button was on screen, so
+         the space above it is too, even when an iframe is taller than the
+         screen. Only if there's no room above does it go just below. */
+      var vy = lookAt - ch - 28;
+      if (vy < 8) vy = lookAt + 28;
+      y = window.scrollY + vy;
+    } else {
+      y = window.scrollY + r.top + Math.min(r.height / 2, 170) - ch / 2;
+    }
     card.style.left = Math.max(8, x) + 'px';
     card.style.top  = Math.max(8, y) + 'px';
 
