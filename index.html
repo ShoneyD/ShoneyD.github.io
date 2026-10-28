@@ -238,6 +238,18 @@
 const ITEMS = [
   {
     type: 'activity',
+    course: 'Korean 1A',
+    file: 'activities/order-up.html',
+    engine: 'particles', variant: 'food-like-eat-drink', version: 1, updated: '2026-10-28',
+    title: 'Order Up!',
+    tag: 'flip, pick, build',
+    desc: 'Twelve new food words on flip cards (produce, meat, dishes) with emoji pictures, memory hooks and Korean audio, then a 12-word quick check. Part 2 fills the particle gap in 12 sentences on \uc88b\uc544\ud574\uc694 / \uba39\uc5b4\uc694 / \ub9c8\uc154\uc694 / \uc2eb\uc5b4\ud574\uc694 from all six of \uc740 \ub294 \uc774 \uac00 \uc744 \ub97c. Part 3 builds 8 sentences from tiles in SOV order, past wrong-particle traps, including a \ub204\uac00 answer and \uc544\uc8fc before the verb. Part 4 is three of her own sentences. Both Part 2 and Part 3 end on a \u2605 \uae40\uce58\uac00 \uc88b\uc544\uc694 vs \uae40\uce58\ub97c \uc88b\uc544\ud574\uc694 challenge.',
+    skills: 'Korean food vocabulary \u00b7 topic \uc740/\ub294 \u00b7 subject \uc774/\uac00 (\ub204\uac00 answers, \uc88b\uc544\uc694) \u00b7 object \uc744/\ub97c \u00b7 batchim decides the form \u00b7 SOV word order \u00b7 \uc88b\uc544\ud558\ub2e4 \uba39\ub2e4 \ub9c8\uc2dc\ub2e4 \uc2eb\uc5b4\ud558\ub2e4',
+    note: 'New engine: nothing on the hub did Korean word order. Content-swappable: SHELVES, KNOWN, P_ITEMS, P_STRETCH, B_ITEMS and B_STRETCH at the top of the second script. Part 2 never stores the right particle: it is computed from the role and the noun\u2019s final block, so a new noun cannot ship with a wrong key. Wrong picks get a role hint or a form hint, depending on which half was wrong, and never the answer. All six particle buttons are always shown, so position carries nothing; items and tiles shuffle on load, and the challenges stay last. Audio uses the browser\u2019s Korean voice where there is one and is silent otherwise. Assumes present-tense -\uc694 and the basics of topic and subject markers; \uc744/\ub97c is practised, not introduced.',
+    height: 1500
+  },
+  {
+    type: 'activity',
     course: 'English',
     file: 'activities/vine-swing.html',
     engine: 'swing3d', variant: 'transitions-hs', version: 2, updated: '2026-10-27',
