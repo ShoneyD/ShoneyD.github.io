@@ -1550,6 +1550,8 @@ function examplePanel(){
 
 ["toll","clatter","rasp","moan","groan","squelch","slurp","smack","gong","chime","rattle","tramp","scratch","scrape","scraping","scratching"].forEach(w=>SOUNDWORDS.add(w));
 ["scarlet","copper","crimson","ebony"].forEach(w=>COLORSET.add(w));
+/* Drop-downs that must survive a re-render (spin, lock, tapping an option) remember being open. */
+function keepOpen(id){ return (state.openDet||{})[id]?"open":""; }
 /* Stage order and the reward each one earns. The trail under the nav starts empty and grows. */
 const ORDER = ["choose","learn","write","label","answer"];
 const REWARDS = {choose:"Door opened.", learn:"Sound learned.", write:"Ballad built!", label:"Sounds labelled.", answer:"All done. Go turn it in."};
@@ -1594,8 +1596,8 @@ function viewChoose(){
    <div class="done-looks"><b>Done looks like:</b> a Gothic ballad of <b>12–15 lines</b>, at least <b>4 lines made yours</b>, two sound devices labelled, then <b>5 short questions</b> on what makes it Gothic.</div>
    <p class="firstmove">👉 Look at the four pictures. Tap <b>Open this door</b> on the one that pulls you in.</p>
    <div class="doors">${doors}</div>
-   <details class="more"><summary>🖼️ More pictures to steal ideas from</summary><div class="inspire">${INSPIRE.map(k=>`<div class="ins">${imgHTML(k,"insimg")}<p class="seed">${esc(IMGS[k].seed)}</p></div>`).join("")}</div></details>
-   <details class="more"><summary>🎰 Or spin a custom challenge (any theme, any form)</summary>${viewSpin().replace('<section class="panel">','<div>').replace(/<\/section>$/,"</div>")}</details>
+   <details class="more" id="dInspire" ${keepOpen("dInspire")}><summary>🖼️ More pictures to steal ideas from</summary><div class="inspire">${INSPIRE.map(k=>`<div class="ins">${imgHTML(k,"insimg")}<p class="seed">${esc(IMGS[k].seed)}</p></div>`).join("")}</div></details>
+   <details class="more" id="dSpin" ${keepOpen("dSpin")}><summary>🎰 Or spin a custom challenge (any theme, any form)</summary>${viewSpin().replace('<section class="panel">','<div>').replace(/<\/section>$/,"</div>")}</details>
   </section>`;
 }
 
@@ -1624,7 +1626,7 @@ function viewBuilder(){
    ${s0hint()}
    <label class="label" for="title">Title</label><input type="text" id="title" value="${esc(state.title)}" placeholder="Give it a title (you can do this last)">
    <div class="stanzas">${stanzas}</div>${next}
-   <details class="meterbox"><summary>👂 What the sound checker hears in your poem</summary><div class="checker" id="checker">${checkerHTML()}</div>
+   <details class="meterbox" id="dChecker" ${keepOpen("dChecker")}><summary>👂 What the sound checker hears in your poem</summary><div class="checker" id="checker">${checkerHTML()}</div>
    <div class="legend"><span class="dtag allit">Alliteration</span><span class="dtag asson">Assonance</span><span class="dtag cons">Consonance</span><span class="dtag rhyme">Rhyme</span><span class="dtag slant">Slant rhyme</span><span class="dtag ono">Onomatopoeia</span><span class="dtag rep">Repetition</span></div></details>
    ${navRow(2,4,"Label your sounds →")}
   </section>${bankHTML()}</div>`;
@@ -1924,7 +1926,7 @@ view.addEventListener("change",e=>{
   if(t.dataset.rfsel){ state.refl[t.dataset.rfsel]=t.value; save(); refreshOut(); return; }
   if(t.id==="meterLine"){state.meterLine=t.value; save(); refreshOut(); return;}
 });
-view.addEventListener("toggle",e=>{ if(e.target.id==="meterbox"){state.meterShow=e.target.open; save();} },true);
+view.addEventListener("toggle",e=>{ if(e.target.id==="meterbox"){state.meterShow=e.target.open; save();} if(/^d[A-Z]/.test(e.target.id||"")){ state.openDet=state.openDet||{}; state.openDet[e.target.id]=e.target.open; save(); } },true);
 function copyOut(){
   const txt=buildOut(); const msg=document.getElementById("copyMsg"); return copyRich(txt,msg);
   const fallback=()=>{const pre=document.getElementById("out"); const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r); msg.innerHTML='<span class="hint">Text selected. Press Ctrl+C (or ⌘C) to copy.</span>';};
