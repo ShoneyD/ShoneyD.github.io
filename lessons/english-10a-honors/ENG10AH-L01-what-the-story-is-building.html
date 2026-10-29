@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG10AH-L01 · What the Story Is Building</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG10AH-L01</p>
+  <h1 id="pagetitle">Honors English 10A · Lesson 1</h1>
+  <p class="sub" id="pagesub">What the Story Is Building.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="The bricks and the building">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The bricks and the building</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The bricks and the building</h2>
+
+      <p>A story isn't just things happening. Every character, every argument, every event is a <strong>brick</strong>, and the bricks build toward a <strong>theme</strong>: an idea about life.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 210" role="img" aria-label="Four bricks along the bottom labelled Characters, Conflict, Dialogue and Plot. Arrows rise from them to a roof-shaped box on top labelled Theme: what the story says about life.">
+  <rect x="10"  y="140" width="135" height="56" rx="8" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="158" y="140" width="135" height="56" rx="8" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="306" y="140" width="135" height="56" rx="8" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="454" y="140" width="135" height="56" rx="8" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <text x="77"  y="166" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Characters</text>
+  <text x="77"  y="185" text-anchor="middle" font-size="12" fill="var(--soft)">who they are</text>
+  <text x="225" y="166" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Conflict</text>
+  <text x="225" y="185" text-anchor="middle" font-size="12" fill="var(--soft)">the problem</text>
+  <text x="373" y="166" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Dialogue</text>
+  <text x="373" y="185" text-anchor="middle" font-size="12" fill="var(--soft)">what they say</text>
+  <text x="521" y="166" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Plot</text>
+  <text x="521" y="185" text-anchor="middle" font-size="12" fill="var(--soft)">what happens</text>
+  <polygon points="300,8 560,70 40,70" fill="var(--accent)" fill-opacity=".30" stroke="var(--accent)" stroke-width="2"/>
+  <text x="300" y="50" text-anchor="middle" font-size="18" font-weight="700" fill="var(--ink)">Theme</text>
+  <text x="300" y="66" text-anchor="middle" font-size="12" fill="var(--soft)">what the story says about life</text>
+  <line x1="77"  y1="136" x2="150" y2="80" stroke="var(--ink)" stroke-width="2"/>
+  <line x1="225" y1="136" x2="260" y2="80" stroke="var(--ink)" stroke-width="2"/>
+  <line x1="373" y1="136" x2="340" y2="80" stroke="var(--ink)" stroke-width="2"/>
+  <line x1="521" y1="136" x2="450" y2="80" stroke="var(--ink)" stroke-width="2"/>
+</svg>
+      <figcaption>The bricks hold up the roof. Today you'll find bricks in chapters 1–3 and say what they're building.</figcaption>
+      </figure>
+
+      <p><strong>Where we are in the book.</strong> Frank tells his own childhood, starting in Brooklyn. His father, Malachy, keeps losing jobs and spends wages on drink. His mother, Angela, tries to keep the children fed. After baby Margaret dies, the family gives up on America and goes back to Ireland, ending up poor in Limerick.</p>
+
+      <p class="q"><strong>Q1.</strong> Who is telling this story?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Who is telling this story?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Frank, telling his own childhood">Frank, telling his own childhood</option>
+          <option value="Angela, his mother">Angela, his mother</option>
+          <option value="an outside narrator who knows everyone&#x27;s thoughts">an outside narrator who knows everyone&#x27;s thoughts</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> <strong>There's more than one good answer here.</strong> What's the biggest conflict in chapters 1–3? Pick the one you can defend.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. There&#x27;s more than one good answer here. What&#x27;s the biggest conflict in chapters 1–3? Pick the one you can defend.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="person vs. person — the family vs. Malachy&#x27;s drinking">person vs. person — the family vs. Malachy&#x27;s drinking</option>
+          <option value="person vs. society — the McCourts vs. poverty">person vs. society — the McCourts vs. poverty</option>
+          <option value="person vs. self — Malachy vs. his own weakness">person vs. self — Malachy vs. his own weakness</option>
+        </select></div>
+
+      <p class="q"><strong>Q3.</strong> Defend your pick in one sentence with one thing that happens in the book.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The biggest conflict is … because in the book ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. Defend your pick in one sentence with one thing that happens in the book." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked, and one sentence that finishes the starter with a reason from the book.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="Voices and word parts">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Voices and word parts</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Voices and word parts</h2>
+
+      <p><strong>Dialogue without quotation marks.</strong> Open the book to any page with talking. McCourt never uses quotation marks. People's words run straight into Frank's memory of them, the way a kid remembers what grown-ups said.</p>
+
+      <p class="q"><strong>Q4.</strong> Why might McCourt leave out the quotation marks? Pick the one you think is strongest.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. Why might McCourt leave out the quotation marks? Pick the one you think is strongest.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="so we feel like we&#x27;re inside a child&#x27;s memory, where voices blur together">so we feel like we&#x27;re inside a child&#x27;s memory, where voices blur together</option>
+          <option value="because the book was printed in a hurry">because the book was printed in a hurry</option>
+          <option value="so the dialogue is harder to find on purpose">so the dialogue is harder to find on purpose</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>The first one is what most readers argue: no quotation marks make it feel like memory, not a transcript. If you picked something else and can give a reason from the book, that counts too.</p>
+      </details>
+
+      <p><strong>Taking a word apart.</strong> When a word is new, split it into pieces. The pieces give you a guess; the sentence around it checks the guess.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 150" role="img" aria-label="The word unemployed split into three boxes: un- meaning not, employ meaning give work to, and -ed meaning describes someone. Below: Unemployed means not given work, without a job.">
+  <rect x="40"  y="20" width="140" height="64" rx="8" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="230" y="20" width="140" height="64" rx="8" fill="var(--accent)" fill-opacity=".30" stroke="var(--accent)" stroke-width="3"/>
+  <rect x="420" y="20" width="140" height="64" rx="8" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2"/>
+  <text x="110" y="50" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">un-</text>
+  <text x="110" y="72" text-anchor="middle" font-size="12" fill="var(--soft)">prefix: not</text>
+  <text x="300" y="50" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">employ</text>
+  <text x="300" y="72" text-anchor="middle" font-size="12" fill="var(--soft)">root: give work to</text>
+  <text x="490" y="50" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">-ed</text>
+  <text x="490" y="72" text-anchor="middle" font-size="12" fill="var(--soft)">suffix: describes someone</text>
+  <text x="205" y="58" text-anchor="middle" font-size="22" fill="var(--ink)">+</text>
+  <text x="395" y="58" text-anchor="middle" font-size="22" fill="var(--ink)">+</text>
+  <text x="300" y="128" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">unemployed = not given work → without a job</text>
+</svg>
+      <figcaption>Three pieces, one meaning. The middle box (the root) carries the most weight.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q5.</strong> Try one. <strong>Malnourished</strong> = mal- (bad) + nourish (feed) + -ed. What does it mean, and which part told you the most?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Malnourished means … . The part that told me the most was … ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q5. Try one. Malnourished = mal- (bad) + nourish (feed) + -ed. What does it mean, and which part told you the most?" placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Badly fed: not getting enough food, or the right food, to stay healthy. The root 'nourish' tells you it's about feeding; 'mal-' tells you it's going wrong.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked and one word's meaning written, with the part that told you.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="Friday night, and what it shows">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Friday night, and what it shows</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Friday night, and what it shows</h2>
+
+      <p><strong>The scene.</strong> In Brooklyn, Malachy finally gets a job. On payday the family waits for him to come home with the wages. He comes home late, singing songs about Ireland, and the money is gone on drink. Angela and the children go without.</p>
+
+      <p class="q"><strong>Q6.</strong> What does this scene <strong>show</strong> about Malachy? (Characterization: what he does.)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. What does this scene show about Malachy? (Characterization: what he does.)">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="he cares more about drinking than feeding his family, even if he loves them">he cares more about drinking than feeding his family, even if he loves them</option>
+          <option value="he is a careful, responsible father">he is a careful, responsible father</option>
+          <option value="he has no idea his family is hungry">he has no idea his family is hungry</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> Now look at <strong>how others react</strong>. What does the family's waiting show about the conflict?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. Now look at how others react. What does the family&#x27;s waiting show about the conflict?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="the whole family pays for one person&#x27;s choices">the whole family pays for one person&#x27;s choices</option>
+          <option value="the family doesn&#x27;t mind">the family doesn&#x27;t mind</option>
+          <option value="the children are angry and stop talking to him">the children are angry and stop talking to him</option>
+        </select></div>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:25%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>1. Claim</strong><br><em>(already done for you)</em><br>Malachy loves his family, but his drinking keeps them hungry.<br><span style="font-size:.85em">Joins: <em>In chapter 1… / Early in the book…</em></span></td>
+    <td style="width:25%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>2. Evidence</strong><br>One thing he does or says in chapters 1–3.<br><span style="font-size:.85em">Joins: <em>For example… / When…</em></span></td>
+    <td style="width:25%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>3. What it shows</strong><br>What that tells us about him, or about the family.<br><span style="font-size:.85em">Joins: <em>This shows… / Because of this…</em></span></td>
+    <td style="width:25%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>4. Why it matters</strong><br>What the book is saying about life (theme).<br><span style="font-size:.85em">Joins: <em>McCourt suggests… / In the end…</em></span></td>
+  </tr>
+</table>
+      <figcaption>Four slots, left to right. Fill them in order and the paragraph flows by itself. The words in italics are joins you can borrow.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q8.</strong> Write your paragraph, one slot at a time. Slot 1 is started for you; change it if you want.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Early in the book, Malachy loves his family, but his drinking keeps them hungry. For example, … . This shows … . McCourt suggests that ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. Write your paragraph, one slot at a time. Slot 1 is started for you; change it if you want." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked, and a four-slot paragraph: claim, evidence from chapters 1–3, what it shows, why it matters. All four slots filled.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="guided" id="g2" data-title="Two words, two clues">
+    <button class="donebar" onclick="LL.toggle('g2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Two words, two clues</strong>
+      <span class="sum" id="sum-g2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Two words, two clues</h2>
+
+      <p class="q"><strong>Q9.</strong> <strong>Unbearable</strong> = un- + bear + -able. What does it mean?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. Unbearable = un- + bear + -able. What does it mean?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="not able to be put up with; too much to stand">not able to be put up with; too much to stand</option>
+          <option value="a place with no bears">a place with no bears</option>
+          <option value="carried easily">carried easily</option>
+        </select></div>
+
+      <p><strong>The context clue.</strong> <em>Back in Ireland, Malachy has no work, so every week he stands in line for the dole, the small payment the government gives to men without jobs.</em></p>
+
+      <p class="q"><strong>Q10.</strong> What kind of clue tells you what <strong>dole</strong> means?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q10. What kind of clue tells you what dole means?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a definition — the sentence says what it is right after the word">a definition — the sentence says what it is right after the word</option>
+          <option value="a contrast — it tells you what the word is NOT">a contrast — it tells you what the word is NOT</option>
+          <option value="no clue — you&#x27;d have to look it up">no clue — you&#x27;d have to look it up</option>
+        </select></div>
+
+      <p class="q"><strong>Q11.</strong> Pick one: <strong>miserable</strong> (the book calls the childhood this on page 1) or <strong>unbearable</strong>. Explain it two ways: the parts, then how it fits the McCourts.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; … comes from … , which means … . It fits the McCourts because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q11. Pick one: miserable (the book calls the childhood this on page 1) or unbearable. Explain it two ways: the parts, then how it fits the McCourts." placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Miserable: from the Latin root miser (wretched, unhappy) + -able. Unbearable: un- + bear + -able, too much to stand. Either works if you tie it to something that happens: hunger, Margaret's death, Malachy's drinking, the cold room in Limerick.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and one word explained with its parts AND the sentence that checks it.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The words for today &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Characterization</td><td>How the writer shows what a person is like: what they say, what they do, how others react to them, and what the narrator notices.</td></tr>
+      <tr><td class="h">Conflict</td><td>The problem that pushes the story. Person vs. person, person vs. society (poverty, a whole system), or person vs. self.</td></tr>
+      <tr><td class="h">Dialogue</td><td>What characters say out loud. In Angela's Ashes there are no quotation marks; you hear voices the way a child remembers them.</td></tr>
+      <tr><td class="h">Theme</td><td>The big idea about life the story keeps pointing at. A full sentence, not one word: 'Poverty…' is a topic; 'Poverty can…' is a theme.</td></tr>
+      <tr><td class="h">Root</td><td>The core of a word that carries its meaning. nourish = feed.</td></tr>
+      <tr><td class="h">Prefix / suffix (affixes)</td><td>Pieces added to the front or back that change the meaning. mal- = bad. un- = not. -able = can be. -ed = it happened / it describes.</td></tr>
+      <tr><td class="h">Context clue</td><td>Words around a new word that tell you what it means: a definition, an example, a contrast, or the situation itself.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>The chain:</strong> what a character says or does → what it shows about them → what the story is saying about life (theme).</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud first, then type it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Honors English 10A · Lesson 1";
+const LESSON_ID = "ENG10AH-L01";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Analyze how characters, conflicts, and themes develop across a narrative text.",
+  "O2": "Analyze unfamiliar vocabulary using roots, affixes, and context clues in literary texts. [Resourceful]",
+  "O3": "Analyze how characterization, dialogue, and plot develop meaning in a narrative text. [Critical Thinker]"
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:5 },
+  { label:"What the story is building", mins:12, part:"intro" },
+  { label:"Malachy, the wages, and the word", mins:13, part:"guided" },
+  { label:"Your independent practice", mins:15 },
+  { label:"Start homework together", mins:5 }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Characters, conflict, dialogue and plot are the bricks. Theme is what they build.", sheet: true, outcomes: ["O1", "O2", "O3"] },
+  guided: { title: "Guided Practice", sub: "One scene from the early chapters, one paragraph, two words taken apart.", sheet: true, outcomes: ["O1", "O2", "O3"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You named the conflict and backed it up. That's the hard first step."},
+  i2:{star:"★",msg:"Dialogue and word parts: two tools you'll use for the rest of the book."},
+  g1:{star:"★",msg:"You built a paragraph that goes from what happened to what it means. That's outcome O3."},
+  g2:{star:"★",msg:"Two words cracked, with the clue that cracked them. That's outcome O2."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
