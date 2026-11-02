@@ -239,6 +239,18 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'Korean 1A',
+    file: 'activities/yesterday-mode.html',
+    engine: 'particles', variant: 'past-tense', version: 2, updated: '2026-11-02',
+    title: 'Yesterday Mode',
+    tag: 'conjugate, pick, build, answer',
+    desc: 'Introduces the simple past (-았/었/했어요) and practises it with 은/는, 이/가, 을/를, all on words already in the deck. Part 1 is a past-tense machine: 12 verbs, three taps each (cut off 다, pick 았/었/했 from the stem\u2019s last vowel, pick the squished form), with a lanes chart and a 가 + 았어요 → 갔어요 diagram; ★ 듣다 → 들었어요. Part 2 fills the particle gap in 12 past-tense sentences, ending on ★ 어제 게임이 재밌었어요. Part 3 builds 8 sentences from tiles past wrong-particle and present-tense traps. Part 4 answers three real yes/no questions about yesterday with 네/아니요, plus one choice: another past sentence or a 혹시 question for the teacher.',
+    skills: 'Korean simple past -았/었/했어요 \u00b7 vowel contraction (갔 왔 봤 마셨) \u00b7 듣다 irregular \u00b7 topic 은/는 \u00b7 subject 이/가 \u00b7 object 을/를 \u00b7 SOV with a time word \u00b7 past yes/no questions with 네/아니요',
+    note: 'Rejigger of Order Up! (particles engine), so version 2: Part 1 is a new mechanic, Part 3 now accepts alternative word orders (alts, for 어제 placement) and per-tile trap hints (trapHints), and the subject-of-adjective hint text moved into the data (adjHint, adjWhy). Content-swappable: M_ITEMS, P_ITEMS, P_STRETCH, B_ITEMS, B_STRETCH, YN_QS at the top of the content block. The past ending is never stored: endFor() computes it from the stem\u2019s last vowel, so a new verb cannot ship with a wrong key. Wrong form picks are labelled by kind (squish, end, present, irregular) and each gets its own hint, never the answer. Part 4\u2019s 네/아니요 buttons pre-fill the start of the answer box. Assumes present-tense -아요/어요 and the particle basics; past tense is introduced here. About 20\u201325 minutes.',
+    height: 1700
+  },
+  {
+    type: 'activity',
+    course: 'Korean 1A',
     file: 'activities/order-up.html',
     engine: 'particles', variant: 'food-like-eat-drink', version: 1, updated: '2026-10-28',
     title: 'Order Up!',

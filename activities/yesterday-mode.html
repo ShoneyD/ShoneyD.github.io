@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<!--
+  YESTERDAY MODE - Korean 1A. Simple past tense (-았/었/했어요) with the topic,
+  subject and object particles (은/는, 이/가, 을/를), all on words already in Joy's deck.
+  Rejiggered from activities/order-up.html (particles engine): Parts 2 and 3 are
+  Order Up's engines with past-tense content, plus accepted alternative word orders
+  (alts) and per-tile trap hints. Part 1 (the past-tense machine) is new: the ending
+  is never stored, it is computed from the stem's last vowel, like Order Up's particles.
+  Content lives in M_ITEMS, P_ITEMS, P_STRETCH, B_ITEMS, B_STRETCH, YN_QS.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yesterday Mode</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  /* earned progress — starts empty on purpose */
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  /* stages */
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  /* ONLY the heading is a block. Making every <strong> a block pushes trailing
+     punctuation onto its own line — a real bug that shipped once. */
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+
+  /* ---- Order Up! additions. Role colours are tokens and always travel with a label. ---- */
+  :root{ --topic:#2f6f8f; --topic-soft:#e8f1f6; --subj:#7a4fa0; --subj-soft:#f1eaf7;
+         --obj:#2e7d5b; --obj-soft:#e6f3ec; --verb:#a8641b; --verb-soft:#fbf0e2;
+         --tile:#ffffff; --tile-line:#c9d2d9; }
+  .soft{ color:var(--soft); font-size:.88rem }
+  .done-looks{ background:var(--accent-soft); border-radius:8px; padding:.5rem .9rem; font-size:.92rem; margin:0 0 1rem }
+  .cap{ color:var(--soft); font-size:.88rem; margin:.2rem 0 1.2rem; text-align:center }
+  .opt{ display:inline-block; font-weight:700; width:1.6rem }
+
+  /* stage 1: shelves of flip cards */
+  .shelf{ margin:0 0 1rem }
+  .shelf h3{ font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--soft); margin:0 0 .45rem }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(8.6rem,1fr)); gap:.6rem }
+  .fcard{ position:relative; border:1px solid var(--line); border-radius:12px; background:var(--card);
+          min-height:8.4rem; padding:.6rem .5rem; text-align:center; cursor:pointer; font:inherit; color:var(--ink) }
+  .fcard:hover{ border-color:var(--accent) }
+  .fcard.seen{ border-color:#c4e0d2 }
+  .fcard .em{ font-size:2.2rem; line-height:1.2; display:block }
+  .fcard .ko{ font-size:1.45rem; font-weight:700; display:block }
+  .fcard .en{ font-size:1rem; font-weight:700; color:var(--accent); display:block }
+  .fcard .hook{ font-size:.78rem; color:var(--soft); display:block; line-height:1.35; margin-top:.25rem }
+  .fcard .back{ display:none } .fcard.flipped .front{ display:none } .fcard.flipped .back{ display:block }
+  .say{ font:inherit; font-size:.95rem; border:1px solid var(--line); background:var(--bg); border-radius:999px;
+        padding:.1rem .55rem; cursor:pointer; margin-top:.3rem }
+  .matchcard{ border:1px solid var(--line); border-radius:12px; background:var(--card); padding:1rem; text-align:center; margin:0 0 1rem }
+  .matchcard .em{ font-size:3rem; line-height:1.1 }
+  .matchcard .prompt{ font-size:1.15rem; font-weight:700; margin:.2rem 0 .8rem }
+  .opts{ display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap }
+  .opts button{ font:inherit; font-size:1.35rem; min-width:7rem; padding:.45rem 1rem; border-radius:10px;
+        border:2px solid var(--tile-line); background:var(--tile); cursor:pointer; color:var(--ink) }
+  .opts button:hover{ border-color:var(--accent) }
+  .opts button.no{ opacity:.45; text-decoration:line-through }
+  .counter{ color:var(--soft); font-size:.85rem; margin:0 0 .3rem }
+
+  /* stage 2: chart + sentence card */
+  .chart{ border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:0 0 1rem; background:var(--card) }
+  .ch-row{ display:grid; grid-template-columns:1.35fr 1fr 1fr; border-top:1px solid var(--line) }
+  .ch-row:first-child{ border-top:0 }
+  .ch-row > span{ padding:.55rem .75rem; font-size:.95rem }
+  .ch-head > span{ font-weight:700; font-size:.82rem; color:var(--soft); background:var(--bg) }
+  .ch-row small{ font-size:.78rem; color:var(--soft); font-weight:400 }
+  .pt{ font-size:1.35rem!important; text-align:center; align-self:center }
+  .pt b{ padding:0 .15rem; border-radius:4px }
+  .job.topic{ border-left:5px solid var(--topic) } .pt.topic b{ background:var(--topic-soft); color:var(--topic) }
+  .job.subj{ border-left:5px solid var(--subj) } .pt.subj b{ background:var(--subj-soft); color:var(--subj) }
+  .job.obj{ border-left:5px solid var(--obj) } .pt.obj b{ background:var(--obj-soft); color:var(--obj) }
+  .sov{ width:100%; max-width:640px; height:auto; display:block; margin:.5rem auto 0 }
+  .sov .b-topic{ fill:var(--topic-soft); stroke:var(--topic); stroke-width:2 }
+  .sov .b-obj{ fill:var(--obj-soft); stroke:var(--obj); stroke-width:2 }
+  .sov .b-verb{ fill:var(--verb-soft); stroke:var(--verb); stroke-width:2 }
+  .sov .t-big{ font-size:26px; font-weight:700; fill:var(--ink) }
+  .sov .t-lab{ font-size:15px; fill:var(--soft) }
+  .sov .arr{ stroke:var(--soft); stroke-width:2.5; fill:none }
+  .pcard, .bcard{ border:1px solid var(--line); border-radius:12px; background:var(--card); padding:1rem 1.1rem; margin:0 0 1rem }
+  .pq{ color:var(--soft); font-size:1rem; margin:0 0 .3rem }
+  .psent{ font-size:1.6rem; line-height:1.6; margin:.2rem 0 .3rem }
+  .psent .gap{ display:inline-block; min-width:2.2rem; border-bottom:3px solid var(--accent); text-align:center; color:var(--accent); font-weight:700 }
+  .pen{ color:var(--soft); font-size:.95rem; margin:0 0 .8rem }
+  .star-tag{ display:inline-block; font-size:.78rem; font-weight:700; color:var(--gold); border:1px solid var(--gold); border-radius:999px; padding:0 .5rem; margin-left:.4rem; vertical-align:middle }
+  .pbtns{ display:grid; grid-template-columns:repeat(6,1fr); gap:.45rem }
+  .pbtns button{ font:inherit; font-size:1.4rem; padding:.4rem 0; border-radius:10px; border:2px solid var(--tile-line); background:var(--tile); cursor:pointer; color:var(--ink) }
+  .pbtns button:hover{ border-color:var(--accent) }
+  .pbtns button:disabled{ cursor:default }
+  .pbtns button.no{ opacity:.45; text-decoration:line-through }
+  .psent .gap.filled{ min-width:0; border-bottom-width:3px }
+
+  /* stage 3: tiles */
+  .slots{ display:flex; gap:.5rem; flex-wrap:wrap; min-height:3.4rem; padding:.5rem; border:2px dashed var(--tile-line); border-radius:10px; margin:.4rem 0 .8rem; background:var(--bg) }
+  .slots .slot{ min-width:4.5rem; height:2.6rem; border-radius:8px; border:1px dashed var(--tile-line) }
+  .tiles{ display:flex; gap:.5rem; flex-wrap:wrap; margin:0 0 .9rem }
+  .tile{ font:inherit; font-size:1.3rem; padding:.3rem .85rem; border-radius:8px; border:2px solid var(--tile-line);
+         background:var(--tile); cursor:pointer; color:var(--ink) }
+  .tile:hover{ border-color:var(--accent) }
+  .tile.used{ visibility:hidden }
+  .slots .tile{ border-color:var(--accent) }
+
+  /* ---- Yesterday Mode additions ---- */
+  .lanes{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin:0 0 1rem }
+  .lane{ border:1px solid var(--line); border-radius:10px; background:var(--card); padding:.6rem .5rem; text-align:center; font-size:.92rem }
+  .lane.l-a{ border-top:6px solid var(--topic) } .lane.l-h{ border-top:6px solid var(--verb) } .lane.l-e{ border-top:6px solid var(--obj) }
+  .lane .if{ font-weight:700; display:block; margin-bottom:.2rem }
+  .lane .end{ font-size:1.7rem; font-weight:700; display:block; line-height:1.3 }
+  .lane .ex{ display:block; color:var(--soft); font-size:.95rem }
+  .vbig{ font-size:2.5rem; font-weight:700; letter-spacing:.03em; margin:.1rem 0 .2rem }
+  .vbig .cut{ color:var(--soft); text-decoration:line-through; opacity:.6 }
+  .vbig .hl{ background:var(--verb-soft); color:var(--verb); border-radius:6px; padding:0 .15rem }
+  .stepline{ font-size:.82rem; letter-spacing:.06em; text-transform:uppercase; color:var(--soft); font-weight:700; margin:.9rem 0 .5rem }
+  .vnote{ color:var(--soft); font-size:.95rem; margin:.2rem 0 .3rem }
+  .squish .b-a{ fill:var(--topic-soft); stroke:var(--topic); stroke-width:2 }
+  .squish .b-v{ fill:var(--verb-soft); stroke:var(--verb); stroke-width:2 }
+  .ynq{ font-size:1.45rem; margin:.2rem 0 .5rem }
+  .ynbtns{ display:flex; gap:.5rem; margin:0 0 .5rem }
+  .ynbtns button{ font:inherit; font-size:1.2rem; padding:.3rem 1rem; border-radius:10px; border:2px solid var(--tile-line); background:var(--tile); cursor:pointer; color:var(--ink) }
+  .ynbtns button:hover, .ynbtns button.on{ border-color:var(--accent) }
+  .ynbtns button.on{ background:var(--accent-soft) }
+
+  @media (max-width:560px){
+    .lanes{ grid-template-columns:1fr }
+    .ch-row{ grid-template-columns:1.2fr .9fr .9fr } .ch-row > span{ padding:.45rem .5rem; font-size:.85rem }
+    .pbtns{ grid-template-columns:repeat(3,1fr) }
+  }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Yesterday Mode ⏪</h1>
+  <p class="sub">How to say it already happened: 먹어요 → 먹었어요. Then the same three particles you know, in yesterday's sentences.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>Today's plan</p>
+    <ol>
+      <li>⏪ <strong>The past-tense machine</strong>: about 7 min</li>
+      <li>🎯 <strong>Pick the particle</strong>: about 5 min</li>
+      <li>🧱 <strong>Build yesterday</strong>: about 6 min</li>
+      <li>💬 <strong>Answer it</strong>: about 4 min</li>
+    </ol>
+    <p style="margin-top:.6rem;text-transform:none;letter-spacing:0;font-weight:400;font-size:.9rem">Nothing is timed and you can retry anything. Press the green button when you're ready for the next part. At the end, one button copies everything for Canvas.</p>
+  </div>
+
+  <!-- ============ STAGE 1 — the past-tense machine ============ -->
+  <section class="stage active" id="s1" data-title="Part 1 - The past-tense machine">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1: The past-tense machine</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>⏪ Part 1: The past-tense machine</h2>
+      <p>먹어요 means "I eat." 먹<strong>었</strong>어요 means "I ate." The new piece in the middle is <strong>았, 었 or 했</strong>, and the verb's <strong>last vowel</strong> picks which one.</p>
+
+      <div class="lanes" role="table" aria-label="Which past ending">
+        <div class="lane l-a" role="cell"><span class="if">Last vowel ㅏ or ㅗ</span><span class="end">았어요</span><span class="ex">가 → 갔어요</span><span class="ex">좋 → 좋았어요</span></div>
+        <div class="lane l-h" role="cell"><span class="if">Ends in 하</span><span class="end">했어요</span><span class="ex">공부하 → 공부했어요</span><span class="ex">좋아하 → 좋아했어요</span></div>
+        <div class="lane l-e" role="cell"><span class="if">Any other vowel</span><span class="end">었어요</span><span class="ex">먹 → 먹었어요</span><span class="ex">마시 → 마셨어요</span></div>
+      </div>
+
+      <svg class="sov squish" viewBox="0 0 640 140" role="img" aria-labelledby="sqT sqD">
+        <title id="sqT">How 가 and 았어요 squish together</title>
+        <desc id="sqD">The stem 가, plus the ending 았어요, makes 갔어요. The two ㅏ vowels merge into one, and the ㅆ drops to the bottom of 가.</desc>
+        <rect x="10" y="18" width="110" height="56" rx="10" class="b-a"/>
+        <text x="65" y="56" text-anchor="middle" class="t-big">가</text>
+        <text x="65" y="102" text-anchor="middle" class="t-lab">stem (가다 − 다)</text>
+        <text x="148" y="56" text-anchor="middle" class="t-big">+</text>
+        <rect x="176" y="18" width="170" height="56" rx="10" class="b-v"/>
+        <text x="261" y="56" text-anchor="middle" class="t-big">았어요</text>
+        <text x="261" y="102" text-anchor="middle" class="t-lab">past ending</text>
+        <path d="M356 46 L396 46" class="arr"/><path d="M390 39 L398 46 L390 53" class="arr"/>
+        <rect x="408" y="18" width="222" height="56" rx="10" class="b-v"/>
+        <text x="519" y="56" text-anchor="middle" class="t-big">갔어요</text>
+        <text x="519" y="102" text-anchor="middle" class="t-lab">ㅏ + ㅏ merge into one block;</text>
+        <text x="519" y="124" text-anchor="middle" class="t-lab">ㅆ drops to the bottom</text>
+      </svg>
+      <p class="cap">Same vowels squish into one block. 오 + 았 → 왔 and 마시 + 었 → 마셨 squish too. 먹 + 었 has nothing to squish, so it stays 먹었어요.</p>
+
+      <p class="done-looks"><strong>Done looks like:</strong> 12 verbs through the machine, three taps each. The last one is a ★ challenge.</p>
+      <div class="matchcard" id="mCard" style="text-align:left"></div>
+      <div class="fb" id="fb1" role="status" aria-live="polite"></div>
+      <div class="row" id="s1next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s1')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — pick the particle ============ -->
+  <section class="stage" id="s2" data-title="Part 2 - Pick the particle">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2: Pick the particle</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>🎯 Part 2: Pick the particle</h2>
+      <p>Every particle answers two questions: <strong>what job does the word do</strong>, and <strong>does it end in a consonant</strong>?</p>
+
+      <div class="chart" role="table" aria-label="Particle chart">
+        <div class="ch-row ch-head" role="row">
+          <span role="columnheader">Job</span>
+          <span role="columnheader">Ends in a consonant<br><small>(받침 at the bottom, like 밥)</small></span>
+          <span role="columnheader">Ends in a vowel<br><small>(nothing at the bottom, like 우유)</small></span>
+        </div>
+        <div class="ch-row" role="row">
+          <span role="cell" class="job topic">🏷️ <strong>Topic</strong><br><small>who/what the sentence is about: "as for…"</small></span>
+          <span role="cell" class="pt topic">밥<b>은</b></span><span role="cell" class="pt topic">저<b>는</b></span>
+        </div>
+        <div class="ch-row" role="row">
+          <span role="cell" class="job subj">🙋 <strong>Subject</strong><br><small>the answer to 누가 (who?), or the thing that IS good</small></span>
+          <span role="cell" class="pt subj">밥<b>이</b></span><span role="cell" class="pt subj">친구<b>가</b></span>
+        </div>
+        <div class="ch-row" role="row">
+          <span role="cell" class="job obj">🎯 <strong>Object</strong><br><small>the thing being eaten, drunk or liked</small></span>
+          <span role="cell" class="pt obj">밥<b>을</b></span><span role="cell" class="pt obj">우유<b>를</b></span>
+        </div>
+      </div>
+
+      <svg class="sov" viewBox="0 0 640 120" role="img" aria-labelledby="sovT sovD">
+        <title id="sovT">Korean word order</title>
+        <desc id="sovD">Three blocks in a row: 저는, labelled topic; 라면을, labelled object; 먹었어요, labelled verb, always last. Arrows run left to right.</desc>
+        <rect x="10" y="20" width="170" height="54" rx="10" class="b-topic"/>
+        <text x="95" y="56" text-anchor="middle" class="t-big">저는</text>
+        <text x="95" y="102" text-anchor="middle" class="t-lab">🏷️ topic</text>
+        <path d="M188 47 L222 47" class="arr"/><path d="M216 40 L224 47 L216 54" class="arr"/>
+        <rect x="232" y="20" width="170" height="54" rx="10" class="b-obj"/>
+        <text x="317" y="56" text-anchor="middle" class="t-big">라면을</text>
+        <text x="317" y="102" text-anchor="middle" class="t-lab">🎯 object</text>
+        <path d="M410 47 L444 47" class="arr"/><path d="M438 40 L446 47 L438 54" class="arr"/>
+        <rect x="454" y="20" width="176" height="54" rx="10" class="b-verb"/>
+        <text x="542" y="56" text-anchor="middle" class="t-big">먹었어요</text>
+        <text x="542" y="102" text-anchor="middle" class="t-lab">verb: always last</text>
+      </svg>
+      <p class="cap">"I ate ramyeon." Korean says it as <em>me-topic, ramyeon-object, ate</em>. The past tense changes only the verb; the particles work exactly as before.</p>
+
+      <p class="done-looks"><strong>Done looks like:</strong> all 12 sentences filled in. The last one is a ★ challenge.</p>
+      <div class="pcard" id="pCard"></div>
+      <div class="fb" id="fb2" role="status" aria-live="polite"></div>
+      <div class="row" id="s2next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s2')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 — build the sentence ============ -->
+  <section class="stage" id="s3" data-title="Part 3 - Build yesterday">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3: Build yesterday</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>🧱 Part 3: Build yesterday</h2>
+      <p>Tap the pieces in order to say the English in Korean. Some pieces are traps: a wrong particle, or the verb in the present tense. Tap a placed piece to send it back. 어제 (yesterday) can go first or right after the topic.</p>
+      <p class="done-looks"><strong>Done looks like:</strong> 8 sentences built. The last one is a ★ challenge.</p>
+      <div class="bcard" id="bCard"></div>
+      <div class="fb" id="fb3" role="status" aria-live="polite"></div>
+      <div class="row" id="s3next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s3')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 4 — answer it ============ -->
+  <section class="stage" id="s4" data-title="Part 4 - Answer it">
+    <button class="donebar" onclick="LL.toggle('s4')">
+      <span class="tick">✓</span> <strong>Part 4: Answer it</strong>
+      <span class="sum" id="sum-s4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>💬 Part 4: Answer it</h2>
+      <p>Three real questions about your yesterday. The voice goes <strong>up ↗</strong> at the end, so it's a question. Tap <strong>네</strong> or <strong>아니요</strong> to start your answer, then finish it as a full sentence.</p>
+      <p class="done-looks"><strong>Done looks like:</strong> three answers, each starting with 네 or 아니요 and ending in a past-tense verb, plus Q4.</p>
+      <div id="ynHost"></div>
+
+      <p class="q"><strong>Q4.</strong> Your pick. Do <strong>one</strong> of these:<br>
+        <span class="opt">A.</span> One more thing you did yesterday. (어제 저는 …)<br>
+        <span class="opt">B.</span> Ask Sean a polite question about his yesterday, starting with 혹시. (혹시 어제 …?)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q4. Your pick: (A) one more thing you did yesterday, or (B) a 혹시 question for Sean about his yesterday." placeholder="Type here…" rows="2"></textarea></div>
+
+      <div class="stems"><p class="lab">Sentence starters, if you want them</p>
+        <p>• 네, 어제 ___을/를 ___었어요.<br>• 아니요, 어제 ___을/를 안 ___었어요. <span class="soft">(안 goes right before the verb)</span><br>• 혹시 어제 ___을/를 ___았어요? ↗</p>
+        <p class="soft" style="margin-top:.5rem;">Not sure which ending? Check the lanes in Part 1: ㅏ or ㅗ → 았, 하 → 했, anything else → 었.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s4')">Done with this part →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const ACTIVITY_TITLE = 'Yesterday Mode - Korean past tense and particles';
+const ORDER = ['s1','s2','s3','s4'];
+const REWARDS = {
+  s1: { star:'⏪', msg:'Twelve verbs, sent into the past.' },
+  s2: { star:'🎯', msg:'Particles picked.' },
+  s3: { star:'🧱', msg:'Yesterday, built.' },
+  s4: { star:'★',  msg:'All done. Go turn it in.' }
+};
+
+/* Fisher-Yates. Shuffle item order ONCE on load, and shuffle each item's
+   options separately inside the build loop. Authoring content in a tidy order
+   is fine; shipping it in that order lets a student score full marks by reading
+   down the list. Do not reshuffle on "start over" — rebuild from the arrays
+   that were already shuffled. */
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const LL = {
+  extra: {},      /* stageId -> non-text evidence, captured once when solved */
+  summary: {},    /* stageId -> custom done-bar text, e.g. "solved in 2 tries" */
+  done: new Set(),
+
+  /* Marks a stage complete. Deliberately does NOT snapshot the written
+     answers — those are read live at copy time, so a student who reopens a
+     part and adds to it still gets credit for what they wrote. */
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  /* Live read — never cached. */
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+/* Typing in a reopened stage updates its done-bar immediately, so the student
+   can see a blank turn into a saved answer without closing anything. */
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+function say(kind, head, body){
+  const fb = document.getElementById('fb');
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+/* ---------------- evidence assembly ---------------- */
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+
+  /* Three fallbacks. Clipboard access from a cross-origin iframe is the
+     flakiest part of this system and a student must never be stranded. */
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
+/* =====================================================================
+   YESTERDAY MODE — CONTENT. Everything text-specific is in these constants;
+   swap them to rejigger. Every word here is already in Joy's Anki deck.
+     M_ITEMS     Part 1: { dict, en, past, pastEn, wrong:[[form, kind]], note?, stretch? }
+                 kind = squish | end | present | irregular. The ending (았/었/했)
+                 is never stored: endFor() computes it from the stem's last vowel.
+     P_ITEMS     Part 2: { q?, pre, noun, post, role, verb, en }
+                 role = topic | subj | obj | subjadj (subject of an adjective)
+     P_STRETCH   Part 2 challenge, always last (adjHint, adjWhy for subjadj)
+     B_ITEMS     Part 3: { q?, en, ans:[tiles], alts?:[[tiles]], trap:[tiles], trapHints?, why }
+     B_STRETCH   Part 3 challenge, always last
+     YN_QS       Part 4: past-tense yes/no questions
+   ===================================================================== */
+const M_ITEMS = [
+  { dict:'가다', en:'go', past:'갔어요', pastEn:'went', wrong:[['가았어요','squish'],['가요','present']], note:'가 + 았 squish into one block: 갔.' },
+  { dict:'오다', en:'come', past:'왔어요', pastEn:'came', wrong:[['오았어요','squish'],['와요','present']], note:'ㅗ + ㅏ slide together into ㅘ: 왔.' },
+  { dict:'보다', en:'see; watch', past:'봤어요', pastEn:'saw; watched', wrong:[['보었어요','end'],['봐요','present']], note:'ㅗ takes 았, and ㅗ + ㅏ slide into ㅘ: 봤.' },
+  { dict:'사다', en:'buy', past:'샀어요', pastEn:'bought', wrong:[['사았어요','squish'],['사요','present']], note:'사 + 았 squish: 샀.' },
+  { dict:'자다', en:'sleep', past:'잤어요', pastEn:'slept', wrong:[['자았어요','squish'],['자요','present']], note:'자 + 았 squish: 잤.' },
+  { dict:'좋다', en:'be good', past:'좋았어요', pastEn:'was good', wrong:[['좋었어요','end'],['좋아요','present']], note:'좋 has ㅗ, so 았. ㅎ sits at the bottom, so nothing squishes.' },
+  { dict:'먹다', en:'eat', past:'먹었어요', pastEn:'ate', wrong:[['먹았어요','end'],['먹어요','present']], note:'먹 has ㅓ, so 었. ㄱ sits at the bottom, so nothing squishes.' },
+  { dict:'읽다', en:'read', past:'읽었어요', pastEn:'read', wrong:[['읽았어요','end'],['읽어요','present']], note:'읽 has ㅣ, so 었.' },
+  { dict:'마시다', en:'drink', past:'마셨어요', pastEn:'drank', wrong:[['마샀어요','end'],['마셔요','present']], note:'The last block is 시, with ㅣ, so 었. ㅣ + ㅓ slide into ㅕ: 마셨.' },
+  { dict:'좋아하다', en:'like', past:'좋아했어요', pastEn:'liked', wrong:[['좋아하았어요','squish'],['좋아해요','present']], note:'Anything ending in 하 becomes 했.' },
+  { dict:'공부하다', en:'study', past:'공부했어요', pastEn:'studied', wrong:[['공부하았어요','squish'],['공부해요','present']], note:'Anything ending in 하 becomes 했.' },
+  { dict:'듣다', en:'listen; hear', past:'들었어요', pastEn:'listened', wrong:[['듣었어요','irregular'],['들어요','present']],
+    note:'듣다 is irregular: before a vowel, the ㄷ at the bottom turns into ㄹ. You already say 들어요 in the present.', stretch:true }
+];
+
+const P_ITEMS = [
+  { pre:'',        noun:'저',     post:' 어제 김밥을 먹었어요.', role:'topic', verb:'먹었어요', en:'I ate gimbap yesterday.' },
+  { pre:'저는 어제 ', noun:'라면', post:' 먹었어요.',  role:'obj',   verb:'먹었어요', en:'I ate ramyeon yesterday.' },
+  { pre:'언니는 ',  noun:'커피',   post:' 마셨어요.',  role:'obj',   verb:'마셨어요', en:'My older sister drank coffee.' },
+  { pre:'',        noun:'동생',   post:' 책을 읽었어요.', role:'topic', verb:'읽었어요', en:'My younger sibling read a book.' },
+  { pre:'친구는 ',  noun:'게임',   post:' 했어요.',    role:'obj',   verb:'했어요',   en:'My friend played a game.' },
+  { q:'누가 우유를 마셨어요?', pre:'', noun:'아빠', post:' 마셨어요.', role:'subj', verb:'마셨어요', en:'Who drank the milk? Dad drank it.' },
+  { q:'누가 떡볶이를 샀어요?', pre:'', noun:'엄마', post:' 샀어요.',   role:'subj', verb:'샀어요',   en:'Who bought the tteokbokki? Mom bought it.' },
+  { pre:'오빠는 ',  noun:'음악',   post:' 들었어요.',  role:'obj',   verb:'들었어요', en:'My older brother listened to music.' },
+  { pre:'저는 어제 ', noun:'공부', post:' 했어요.',    role:'obj',   verb:'했어요',   en:'I studied yesterday.' },
+  { pre:'',        noun:'선생님', post:' 커피를 마셨어요.', role:'topic', verb:'마셨어요', en:'The teacher drank coffee.' },
+  { pre:'저는 ',    noun:'빵',     post:' 샀어요.',    role:'obj',   verb:'샀어요',   en:'I bought bread.' }
+];
+const P_STRETCH = { pre:'어제 ', noun:'게임', post:' 재밌었어요.', role:'subjadj', verb:'재밌었어요',
+  en:'The game was fun yesterday.', stretch:true,
+  adjHint:'It\'s 재밌었어요, "was fun," not 했어요, "played." Is 게임 being played here, or is 게임 the thing that <em>was</em> fun?',
+  adjWhy:'재밌었어요 means "was fun," so 게임 is the thing that was fun: the subject. With 했어요 ("played") it would be 게임을. ' };
+
+const B_ITEMS = [
+  { en:'Yesterday I ate gimbap.', ans:['저는','어제','김밥을','먹었어요'], alts:[['어제','저는','김밥을','먹었어요']], trap:['김밥를','먹어요'],
+    why:'김밥 has ㅂ at the bottom, so 김밥을. 먹 has ㅓ, so 먹었어요.' },
+  { en:'My older sister (언니) drank coffee.', ans:['언니는','커피를','마셨어요'], trap:['언니를','마셔요'],
+    why:'커피 ends in a vowel, so 커피를. 마시 + 었 slide together into 마셨.' },
+  { en:'My friend bought bread.', ans:['친구는','빵을','샀어요'], trap:['빵를','사요'],
+    why:'빵 has ㅇ at the bottom, so 빵을. 사 + 았 squish into 샀.' },
+  { en:'I studied yesterday.', ans:['저는','어제','공부를','했어요'], alts:[['어제','저는','공부를','했어요']], trap:['공부을','해요'],
+    why:'공부 ends in a vowel, so 공부를. Anything with 하 becomes 했어요.' },
+  { q:'누가 라면을 먹었어요?', en:'Answer the question: Dad ate it.', ans:['아빠가','라면을','먹었어요'], trap:['아빠를','라면이','먹어요'],
+    why:'The question asked 누가 (who?), so the answer, 아빠, takes the subject marker: 아빠가.' },
+  { en:'My younger sibling listened to music.', ans:['동생은','음악을','들었어요'], trap:['음악를','듣었어요'],
+    trapHints:{ '듣었어요':'듣다 is irregular: before a vowel its ㄷ turns into ㄹ. You already say 들어요 in the present.' },
+    why:'음악 has ㄱ at the bottom, so 음악을. 듣다 → 들었어요: the ㄷ turns into ㄹ.' },
+  { en:'Mom read a book.', ans:['엄마는','책을','읽었어요'], trap:['책를','읽어요'],
+    why:'책 has ㄱ at the bottom, so 책을. 읽 has ㅣ, so 읽었어요.' }
+];
+const B_STRETCH = { en:'The game was really fun. (아주 = really)', ans:['게임이','아주','재밌었어요'], trap:['게임을','재밌어요'],
+  trapHints:{ '게임을':'재밌었어요 means "was fun." What marker does the thing that <em>was</em> fun take?' },
+  why:'재밌었어요 means "was fun," so 게임 is the subject: 게임이. 아주 sits right before the verb it powers up.',
+  orderHint:'아주 goes right before the verb it powers up.', stretch:true };
+
+const YN_QS = [
+  { q:'어제 커피를 마셨어요?', en:'Did you drink coffee yesterday?' },
+  { q:'어제 게임을 했어요?',   en:'Did you play games yesterday?' },
+  { q:'어제 라면을 먹었어요?', en:'Did you eat ramyeon yesterday?' }
+];
+
+const VERBS = new Set(['먹어요','마셔요','사요','해요','읽어요','재밌어요','먹었어요','마셨어요','샀어요','했어요','들었어요','읽었어요','재밌었어요','듣었어요']);
+const VERB_EN = { '먹었어요':['eating','eaten'], '마셨어요':['drinking','drunk'], '샀어요':['buying','bought'],
+  '했어요':['doing','done'], '들었어요':['listening','listened to'], '읽었어요':['reading','read'], '재밌었어요':['being fun','fun'] };
+
+/* ---------------- shared helpers ---------------- */
+const JONG = ['', 'ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+function finalOf(word){
+  const c = word.charCodeAt(word.length - 1);
+  if (c < 0xAC00 || c > 0xD7A3) return '';
+  return JONG[(c - 0xAC00) % 28];
+}
+function particleFor(noun, role){
+  const b = !!finalOf(noun);
+  if (role === 'topic') return b ? '은' : '는';
+  if (role === 'obj')   return b ? '을' : '를';
+  return b ? '이' : '가';                         /* subj and subjadj */
+}
+const JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+function vowelOf(syl){ const c = syl.charCodeAt(0); return JUNG[Math.floor((c - 0xAC00) / 28) % 21]; }
+function endFor(stem){
+  if (stem.endsWith('하')) return '했';
+  const v = vowelOf(stem.slice(-1));
+  return (v === 'ㅏ' || v === 'ㅗ') ? '았' : '었';
+}
+const ROLE_OF = { '은':'topic','는':'topic','이':'subj','가':'subj','을':'obj','를':'obj' };
+const ROLE_NAME = { topic:'topic', subj:'subject', obj:'object' };
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formLine(noun, p){
+  const last = noun.slice(-1), f = finalOf(noun);
+  return f ? last + ' has ' + f + ' at the bottom, so it ends in a consonant: <strong>' + p + '</strong>.'
+           : last + ' has nothing at the bottom, so it ends in a vowel: <strong>' + p + '</strong>.';
+}
+/* Korean text-to-speech where the browser has a voice; silent no-op elsewhere. */
+function speak(text){
+  try{
+    if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR'; u.rate = 0.85;
+    const v = speechSynthesis.getVoices().find(x => /^ko/i.test(x.lang));
+    if (v) u.voice = v;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
+try{ if ('speechSynthesis' in window) speechSynthesis.getVoices(); }catch(e){}
+function sayIn(id, kind, head, body){
+  const fb = document.getElementById(id);
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+function clearFb(id){ const fb = document.getElementById(id); fb.className = 'fb'; fb.innerHTML = ''; }
+function hearBtn(text){ return ' <button class="say" type="button" data-say="' + esc(text) + '" aria-label="Hear it">🔊 hear it</button>'; }
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-say]');
+  if (b){ e.stopPropagation(); speak(b.dataset.say); }
+});
+
+/* =============== PART 1 — the past-tense machine =============== */
+(function(){
+  const items = shuffle(M_ITEMS.filter(x => !x.stretch)).concat(M_ITEMS.filter(x => x.stretch));
+  const ENDS = ['았','었','했'];   /* fixed order: position carries nothing */
+  const card = document.getElementById('mCard');
+  const log = []; let i = 0, step = 0, endTries = [], formTries = [], opts = [];
+  const LEFT = ' style="justify-content:flex-start"';
+  function draw(){
+    const it = items[i], st = it.dict.slice(0, -1), last = st.slice(-1);
+    let h = '<p class="counter">' + (i + 1) + ' of ' + items.length + (it.stretch ? '<span class="star-tag">★ challenge</span>' : '') + '</p>';
+    if (step === 0){
+      h += '<p class="vbig">' + esc(it.dict) + '</p><p class="vnote">to ' + esc(it.en) + hearBtn(it.dict) + '</p>' +
+           '<p class="stepline">Step 1 · find the stem</p><div class="opts"' + LEFT + '><button type="button" data-cut="1">✂️ Cut off 다</button></div>';
+    } else {
+      h += '<p class="vbig">' + esc(st.slice(0, -1)) + '<span class="hl">' + esc(last) + '</span><span class="cut">다</span></p>' +
+           '<p class="vnote">to ' + esc(it.en) + ' · ' + (st.endsWith('하') ? 'the stem ends in <strong>하</strong>' : 'last block <strong>' + esc(last) + '</strong>, vowel <strong>' + vowelOf(last) + '</strong>') + '</p>' +
+           '<p class="stepline">Step 2 · pick the past ending</p><div class="opts"' + LEFT + '>' +
+           ENDS.map(e => '<button type="button" data-end="' + e + '"' + (endTries.includes(e) ? ' class="no"' : '') +
+             ((step > 1 || endTries.includes(e)) ? ' disabled' : '') + '>' + e + '</button>').join('') + '</div>';
+      if (step >= 2) h += '<p class="stepline">Step 3 · put it together: which one is right?</p><div class="opts"' + LEFT + '>' +
+           opts.map(o => '<button type="button" data-form="' + esc(o) + '"' + (formTries.includes(o) ? ' class="no"' : '') +
+             ((step > 2 || formTries.includes(o)) ? ' disabled' : '') + '>' + esc(o) + '</button>').join('') + '</div>';
+    }
+    card.innerHTML = h;
+  }
+  const FORM_HINT = {
+    present:  ['That\'s the present tense.', 'That one means it happens now or usually. Which one carries the past ending you just picked?'],
+    squish:   ['Close. Now squish it.', 'When the stem and the ending share a vowel, they merge into one block, like 가 + 았 → 갔.'],
+    end:      ['Check the ending.', 'That one uses a different past ending from the one you picked in Step 2.'],
+    irregular:['Almost. 듣다 is a rule-breaker.', 'Before a vowel, the ㄷ at the bottom of 듣 changes. Think of how you say it in the present: 들어요.']
+  };
+  card.addEventListener('click', e => {
+    const it = items[i], st = it.dict.slice(0, -1);
+    const c = e.target.closest('[data-cut]'), en = e.target.closest('[data-end]'), fm = e.target.closest('[data-form]');
+    if (c && step === 0){ step = 1; clearFb('fb1'); draw(); return; }
+    if (en && step === 1 && !en.disabled){
+      const pick = en.dataset.end, right = endFor(st);
+      if (pick !== right){
+        endTries.push(pick); draw();
+        return sayIn('fb1', 'hint', 'Check the lanes.', st.endsWith('하')
+          ? 'Look at the very end of the stem, <strong>' + esc(st) + '</strong>. Which lane is that?'
+          : 'The last vowel is <strong>' + vowelOf(st.slice(-1)) + '</strong>. Find its lane in the chart above.');
+      }
+      step = 2; opts = shuffle([it.past].concat(it.wrong.map(w => w[0])));
+      sayIn('fb1', 'good', '✓ ' + esc(right) + '.', 'Now put the stem and the ending together.'); draw(); return;
+    }
+    if (fm && step === 2 && !fm.disabled){
+      const pick = fm.dataset.form;
+      if (pick !== it.past){
+        formTries.push(pick); draw();
+        const kind = (it.wrong.find(w => w[0] === pick) || ['', 'end'])[1];
+        const [h, b] = FORM_HINT[kind];
+        return sayIn('fb1', 'hint', h, b);
+      }
+      step = 3; draw(); speak(it.past);
+      const clean = !endTries.length && !formTries.length;
+      log.push(it.dict + ' → ' + it.past + (clean ? '  (first try)' :
+        '  (' + [endTries.length ? 'ending: tried ' + endTries.join(', ') : '', formTries.length ? 'form: tried ' + formTries.join(', ') : ''].filter(Boolean).join('; ') + ')') +
+        (it.stretch ? '  ★' : ''));
+      const lastOne = i === items.length - 1;
+      sayIn('fb1', 'good', '✓ ' + esc(it.dict) + ' → ' + esc(it.past) + hearBtn(it.past),
+        '"I ' + esc(it.pastEn) + '." ' + esc(it.note || '') +
+        '<div class="row" style="margin:.8rem 0 0"><button class="btn" type="button" id="m1go">' + (lastOne ? 'Finish this part' : 'Next verb →') + '</button></div>');
+      document.getElementById('m1go').addEventListener('click', () => {
+        i++; step = 0; endTries = []; formTries = [];
+        if (i < items.length){ clearFb('fb1'); draw(); }
+        else {
+          clearFb('fb1');
+          const first = log.filter(l => l.includes('(first try)')).length;
+          card.innerHTML = '<p class="prompt">🎉 All ' + items.length + ' verbs sent into the past.</p><p class="pen">' + first + ' of ' + items.length + ' with no wrong taps.</p>';
+          LL.extra.s1 = first + ' of ' + items.length + ' with no wrong taps.\n' + log.join('\n');
+          LL.summary.s1 = first + ' of ' + items.length + ' clean';
+          document.getElementById('s1next').style.display = '';
+        }
+      });
+    }
+  });
+  draw();
+})();
+
+/* =============== PART 2 — pick the particle =============== */
+(function(){
+  const items = shuffle(P_ITEMS).concat([P_STRETCH]);
+  const BTN = ['은','는','이','가','을','를'];   /* all six always shown: position carries nothing */
+  const log = []; let i = 0, picks = [];
+  function sentence(it, fill){
+    return (it.q ? '<p class="pq">Q: ' + esc(it.q) + '</p>' : '') +
+      '<p class="psent">' + esc(it.pre) + esc(it.noun) +
+      '<span class="gap' + (fill ? ' filled' : '') + '">' + (fill || '&nbsp;?&nbsp;') + '</span>' + esc(it.post) + '</p>';
+  }
+  function render(){
+    const it = items[i]; picks = [];
+    document.getElementById('pCard').innerHTML =
+      '<p class="counter">' + (i + 1) + ' of ' + items.length + (it.stretch ? '<span class="star-tag">★ challenge</span>' : '') + '</p>' +
+      sentence(it) + '<p class="pen">' + esc(it.en) + '</p>' +
+      '<div class="pbtns">' + BTN.map(p => '<button type="button" data-p="' + p + '">' + p + '</button>').join('') + '</div>';
+  }
+  function hint(it, p){
+    const want = it.role === 'subjadj' ? 'subj' : it.role;
+    if (ROLE_OF[p] === want)
+      return ['Right job, wrong shape.', 'Yes, ' + esc(it.noun) + ' is the ' + ROLE_NAME[want] + '. Now look at the last block, <strong>' +
+        esc(it.noun.slice(-1)) + '</strong>: is anything sitting at the bottom?'];
+    if (it.role === 'subjadj')
+      return ['Look closely at the verb.', it.adjHint];
+    if (want === 'topic')
+      return ['Think about the job.', 'Who is this sentence about? The first word sets the topic: "as for ' + esc(it.noun) + '…"'];
+    if (want === 'subj')
+      return ['Think about the job.', 'The question asks 누가, "who?". The word that answers "who" is new information, so it takes the subject marker, not the topic marker.'];
+    const v = VERB_EN[it.verb];
+    return ['Think about the job.', 'Is ' + esc(it.noun) + ' doing the ' + v[0] + ', or is it the thing being ' + v[1] + '?'];
+  }
+  function explain(it, p){
+    let job;
+    if (it.role === 'topic') job = esc(it.noun) + ' is the topic: the sentence is about ' + esc(it.noun) + '. ';
+    else if (it.role === 'obj') job = esc(it.noun) + ' is the thing being ' + VERB_EN[it.verb][1] + ', so it\'s the object. ';
+    else if (it.role === 'subj') job = esc(it.noun) + ' answers 누가 (who?), so it\'s the subject. ';
+    else job = it.adjWhy;
+    return job + formLine(it.noun, p);
+  }
+  document.getElementById('pCard').addEventListener('click', e => {
+    const b = e.target.closest('button[data-p]'); if (!b || b.disabled) return;
+    const it = items[i], p = b.dataset.p, ans = particleFor(it.noun, it.role);
+    if (p !== ans){
+      picks.push(p); b.disabled = true; b.classList.add('no');
+      const [h, body] = hint(it, p); sayIn('fb2', 'hint', h, body); return;
+    }
+    const full = it.pre + it.noun + ans + it.post;
+    log.push((it.q ? '[' + it.q + '] ' : '') + it.pre + it.noun + '__' + it.post + ' → ' + ans +
+      (picks.length ? '  (tried ' + picks.join(', ') + ' first)' : '  (first try)') + (it.stretch ? '  ★' : ''));
+    document.getElementById('pCard').querySelector('.psent').outerHTML = sentence(it, ans);
+    document.querySelectorAll('#pCard .pbtns button').forEach(x => x.disabled = true);
+    speak(full);
+    const last = i === items.length - 1;
+    sayIn('fb2', 'good', '✓ ' + esc(full) + hearBtn(full), explain(it, ans) +
+      '<div class="row" style="margin:.8rem 0 0"><button class="btn" type="button" id="p2go">' + (last ? 'Finish this part' : 'Next sentence →') + '</button></div>');
+    document.getElementById('p2go').addEventListener('click', () => {
+      i++;
+      if (i < items.length){ clearFb('fb2'); render(); }
+      else {
+        clearFb('fb2');
+        const first = log.filter(l => l.includes('(first try)')).length;
+        document.getElementById('pCard').innerHTML = '<p class="psent">🎉 All ' + items.length + ' done.</p><p class="pen">' + first + ' of ' + items.length + ' on the first try.</p>';
+        LL.extra.s2 = first + ' of ' + items.length + ' on the first try.\n' + log.join('\n');
+        LL.summary.s2 = first + ' of ' + items.length + ' first try';
+        document.getElementById('s2next').style.display = '';
+      }
+    });
+  });
+  render();
+})();
+
+/* =============== PART 3 — build the sentence =============== */
+(function(){
+  const items = shuffle(B_ITEMS).concat([B_STRETCH]);
+  const log = []; let i = 0, placed = [], tiles = [], tries = 0;
+  function render(){
+    const it = items[i]; placed = []; tries = 0;
+    tiles = shuffle(it.ans.concat(it.trap)).map((t, k) => ({ t, k }));
+    draw();
+  }
+  function draw(done){
+    const it = items[i];
+    const slotHtml = it.ans.map((_, k) => placed[k] !== undefined
+      ? '<button type="button" class="tile" data-back="' + k + '">' + esc(tiles[placed[k]].t) + '</button>'
+      : '<span class="slot" aria-hidden="true"></span>').join('');
+    document.getElementById('bCard').innerHTML =
+      '<p class="counter">' + (i + 1) + ' of ' + items.length + (it.stretch ? '<span class="star-tag">★ challenge</span>' : '') + '</p>' +
+      (it.q ? '<p class="pq">Q: ' + esc(it.q) + '</p>' : '') +
+      '<p class="psent" style="font-size:1.25rem">' + esc(it.en) + '</p>' +
+      '<div class="slots" aria-label="Your sentence">' + slotHtml + '</div>' +
+      (done ? '' :
+      '<div class="tiles">' + tiles.map((x, k) =>
+        '<button type="button" class="tile' + (placed.includes(k) ? ' used' : '') + '" data-k="' + k + '">' + esc(x.t) + '</button>').join('') + '</div>' +
+      '<div class="row" style="margin:0"><button class="btn" type="button" id="bCheck"' + (placed.length < it.ans.length ? ' disabled' : '') + '>Check</button>' +
+      '<button class="btn ghost" type="button" id="bClear">Clear</button></div>');
+  }
+  function check(){
+    const it = items[i], got = placed.map(k => tiles[k].t);
+    const okSeq = [it.ans].concat(it.alts || []).some(a => a.join(' ') === got.join(' '));
+    if (okSeq){
+      const full = got.join(' ') + '.';
+      log.push(it.en + ' → ' + full + (tries ? '  (' + (tries + 1) + ' tries)' : '  (first try)') + (it.stretch ? '  ★' : ''));
+      speak(full); draw(true);
+      const last = i === items.length - 1;
+      sayIn('fb3', 'good', '✓ ' + esc(full) + hearBtn(full), esc(it.why) +
+        '<div class="row" style="margin:.8rem 0 0"><button class="btn" type="button" id="b3go">' + (last ? 'Finish this part' : 'Next sentence →') + '</button></div>');
+      document.getElementById('b3go').addEventListener('click', () => {
+        i++;
+        if (i < items.length){ clearFb('fb3'); render(); }
+        else {
+          clearFb('fb3');
+          const first = log.filter(l => l.includes('(first try)')).length;
+          document.getElementById('bCard').innerHTML = '<p class="psent">🎉 All ' + items.length + ' built.</p><p class="pen">' + first + ' of ' + items.length + ' on the first try.</p>';
+          LL.extra.s3 = first + ' of ' + items.length + ' on the first try.\n' + log.join('\n');
+          LL.summary.s3 = first + ' of ' + items.length + ' first try';
+          document.getElementById('s3next').style.display = '';
+        }
+      });
+      return;
+    }
+    tries++;
+    const trap = got.find(t => it.trap.includes(t));
+    if (trap){
+      if (it.trapHints && it.trapHints[trap]) return sayIn('fb3', 'hint', 'Look at <strong>' + esc(trap) + '</strong>.', it.trapHints[trap]);
+      if (VERBS.has(trap)) return sayIn('fb3', 'hint', 'Check the tense.', 'The English says it already happened. Which verb has the past ending, with ㅆ in it?');
+      const noun = trap.slice(0, -1);
+      return sayIn('fb3', 'hint', 'One marker is off.', 'Look at <strong>' + esc(trap) + '</strong>. What job does ' + esc(noun) +
+        ' do in this sentence, and does ' + esc(noun.slice(-1)) + ' have anything at the bottom?');
+    }
+    if (got[got.length - 1] !== it.ans[it.ans.length - 1])
+      return sayIn('fb3', 'hint', 'Right pieces, wrong order.', 'In Korean the verb always comes last.');
+    sayIn('fb3', 'hint', 'Right pieces, wrong order.', it.orderHint ? esc(it.orderHint) : 'Who or what the sentence is about comes first, then the thing, then the verb.');
+  }
+  document.getElementById('bCard').addEventListener('click', e => {
+    const it = items[i];
+    const t = e.target.closest('[data-k]'), back = e.target.closest('[data-back]');
+    if (t && !t.classList.contains('used') && placed.length < it.ans.length){ placed.push(+t.dataset.k); clearFb('fb3'); draw(); }
+    else if (back){ placed.splice(+back.dataset.back, 1); clearFb('fb3'); draw(); }
+    else if (e.target.id === 'bClear'){ placed = []; clearFb('fb3'); draw(); }
+    else if (e.target.id === 'bCheck') check();
+  });
+  render();
+})();
+
+/* =============== PART 4 — answer it =============== */
+(function(){
+  const host = document.getElementById('ynHost');
+  host.innerHTML = YN_QS.map((y, k) =>
+    '<p class="q"><strong>Q' + (k + 1) + '.</strong> <span class="ynq">' + esc(y.q) + ' ↗</span>' + hearBtn(y.q) +
+    '<br><span class="soft">' + esc(y.en) + '</span></p>' +
+    '<div class="ynbtns"><button type="button" data-yn="네">네</button><button type="button" data-yn="아니요">아니요</button></div>' +
+    '<div class="abox"><p class="lab">My answer</p><textarea data-q="Q' + (k + 1) + '. ' + esc(y.q) + ' (' + esc(y.en) + ')" placeholder="Tap 네 or 아니요, then finish the sentence…" rows="1"></textarea></div>').join('');
+  host.addEventListener('click', e => {
+    const b = e.target.closest('[data-yn]'); if (!b) return;
+    const row = b.parentElement, ta = row.nextElementSibling.querySelector('textarea');
+    row.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    const rest = ta.value.replace(/^\s*(네|아니요)\s*,?\s*/, '');
+    ta.value = b.dataset.yn + ', ' + rest;
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+  });
+})();
+</script>
+<script type="application/json" id="qsummary">
+[
+ {
+  "title": "Part 1 - The past-tense machine",
+  "questions": [
+   "For 12 verbs, three taps each: cut off 다, pick the past ending 았/었/했 from the stem's last vowel, then pick the right squished form from three (e.g. 가다 → 갔어요, not 가았어요 or 가요).",
+   "Verbs: 가다 오다 보다 사다 자다 좋다 먹다 읽다 마시다 좋아하다 공부하다; ★ challenge 듣다 → 들었어요 (irregular)."
+  ]
+ },
+ {
+  "title": "Part 2 - Pick the particle",
+  "questions": [
+   "Fill the gap with one of 은 는 이 가 을 를 in 12 past-tense sentences, e.g. 저__ 어제 김밥을 먹었어요 (는), 친구는 게임__ 했어요 (을), 누가 우유를 마셨어요? 아빠__ 마셨어요 (가).",
+   "★ Challenge: 어제 게임__ 재밌었어요 (이: 재밌었어요 makes the game the subject)."
+  ]
+ },
+ {
+  "title": "Part 3 - Build yesterday",
+  "questions": [
+   "Tap tiles into Korean order for 8 English sentences, avoiding wrong-particle and present-tense traps, e.g. Yesterday I ate gimbap → 저는 어제 김밥을 먹었어요; My friend bought bread → 친구는 빵을 샀어요; Who ate ramyeon? Dad → 아빠가 라면을 먹었어요.",
+   "★ Challenge: The game was really fun → 게임이 아주 재밌었어요."
+  ]
+ },
+ {
+  "title": "Part 4 - Answer it",
+  "questions": [
+   "Q1. 어제 커피를 마셨어요? (Did you drink coffee yesterday?)",
+   "Q2. 어제 게임을 했어요? (Did you play games yesterday?)",
+   "Q3. 어제 라면을 먹었어요? (Did you eat ramyeon yesterday?)",
+   "Q4. Your pick: (A) one more thing you did yesterday, or (B) a 혹시 question for Sean about his yesterday."
+  ]
+ }
+]
+</script>
+<script src="../assets/student.js"></script>
+</body>
+</html>
