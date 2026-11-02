@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG12A-L07 · Inside Macbeth's Head</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG12A-L07</p>
+  <h1 id="pagetitle">English 12A · Lesson 7</h1>
+  <p class="sub" id="pagesub">Inside Macbeth&#x27;s Head.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Who hears what">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Who hears what</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Who hears what</h2>
+
+      <p>In a novel, the writer can just tell you what a character is thinking. In a play, all you get is people talking. So playwrights use tricks to let <strong>you</strong> hear what a character really thinks.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 225" role="img" aria-label="Three small stages side by side with the audience in a strip underneath. Aside: Macbeth speaks one line down to the audience while Banquo, next to him, is faded and labelled can't hear. Soliloquy: Macbeth is alone on stage, speaking to the audience. Monologue: Macbeth speaks across the stage to Lady Macbeth, and the audience listens in.">
+  <text x="100" y="22" text-anchor="middle" font-size="17" font-weight="700" fill="var(--ink)">Aside</text>
+  <text x="300" y="22" text-anchor="middle" font-size="17" font-weight="700" fill="var(--ink)">Soliloquy</text>
+  <text x="500" y="22" text-anchor="middle" font-size="17" font-weight="700" fill="var(--ink)">Monologue</text>
+  <rect x="15"  y="35" width="170" height="90" rx="8" fill="var(--accent)" fill-opacity=".12" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="215" y="35" width="170" height="90" rx="8" fill="var(--accent)" fill-opacity=".12" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="415" y="35" width="170" height="90" rx="8" fill="var(--accent)" fill-opacity=".12" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="65" cy="78" r="18" fill="var(--accent)" fill-opacity=".45" stroke="var(--accent)" stroke-width="2"/>
+  <text x="65" y="84" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">M</text>
+  <circle cx="140" cy="78" r="18" fill="var(--soft)" fill-opacity=".15" stroke="var(--soft)" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="140" y="84" text-anchor="middle" font-size="16" fill="var(--soft)">B</text>
+  <text x="140" y="116" text-anchor="middle" font-size="11" fill="var(--soft)">can't hear</text>
+  <line x1="65" y1="98" x2="65" y2="152" stroke="var(--ink)" stroke-width="3"/>
+  <polygon points="58,150 65,161 72,150" fill="var(--ink)"/>
+  <circle cx="300" cy="78" r="18" fill="var(--accent)" fill-opacity=".45" stroke="var(--accent)" stroke-width="2"/>
+  <text x="300" y="84" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">M</text>
+  <text x="300" y="116" text-anchor="middle" font-size="11" fill="var(--soft)">alone</text>
+  <line x1="300" y1="98" x2="300" y2="152" stroke="var(--ink)" stroke-width="3"/>
+  <polygon points="293,150 300,161 307,150" fill="var(--ink)"/>
+  <circle cx="450" cy="78" r="18" fill="var(--accent)" fill-opacity=".45" stroke="var(--accent)" stroke-width="2"/>
+  <text x="450" y="84" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">M</text>
+  <circle cx="550" cy="78" r="18" fill="var(--accent)" fill-opacity=".2" stroke="var(--accent)" stroke-width="2"/>
+  <text x="550" y="84" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">LM</text>
+  <line x1="470" y1="78" x2="522" y2="78" stroke="var(--ink)" stroke-width="3"/>
+  <polygon points="520,71 531,78 520,85" fill="var(--ink)"/>
+  <line x1="450" y1="98" x2="450" y2="152" stroke="var(--soft)" stroke-width="2" stroke-dasharray="5 4"/>
+  <polygon points="444,150 450,159 456,150" fill="var(--soft)"/>
+  <rect x="15" y="163" width="570" height="26" rx="8" fill="var(--soft)" fill-opacity=".15"/>
+  <text x="300" y="181" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">AUDIENCE (you)</text>
+  <text x="100" y="212" text-anchor="middle" font-size="12" fill="var(--soft)">one quick line only you hear</text>
+  <text x="300" y="212" text-anchor="middle" font-size="12" fill="var(--soft)">alone, thinking out loud</text>
+  <text x="500" y="212" text-anchor="middle" font-size="12" fill="var(--soft)">a long speech TO someone</text>
+</svg>
+      <figcaption>M is Macbeth, B is his friend Banquo, LM is Lady Macbeth. Follow the arrows: who is each speech aimed at?</figcaption>
+      </figure>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="padding:14px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>👀 One more: dramatic irony</strong><br>When <strong>you</strong> know something a character doesn't. You watch someone smile at a person you KNOW is planning to hurt them. That knot in your stomach is the point.</td>
+  </tr>
+</table>
+      <figcaption>The fourth trick isn't about who hears. It's about who knows.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q1.</strong> Macbeth is alone on stage at night, talking to himself about whether to kill the king. That's…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Macbeth is alone on stage at night, talking to himself about whether to kill the king. That&#x27;s…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a monologue">a monologue</option>
+          <option value="a soliloquy">a soliloquy</option>
+          <option value="an aside">an aside</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> In the middle of a conversation, Macbeth turns away and says one line that only the audience hears. That's…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. In the middle of a conversation, Macbeth turns away and says one line that only the audience hears. That&#x27;s…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="an aside">an aside</option>
+          <option value="a monologue">a monologue</option>
+          <option value="a soliloquy">a soliloquy</option>
+        </select></div>
+
+      <p class="q"><strong>Q3.</strong> Why would a playwright use a soliloquy at all? What do you get from it that you can't get from characters talking to each other?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; A soliloquy lets the audience … , which you can't get from a conversation because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. Why would a playwright use a soliloquy at all? What do you get from it that you can&#x27;t get from characters talking to each other?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and one sentence about why a soliloquy is useful.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="The road to the dagger">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The road to the dagger</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The road to the dagger</h2>
+
+      <p><strong>Who's who</strong></p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:6px">
+  <tr>
+    <td style="width:20%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>👑 Duncan</strong><br>King of Scotland. Kind, trusting.</td>
+    <td style="width:20%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>⚔️ Macbeth</strong><br>A brave general and the king's cousin.</td>
+    <td style="width:20%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>🗝️ Lady Macbeth</strong><br>His wife. Wants the crown even more than he does.</td>
+    <td style="width:20%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>🛡️ Banquo</strong><br>Macbeth's friend. Hears the witches too.</td>
+    <td style="width:20%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>🔮 The Witches</strong><br>Three strange sisters who seem to see the future.</td>
+  </tr>
+</table>
+      <figcaption>Five people to know. That's enough for Acts I and II.</figcaption>
+      </figure>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 170" role="img" aria-label="A timeline of six numbered moments. Act One covers moments one to four: the witches say Macbeth will be king, the king trusts him, Lady Macbeth decides, Macbeth almost backs out. Act Two covers moments five and six: the floating dagger, and the murder.">
+  <text x="200" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">ACT I</text>
+  <line x1="35" y1="34" x2="365" y2="34" stroke="var(--soft)" stroke-opacity=".7" stroke-width="2"/>
+  <text x="500" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">ACT II</text>
+  <line x1="435" y1="34" x2="565" y2="34" stroke="var(--soft)" stroke-opacity=".7" stroke-width="2"/>
+  <line x1="50" y1="70" x2="550" y2="70" stroke="var(--soft)" stroke-opacity=".6" stroke-width="4"/>
+  <circle cx="50"  cy="70" r="16" fill="var(--accent)" fill-opacity=".35" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="150" cy="70" r="16" fill="var(--accent)" fill-opacity=".35" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="250" cy="70" r="16" fill="var(--accent)" fill-opacity=".35" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="350" cy="70" r="16" fill="var(--accent)" fill-opacity=".35" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="450" cy="70" r="16" fill="var(--soft)" fill-opacity=".2" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="550" cy="70" r="16" fill="var(--soft)" fill-opacity=".2" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="50"  y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">1</text>
+  <text x="150" y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">2</text>
+  <text x="250" y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">3</text>
+  <text x="350" y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">4</text>
+  <text x="450" y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">5</text>
+  <text x="550" y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">6</text>
+  <text x="50"  y="108" text-anchor="middle" font-size="12" fill="var(--ink)">Witches:</text>
+  <text x="50"  y="124" text-anchor="middle" font-size="12" fill="var(--ink)">you'll be king</text>
+  <text x="150" y="108" text-anchor="middle" font-size="12" fill="var(--ink)">The king</text>
+  <text x="150" y="124" text-anchor="middle" font-size="12" fill="var(--ink)">trusts him</text>
+  <text x="250" y="108" text-anchor="middle" font-size="12" fill="var(--ink)">Lady M</text>
+  <text x="250" y="124" text-anchor="middle" font-size="12" fill="var(--ink)">decides</text>
+  <text x="350" y="108" text-anchor="middle" font-size="12" fill="var(--ink)">He almost</text>
+  <text x="350" y="124" text-anchor="middle" font-size="12" fill="var(--ink)">backs out</text>
+  <text x="450" y="108" text-anchor="middle" font-size="12" fill="var(--ink)">The floating</text>
+  <text x="450" y="124" text-anchor="middle" font-size="12" fill="var(--ink)">dagger</text>
+  <text x="550" y="108" text-anchor="middle" font-size="12" fill="var(--ink)">The murder</text>
+  <text x="300" y="158" text-anchor="middle" font-size="12" fill="var(--soft)">Solid circles: we do these together now. Dashed circles: you do these on your own.</text>
+</svg>
+      <figcaption>The whole story of Acts I and II in six moments.</figcaption>
+      </figure>
+
+      <p><strong>Moment 1. Act I, scene 3.</strong> Three witches greet Macbeth as "Thane of Cawdor" (a lord's title) and say he'll be king. Minutes later, a messenger tells him the king has just made him Thane of Cawdor. One prediction has come true. He turns away from his friends and says this as an <strong>aside</strong>:</p>
+
+      <div class="note">
+        <p><em>This supernatural soliciting</em> <em>Cannot be ill, cannot be good. …</em> <em>… why do I yield to that suggestion</em> <em>Whose horrid image doth unfix my hair</em> <em>And make my seated heart knock at my ribs …?</em></p>
+      </div>
+
+      <p><em>(unfix my hair = make my hair stand on end)</em></p>
+
+      <p class="q"><strong>Q4.</strong> What is Macbeth already picturing, the one that makes his hair stand on end?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. What is Macbeth already picturing, the one that makes his hair stand on end?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="thanking the witches">thanking the witches</option>
+          <option value="retiring from the army">retiring from the army</option>
+          <option value="killing the king to make the prophecy come true">killing the king to make the prophecy come true</option>
+        </select></div>
+
+      <p><strong>Moment 2. Act I, scene 4.</strong> King Duncan has just executed the old Thane of Cawdor for being a traitor. He says:</p>
+
+      <div class="note">
+        <p><em>He was a gentleman on whom I built</em> <em>An absolute trust.</em></p>
+      </div>
+
+      <p>Right as he says it, Macbeth walks in, and Duncan greets him warmly and says he'll stay the night at Macbeth's castle.</p>
+
+      <p class="q"><strong>Q5.</strong> Why is that moment <strong>dramatic irony</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. Why is that moment dramatic irony?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Duncan is making a joke">Duncan is making a joke</option>
+          <option value="we know Duncan is about to trust another traitor, and he doesn&#x27;t">we know Duncan is about to trust another traitor, and he doesn&#x27;t</option>
+          <option value="Macbeth hears it and feels proud">Macbeth hears it and feels proud</option>
+        </select></div>
+
+      <p><strong>Moment 3. Act I, scene 5.</strong> Lady Macbeth reads his letter about the witches. She decides Duncan must die tonight, but she worries about her husband:</p>
+
+      <div class="note">
+        <p><em>Yet do I fear thy nature;</em> <em>It is too full o' th' milk of human kindness</em> <em>To catch the nearest way.</em></p>
+      </div>
+
+      <p><strong>Moment 4. Act I, scene 7.</strong> Duncan is asleep in their castle. Macbeth, alone, in a <strong>soliloquy</strong>, lists every reason NOT to kill him, then admits:</p>
+
+      <div class="note">
+        <p><em>I have no spur</em> <em>To prick the sides of my intent, but only</em> <em>Vaulting ambition, which o'erleaps itself</em> <em>And falls on th' other.</em></p>
+      </div>
+
+      <p><em>(spur = the spike a rider kicks a horse with to make it go)</em></p>
+
+      <p>He tells his wife he's out. She answers with a <strong>monologue</strong> that ends:</p>
+
+      <div class="note">
+        <p><em>When you durst do it, then you were a man …</em> <em>… screw your courage to the sticking place,</em> <em>And we'll not fail.</em></p>
+      </div>
+
+      <p class="q"><strong>Q6.</strong> In his soliloquy, what does Macbeth admit is his ONLY reason to kill Duncan?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. In his soliloquy, what does Macbeth admit is his ONLY reason to kill Duncan?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="his own ambition">his own ambition</option>
+          <option value="Duncan is a bad king">Duncan is a bad king</option>
+          <option value="Lady Macbeth is forcing him">Lady Macbeth is forcing him</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> What does Lady Macbeth use to push him back in?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. What does Lady Macbeth use to push him back in?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="money">money</option>
+          <option value="fear of the witches">fear of the witches</option>
+          <option value="his pride: she says he&#x27;s not a real man">his pride: she says he&#x27;s not a real man</option>
+        </select></div>
+
+      <p class="q"><strong>Q8.</strong> Two sentences: how has Macbeth changed from Moment 1 to Moment 4, and what pushed him?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; In Moment 1 Macbeth … , but by Moment 4 he … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. Two sentences: how has Macbeth changed from Moment 1 to Moment 4, and what pushed him?" placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>One strong reading: in Moment 1 the idea of murder scares him so much his hair stands up. By Moment 4 he admits ambition is his only reason and even tries to back out, but Lady Macbeth attacks his pride and he agrees. He changes from scared of the thought to ready to do it. If yours names a change AND what caused it, you've got it.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Four dropdowns picked and two sentences on how Macbeth changes from Moment 1 to Moment 4.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="guided" id="g2" data-title="Cracking Shakespeare&#x27;s words">
+    <button class="donebar" onclick="LL.toggle('g2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Cracking Shakespeare's words</strong>
+      <span class="sum" id="sum-g2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Cracking Shakespeare's words</h2>
+
+      <p>You don't need a dictionary for most of Shakespeare. You need two tools:</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:33%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>🧩 Tool 1: the clues around it</strong><br>What's happening? Who's talking? What do the words next to it say?</td>
+    <td style="width:33%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>🌱 Tool 2: the root inside it</strong><br>Is there a word part you already know from another word?</td>
+    <td style="width:33%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>✅ Put them together</strong><br>Make a guess, then put it back in the line. Does the line make sense now?</td>
+  </tr>
+</table>
+      <figcaption>Clue + root = a meaning you can test.</figcaption>
+      </figure>
+
+      <p><strong>Watch it once:</strong> <em>supernatural soliciting.</em> Root: <strong>super</strong> = above (superhero, superior). Clue: he's talking about witches. So <strong>supernatural</strong> = above or beyond nature: magic. And <strong>soliciting</strong>? Clue: the witches are pushing an idea at him. It means urging, tempting.</p>
+
+      <p class="q"><strong>Q9.</strong> "<strong>Vaulting</strong> ambition, which o'erleaps itself / And falls on th' other." A pole-vaulter leaps over a bar, and "o'erleaps" means over-leaps. So vaulting ambition is ambition that…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. &quot;Vaulting ambition, which o&#x27;erleaps itself / And falls on th&#x27; other.&quot; A pole-vaulter leaps over a bar, and &quot;o&#x27;erleaps&quot; means over-leaps. So vaulting ambition is ambition that…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="stays quiet">stays quiet</option>
+          <option value="leaps too high and falls">leaps too high and falls</option>
+          <option value="helps other people">helps other people</option>
+        </select></div>
+
+      <p class="q"><strong>Q10.</strong> Lady Macbeth mocks him for losing his nerve: "When you <strong>durst</strong> do it, then you were a man." From the clues, <em>durst</em> means…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q10. Lady Macbeth mocks him for losing his nerve: &quot;When you durst do it, then you were a man.&quot; From the clues, durst means…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="forgot">forgot</option>
+          <option value="refused">refused</option>
+          <option value="dared">dared</option>
+        </select></div>
+
+      <p class="q"><strong>Q11.</strong> Pick <strong>one</strong> word from Moments 1–4 you didn't know. Use a clue or a root to work out what it means.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The word … probably means … because the clue / root ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q11. Pick one word from Moments 1–4 you didn&#x27;t know. Use a clue or a root to work out what it means." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and one word of your own worked out with a clue or a root.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Blood that won&#x27;t wash off">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Blood that won't wash off</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Blood that won't wash off</h2>
+
+      <p><strong>Moment 5. Act II, scene 1.</strong> Midnight. Macbeth is alone, on his way to Duncan's room. He sees a dagger floating in the air in front of him:</p>
+
+      <div class="note">
+        <p><em>Is this a dagger which I see before me,</em> <em>The handle toward my hand? Come, let me clutch thee.</em> <em>I have thee not, and yet I see thee still. …</em> <em>… or art thou but</em> <em>A dagger of the mind, a false creation,</em> <em>Proceeding from the heat-oppressèd brain?</em></p>
+      </div>
+
+      <p>A bell rings. It's Lady Macbeth's signal. His last lines:</p>
+
+      <div class="note">
+        <p><em>I go, and it is done. The bell invites me.</em> <em>Hear it not, Duncan, for it is a knell</em> <em>That summons thee to heaven or to hell.</em></p>
+      </div>
+
+      <p class="q"><strong>Q12.</strong> Macbeth is alone on stage speaking his thoughts. That's…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q12. Macbeth is alone on stage speaking his thoughts. That&#x27;s…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a monologue">a monologue</option>
+          <option value="an aside">an aside</option>
+          <option value="a soliloquy">a soliloquy</option>
+        </select></div>
+
+      <p class="q"><strong>Q13.</strong> The floating dagger is most likely…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q13. The floating dagger is most likely…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a real dagger a servant left out">a real dagger a servant left out</option>
+          <option value="a dagger of the mind, made by his own guilt and fear">a dagger of the mind, made by his own guilt and fear</option>
+          <option value="a ghost sent by Duncan">a ghost sent by Duncan</option>
+        </select></div>
+
+      <p class="q"><strong>Q14.</strong> "Hear it not, Duncan, for it is a <strong>knell</strong> / That summons thee to heaven or to hell." From the clues, a knell is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q14. &quot;Hear it not, Duncan, for it is a knell / That summons thee to heaven or to hell.&quot; From the clues, a knell is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a bell rung when someone has died">a bell rung when someone has died</option>
+          <option value="a wedding bell">a wedding bell</option>
+          <option value="a school bell">a school bell</option>
+        </select></div>
+
+      <p><strong>Moment 6. Act II, scene 2.</strong> It's done. Macbeth comes back with Duncan's blood on his hands. He stares at them:</p>
+
+      <div class="note">
+        <p><em>Will all great Neptune's ocean wash this blood</em> <em>Clean from my hand? No, this my hand will rather</em> <em>The multitudinous seas incarnadine,</em> <em>Making the green one red.</em></p>
+      </div>
+
+      <p><em>(Neptune = the Roman god of the sea)</em></p>
+
+      <p>Lady Macbeth has blood on her hands too. She says:</p>
+
+      <div class="note">
+        <p><em>A little water clears us of this deed.</em></p>
+      </div>
+
+      <p class="q"><strong>Q15.</strong> Two sentences: how are Macbeth and Lady Macbeth different right after the murder, and what does that show about each of them?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Macbeth thinks … , but Lady Macbeth thinks … . This shows that ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q15. Two sentences: how are Macbeth and Lady Macbeth different right after the murder, and what does that show about each of them?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p><strong>This one's meant to be hard.</strong> Two words in his line look impossible. Use the roots.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:50%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>multitudinous</strong><br>🌱 <strong>multi</strong> = many (multiply, multiplayer)<br>🌱 <strong>multitude</strong> = a huge crowd</td>
+    <td style="width:50%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>incarnadine</strong><br>🌱 <strong>in</strong> = into, turning into<br>🌱 <strong>carn</strong> = flesh, meat (carnivore, chili con carne)</td>
+  </tr>
+</table>
+      <figcaption>Two roots each. The last line of his speech is your context clue.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q16.</strong> Use the roots and the clue "Making the green one red" to explain his line. What does he say his hand will do to the seas, and what does that tell you about his guilt?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Multitudinous means … and incarnadine means … , so he's saying … , which shows his guilt is ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q16. Use the roots and the clue &quot;Making the green one red&quot; to explain his line. What does he say his hand will do to the seas, and what does that tell you about his guilt?" placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Multitudinous = many, countless. Incarnadine = turn flesh- or blood-red. So instead of the ocean washing his hand clean, his bloody hand would turn all the oceans of the world red. He feels his guilt is too big to ever wash away, while Lady Macbeth thinks a little water will do it. Keep that difference in mind: the play has more to say about which of them is right.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked, two sentences comparing Macbeth and Lady Macbeth, and the hard one answered (typed or said).</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Play words and word tricks &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Aside</td><td>One quick line to the audience. The other characters on stage can't hear it.</td></tr>
+      <tr><td class="h">Soliloquy</td><td>A character alone on stage, thinking out loud. The truest look inside their head.</td></tr>
+      <tr><td class="h">Monologue</td><td>A long speech TO another character.</td></tr>
+      <tr><td class="h">Dramatic irony</td><td>The audience knows something a character doesn't.</td></tr>
+      <tr><td class="h">Motive</td><td>WHY a character does something: what they want, or what they're afraid of.</td></tr>
+      <tr><td class="h">Character development</td><td>How a character changes from the start to the end.</td></tr>
+      <tr><td class="h">Context clue</td><td>The words around a hard word that hint at what it means.</td></tr>
+      <tr><td class="h">Root</td><td>A word part with its own meaning: super = above, multi = many, carn = flesh.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>Shakespeare's English:</strong> thou / thee = you, art = are, doth = does, hath = has, 'tis = it is.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud instead of typing it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "English 12A · Lesson 7";
+const LESSON_ID = "ENG12A-L07";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "3-1": "Investigate the use of various dramatic literary devices (e.g., monologue, soliloquy, dramatic irony) to analyze character development and themes.",
+  "3-2": "Explore character motivations and development in dramatic texts.",
+  "3-4": "Determine the meaning of words based on context clues and root words."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:4 },
+  { label:"Who hears what", mins:9, part:"intro" },
+  { label:"The road to the dagger", mins:18, part:"guided" },
+  { label:"Blood that won't wash off", mins:15, part:"mastery" },
+  { label:"Done for today", mins:4 }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "A play can't narrate someone's thoughts, so it uses tricks to let you hear them.", sheet: true, outcomes: ["3-1"] },
+  guided: { title: "Guided Practice", sub: "Follow Macbeth from \"this idea scares me\" to \"I'll do it\", and crack Shakespeare's hard words.", sheet: true, outcomes: ["3-1", "3-2", "3-4"] },
+  mastery: { title: "Independent Mastery", sub: "The dagger and the murder, on your own. What do they show about him, and about her?", sheet: true, outcomes: ["3-1", "3-2", "3-4"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You know the tricks. Now watch Shakespeare use them on Macbeth."},
+  g1:{star:"★",msg:"You tracked how a man talks himself into murder. That's character development."},
+  g2:{star:"★",msg:"You beat 400-year-old English with two tools. Keep them."},
+  m1:{star:"★",msg:"Dagger, murder, two people, two kinds of guilt. You read a whole act's turning point."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
