@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
-  LULLABY FOR A GIANT — engine: lullaby · variant: mood-missions · version 2
+  MISHA'S MOOD STORY GAME — engine: lullaby · variant: mood-missions · version 2
 
-  Micha tells a five-verse story to an audience: the giant baby (room scene)
+  Misha tells a five-verse story to an audience: the giant baby (room scene)
   or a campfire crowd (clearing scene). The student picks a MISSION, which sets
   a target mood (calm, happy, funny, scary, sad). Every blank holds one word per
   mood (plus "jarring"); a mission shows four per blank: the target, a
@@ -25,14 +25,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Lullaby for a Giant</title>
+<title>Misha's Mood Story Game</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="ll-format" content="one-page">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: full-bleed painted room on canvas; HUD floats top-left; Micha's storytelling panel docks at the bottom. Single dusk look by choice. */
+/* Layout: full-bleed painted room on canvas; HUD floats top-left; Misha's storytelling panel docks at the bottom. Single dusk look by choice. */
 :root{
   --night:#1c1530; --lantern:#ffb35c; --paper:#f8efe2; --ink:#1d1630;
   --muted:#cfc3e6; --line:rgba(248,239,226,.18); --panel:rgba(30,22,48,.88);
@@ -236,11 +236,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 
 <div class="overlay" id="startOv">
   <div class="start">
-  <img class="hero-micha" id="heroMicha" alt="Micha, the storyteller, smiling and gesturing toward the missions">
+  <img class="hero-micha" id="heroMisha" alt="Misha, the storyteller, smiling and gesturing toward the missions">
   <div class="card">
     <div class="eyebrow">A storytelling game about word choice</div>
-    <h1>Lullaby for a Giant</h1>
-    <p class="sub">Micha tells the story. You choose every word, and the words decide how your listeners feel. Pick a mission.</p>
+    <h1>Misha's Mood Story Game</h1>
+    <p class="sub">Misha tells the story. You choose every word, and the words decide how your listeners feel. Pick a mission.</p>
     <div class="aud"><h2>The giant baby</h2><div class="modes" id="missionsBaby"></div></div>
     <div class="aud"><h2>The campfire crowd</h2><div class="modes" id="missionsCrowd"></div></div>
     <div class="aud"><h2>The story</h2><div class="chips" id="storyPick"></div></div>
@@ -392,7 +392,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
    "lose": "Temper",
    "blurb": "Lull the giant to sleep.",
    "win": "Shh. Asleep.",
-   "winSub": "Every word you picked slowed the story down, and he went along with it. Micha can finally tiptoe out."
+   "winSub": "Every word you picked slowed the story down, and he went along with it. Misha can finally tiptoe out."
   },
   {
    "id": "sunny",
@@ -504,7 +504,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
    "s": "The words that count are the ones that match the mood you're aiming for."
   },
   "dark": {
-   "t": "Micha's lantern went out.",
+   "t": "Misha's lantern went out.",
    "s": "Every hint and every verse costs light. Spend hints only where you're truly unsure."
   }
  },
@@ -2673,7 +2673,7 @@ document.addEventListener("click", e => {
 renderMissions();
 renderStoryPick();
 ["pointerdown","keydown"].forEach(ev => addEventListener(ev, () => { if (!$("startOv").hidden && musicOn) startMenuMusic(); }, { passive:true }));
-loadImg("micha-stand").then(i => { if (i) $("heroMicha").src = i.src; });
+loadImg("micha-stand").then(i => { if (i) $("heroMisha").src = i.src; });
 $("beginBtn").onclick = () => {
   initAudio(); if (ac && ac.state !== "running") ac.resume();
   stopMenuMusic(); nextNote = ac ? ac.currentTime + .6 : 0;
@@ -2695,7 +2695,7 @@ $("voiceTest").onclick = () => say("Once, a little cloud drifted across the velv
 /* turn-in */
 function evidence(){
   const L = [], e = endText(G.over || "flat");
-  L.push(`Lullaby for a Giant — ${M.title} (aim: ${FEEL[M.target].adj}) · story: ${STORY.title}`, "==========================================");
+  L.push(`Misha's Mood Story Game — ${M.title} (aim: ${FEEL[M.target].adj}) · story: ${STORY.title}`, "==========================================");
   L.push(`Ending: ${e.t}  (${M.goal} ${G.goal}, ${M.lose} ${G.lose}, light left ${G.energy})`);
   L.push(`Hints used: ${G.hintsUsed}`, "", "── THE STORY ──");
   G.log.filter(x => x.k==="verse").forEach(x => L.push(`Verse ${x.n}: ${x.text}`, `   choices: ${x.picks.join(", ")}${x.hints?`  ·  ${x.hints} hint${x.hints>1?"s":""}`:""}`));
@@ -2760,7 +2760,7 @@ function pickCrowd(){
   if (G.goal > 65) return CROWD[T];
   return "crowd-listen";
 }
-function pickMicha(){
+function pickMisha(){
   if (michaOverride && now < michaOverride.until) return "micha-" + michaOverride.pose;
   if (G.over === "win") return "micha-relief";
   if (G.over === "lost") return "micha-flinch";
@@ -2819,7 +2819,7 @@ function drawSlot(slot, dx, dy, w, scale){
 /* The scene is laid out for a fixed panel height. When the panel grows (results, challenges) it just covers more of the
    bottom of the picture; nothing moves, so characters stay planted on the painted ground. */
 const stableSceneH = () => Math.max(220, Math.round(H * (W < 640 ? .55 : .64)));
-/* baby scene: room covers the canvas; the giant stands centre-right; Micha sits front-left */
+/* baby scene: room covers the canvas; the giant stands centre-right; Misha sits front-left */
 function babyLayout(){
   const sceneH = stableSceneH(), narrow = W < 640, top = narrow ? 14 : 24, UNITS = 1800;
   let s = (sceneH * 1.32 - top) / UNITS;
@@ -2849,7 +2849,7 @@ function drawGiant(L){
   X.restore();
   return { headX: bx, headY: feetY - 1359*s + 95*s - 270*s };
 }
-/* crowd scene: campfire clearing; the crowd sits right, facing left; Micha sits up on a rock in their line of sight */
+/* crowd scene: campfire clearing; the crowd sits right, facing left; Misha sits up on a rock in their line of sight */
 function crowdLayout(){
   const sceneH = stableSceneH(), narrow = W < 640;
   const s = bgT.s;
@@ -2859,7 +2859,7 @@ function crowdLayout(){
   const cx = Math.min(bgT.x + CROWD_SPOT.x * s, W - 1152*cs*.5 + 1152*cs*.04);
   return { sceneH, ch, cs, cBottom, cx };
 }
-/* Micha's rock sits on the painted ground just in front of the cloth-covered box (background coords x≈290, ground y≈705) */
+/* Misha's rock sits on the painted ground just in front of the cloth-covered box (background coords x≈290, ground y≈705) */
 const CAMP_GROUND = 712;                                   // painted ground line in campfire.webp (1536x1024)
 const CROWD_SPOT = { x:1085, ground:718, height:375 };   // right of the fire (bg x≈740) so it stays visible
 const MICHA_SPOT = { x:290, ground:740, rockW:265, height:300 };
@@ -2883,7 +2883,7 @@ function drawCrowd(L){
   return { headX: L.cx - 60*L.cs, headY: L.cBottom - L.ch*.68 };
 }
 function glowDark(x, y, R){ const g = X.createRadialGradient(x,y,0,x,y,R); g.addColorStop(0,"rgba(20,10,20,.5)"); g.addColorStop(1,"rgba(20,10,20,0)"); X.fillStyle = g; X.beginPath(); X.arc(x,y,R,0,7); X.fill(); }
-function drawMicha(mx, my, ms){
+function drawMisha(mx, my, ms){
   const br = Math.sin(now*2.4)*2*ms;
   const flinch = michaSlot.cur === "micha-flinch" && !reduced ? (Math.random()-.5)*2 : 0;
   X.save(); X.translate(mx + flinch, my + br); drawSlot(michaSlot, 0, 0, 0, ms); X.restore();
@@ -2977,7 +2977,7 @@ function frame(t){
   to("gray", cur === "sad" ? 1 : (T === "sad" ? G.goal/100*.5 : 0));
   to("light", cur === "scary" ? .4 : (cur === "calm" && win) ? .55 : 1);
   if (M.aud === "baby") setSlot(faceSlot, pickFace()); else setSlot(crowdSlot, pickCrowd());
-  setSlot(michaSlot, pickMicha());
+  setSlot(michaSlot, pickMisha());
   [faceSlot, michaSlot, crowdSlot].forEach(s => s.k = Math.min(1, s.k + dt/.3));
   musicTick();
 
@@ -2986,14 +2986,14 @@ function frame(t){
     if (M.aud === "baby"){
       const L = babyLayout();
       drawBg(IMG.room, L.sceneH);
-      const a = drawGiant(L), m = drawMicha(L.mx, L.my, L.ms);
+      const a = drawGiant(L), m = drawMisha(L.mx, L.my, L.ms);
       anchors = { headX:a.headX, headY:a.headY, mouthX:m.mouthX, mouthY:m.mouthY };
     } else {
       drawBg(IMG.campfire, stableSceneH(), CAMP_GROUND);
       const L = crowdLayout();
       const R = michaOnRock(L);
       if (IMG.rock) X.drawImage(IMG.rock, R.mx - R.rw/2, R.rockTop, R.rw, R.rh);
-      const m = drawMicha(R.mx, R.mBottom, R.ms), c = drawCrowd(L);
+      const m = drawMisha(R.mx, R.mBottom, R.ms), c = drawCrowd(L);
       anchors = { headX:c.headX, headY:c.headY, mouthX:m.mouthX, mouthY:m.mouthY };
     }
     grade();
