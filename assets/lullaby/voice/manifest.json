@@ -3,34 +3,6 @@
   "text": "The stars came out one by one, except the last one, who was late because it couldn't find its other sock.",
   "mood": "funny"
  },
- "22233688": {
-  "text": "A squawking owl winked at it from an old pine.",
-  "mood": "jarring"
- },
- "27263908": {
-  "text": "Finally, it was dragged down beside a frozen pond.",
-  "mood": "scary"
- },
- "40878320": {
-  "text": "Once, a little cloud danced across the crackling sky.",
-  "mood": "jarring"
- },
- "54455500": {
-  "text": "It passed a pudgy frog who licked its lips as it went by.",
-  "mood": "scary"
- },
- "60462457": {
-  "text": "Below, the sparkling river rocked every stone it passed.",
-  "mood": "happy"
- },
- "72283526": {
-  "text": "Finally, it settled down beside a frozen pond.",
-  "mood": "sad"
- },
- "78247764": {
-  "text": "A small paper boat slid down the soapy stream.",
-  "mood": "funny"
- },
  "89996895": {
   "text": "A cross-eyed owl made faces at it from an old pine.",
   "mood": "funny"
@@ -39,424 +11,216 @@
   "text": "Once, a little cloud drifted across the velvet sky.",
   "mood": "calm"
  },
- "bfc63d4c": {
-  "text": "Once, a little cloud drifted across the glittering sky.",
-  "mood": "happy"
- },
- "9e6c6c63": {
-  "text": "Once, a little cloud drifted across the polka-dotted sky.",
-  "mood": "funny"
- },
- "088daa67": {
-  "text": "Once, a little cloud drifted across the howling sky.",
-  "mood": "scary"
- },
- "e2afa696": {
-  "text": "Once, a little cloud drifted across the empty sky.",
-  "mood": "sad"
- },
- "6861a487": {
-  "text": "Once, a little cloud drifted across the crackling sky.",
-  "mood": "jarring"
- },
- "2e819da6": {
-  "text": "Once, a little cloud danced across the velvet sky.",
-  "mood": "happy"
- },
  "4af207f5": {
   "text": "Once, a little cloud danced across the glittering sky.",
   "mood": "happy"
- },
- "5b2fbfb6": {
-  "text": "Once, a little cloud danced across the polka-dotted sky.",
-  "mood": "funny"
- },
- "f1270274": {
-  "text": "Once, a little cloud danced across the howling sky.",
-  "mood": "scary"
- },
- "918ffcdd": {
-  "text": "Once, a little cloud danced across the empty sky.",
-  "mood": "sad"
- },
- "709ec9ea": {
-  "text": "Once, a little cloud hiccuped across the velvet sky.",
-  "mood": "funny"
- },
- "c805cff1": {
-  "text": "Once, a little cloud hiccuped across the glittering sky.",
-  "mood": "funny"
  },
  "87c5fd92": {
   "text": "Once, a little cloud hiccuped across the polka-dotted sky.",
   "mood": "funny"
  },
- "97cfb3a8": {
-  "text": "Once, a little cloud hiccuped across the howling sky.",
-  "mood": "scary"
- },
- "337c84e1": {
-  "text": "Once, a little cloud hiccuped across the empty sky.",
-  "mood": "sad"
- },
- "9ab93f54": {
-  "text": "Once, a little cloud hiccuped across the crackling sky.",
-  "mood": "jarring"
- },
- "d74db78d": {
-  "text": "Once, a little cloud crept across the velvet sky.",
-  "mood": "scary"
- },
- "72dfe3c6": {
-  "text": "Once, a little cloud crept across the glittering sky.",
-  "mood": "scary"
- },
- "ffd2de39": {
-  "text": "Once, a little cloud crept across the polka-dotted sky.",
-  "mood": "scary"
- },
  "cfda4f55": {
   "text": "Once, a little cloud crept across the howling sky.",
-  "mood": "scary"
- },
- "6377161c": {
-  "text": "Once, a little cloud crept across the empty sky.",
-  "mood": "scary"
- },
- "6d536e25": {
-  "text": "Once, a little cloud crept across the crackling sky.",
-  "mood": "jarring"
- },
- "da468e7d": {
-  "text": "Once, a little cloud wandered across the velvet sky.",
-  "mood": "sad"
- },
- "d3ac6876": {
-  "text": "Once, a little cloud wandered across the glittering sky.",
-  "mood": "sad"
- },
- "5867b5a9": {
-  "text": "Once, a little cloud wandered across the polka-dotted sky.",
-  "mood": "sad"
- },
- "2b24c7e5": {
-  "text": "Once, a little cloud wandered across the howling sky.",
   "mood": "scary"
  },
  "46ae576c": {
   "text": "Once, a little cloud wandered across the empty sky.",
   "mood": "sad"
  },
- "beeb7235": {
-  "text": "Once, a little cloud wandered across the crackling sky.",
-  "mood": "jarring"
- },
- "e7da76fc": {
-  "text": "Once, a little cloud raced across the velvet sky.",
-  "mood": "jarring"
- },
- "4c76dedb": {
-  "text": "Once, a little cloud raced across the glittering sky.",
-  "mood": "jarring"
- },
- "34f3bf78": {
-  "text": "Once, a little cloud raced across the polka-dotted sky.",
-  "mood": "jarring"
- },
- "f00dfa56": {
-  "text": "Once, a little cloud raced across the howling sky.",
-  "mood": "jarring"
- },
- "f1e0ce6f": {
-  "text": "Once, a little cloud raced across the empty sky.",
-  "mood": "jarring"
- },
  "e16a6852": {
   "text": "Once, a little cloud raced across the crackling sky.",
+  "mood": "jarring"
+ },
+ "h-8e0a4bbe": {
+  "text": "Once, a little cloud drifted",
+  "mood": "calm"
+ },
+ "h-59360a84": {
+  "text": "across the velvet sky.",
+  "mood": "calm"
+ },
+ "h-d536939d": {
+  "text": "Once, a little cloud danced",
+  "mood": "happy"
+ },
+ "h-c7857af3": {
+  "text": "across the glittering sky.",
+  "mood": "happy"
+ },
+ "h-4b7a45e9": {
+  "text": "Once, a little cloud hiccuped",
+  "mood": "funny"
+ },
+ "h-edbcbe00": {
+  "text": "across the polka-dotted sky.",
+  "mood": "funny"
+ },
+ "h-cc809e1c": {
+  "text": "Once, a little cloud crept",
+  "mood": "scary"
+ },
+ "h-c8cfe12e": {
+  "text": "across the howling sky.",
+  "mood": "scary"
+ },
+ "h-c5ca578c": {
+  "text": "Once, a little cloud wandered",
+  "mood": "sad"
+ },
+ "h-231c3d77": {
+  "text": "across the empty sky.",
+  "mood": "sad"
+ },
+ "h-9d06a3cf": {
+  "text": "Once, a little cloud raced",
+  "mood": "jarring"
+ },
+ "h-d526999a": {
+  "text": "across the crackling sky.",
   "mood": "jarring"
  },
  "413a59bc": {
   "text": "It floated past the sleeping hills, humming a song.",
   "mood": "calm"
  },
- "a91e6926": {
-  "text": "It floated past the sleeping hills, whistling a song.",
-  "mood": "happy"
- },
- "0e9a75da": {
-  "text": "It floated past the sleeping hills, burping a song.",
-  "mood": "funny"
- },
- "17e68d3e": {
-  "text": "It floated past the sleeping hills, moaning a song.",
-  "mood": "scary"
- },
- "6cd771e5": {
-  "text": "It floated past the sleeping hills, sobbing a song.",
-  "mood": "sad"
- },
- "6d2fe95a": {
-  "text": "It floated past the sleeping hills, screeching a song.",
-  "mood": "jarring"
- },
- "c0fbd491": {
-  "text": "It skipped past the sleeping hills, humming a song.",
-  "mood": "happy"
- },
  "122c8b73": {
   "text": "It skipped past the sleeping hills, whistling a song.",
   "mood": "happy"
- },
- "552a7b33": {
-  "text": "It skipped past the sleeping hills, burping a song.",
-  "mood": "funny"
- },
- "df8e5f37": {
-  "text": "It skipped past the sleeping hills, moaning a song.",
-  "mood": "scary"
- },
- "250a32f8": {
-  "text": "It skipped past the sleeping hills, sobbing a song.",
-  "mood": "sad"
- },
- "e6eed259": {
-  "text": "It skipped past the sleeping hills, screeching a song.",
-  "mood": "jarring"
- },
- "618e796a": {
-  "text": "It tumbled past the sleeping hills, humming a song.",
-  "mood": "funny"
- },
- "f9205424": {
-  "text": "It tumbled past the sleeping hills, whistling a song.",
-  "mood": "funny"
  },
  "360b0718": {
   "text": "It tumbled past the sleeping hills, burping a song.",
   "mood": "funny"
  },
- "1e5c8a84": {
-  "text": "It tumbled past the sleeping hills, moaning a song.",
-  "mood": "scary"
- },
- "0cbbd7cb": {
-  "text": "It tumbled past the sleeping hills, sobbing a song.",
-  "mood": "sad"
- },
- "44a2ec7c": {
-  "text": "It tumbled past the sleeping hills, screeching a song.",
-  "mood": "jarring"
- },
- "93eb042d": {
-  "text": "It slithered past the sleeping hills, humming a song.",
-  "mood": "scary"
- },
- "3b9ba0ff": {
-  "text": "It slithered past the sleeping hills, whistling a song.",
-  "mood": "scary"
- },
- "ba1eeb2f": {
-  "text": "It slithered past the sleeping hills, burping a song.",
-  "mood": "scary"
- },
  "467c2af3": {
   "text": "It slithered past the sleeping hills, moaning a song.",
-  "mood": "scary"
- },
- "505aaf64": {
-  "text": "It slithered past the sleeping hills, sobbing a song.",
-  "mood": "scary"
- },
- "0cffa855": {
-  "text": "It slithered past the sleeping hills, screeching a song.",
-  "mood": "jarring"
- },
- "a0711f9a": {
-  "text": "It trudged past the sleeping hills, humming a song.",
-  "mood": "sad"
- },
- "3918aed4": {
-  "text": "It trudged past the sleeping hills, whistling a song.",
-  "mood": "sad"
- },
- "9c267c88": {
-  "text": "It trudged past the sleeping hills, burping a song.",
-  "mood": "sad"
- },
- "c28eb394": {
-  "text": "It trudged past the sleeping hills, moaning a song.",
   "mood": "scary"
  },
  "df687ebb": {
   "text": "It trudged past the sleeping hills, sobbing a song.",
   "mood": "sad"
  },
- "62a969ec": {
-  "text": "It trudged past the sleeping hills, screeching a song.",
-  "mood": "jarring"
- },
- "51ee8263": {
-  "text": "It zoomed past the sleeping hills, humming a song.",
-  "mood": "jarring"
- },
- "5e1e2805": {
-  "text": "It zoomed past the sleeping hills, whistling a song.",
-  "mood": "jarring"
- },
- "49013a7d": {
-  "text": "It zoomed past the sleeping hills, burping a song.",
-  "mood": "jarring"
- },
- "b6543c11": {
-  "text": "It zoomed past the sleeping hills, moaning a song.",
-  "mood": "jarring"
- },
- "0ac04e4a": {
-  "text": "It zoomed past the sleeping hills, sobbing a song.",
-  "mood": "jarring"
- },
  "6749b377": {
   "text": "It zoomed past the sleeping hills, screeching a song.",
+  "mood": "jarring"
+ },
+ "h-593d13a9": {
+  "text": "It floated past the sleeping hills,",
+  "mood": "calm"
+ },
+ "h-2c068a3e": {
+  "text": "humming a song.",
+  "mood": "calm"
+ },
+ "h-753c1de0": {
+  "text": "It skipped past the sleeping hills,",
+  "mood": "happy"
+ },
+ "h-5d67c4e8": {
+  "text": "whistling a song.",
+  "mood": "happy"
+ },
+ "h-a8f7fa5b": {
+  "text": "It tumbled past the sleeping hills,",
+  "mood": "funny"
+ },
+ "h-4e6e3a2c": {
+  "text": "burping a song.",
+  "mood": "funny"
+ },
+ "h-3bb13974": {
+  "text": "It slithered past the sleeping hills,",
+  "mood": "scary"
+ },
+ "h-adbd2898": {
+  "text": "moaning a song.",
+  "mood": "scary"
+ },
+ "h-9e5f98cb": {
+  "text": "It trudged past the sleeping hills,",
+  "mood": "sad"
+ },
+ "h-2a7cf5af": {
+  "text": "sobbing a song.",
+  "mood": "sad"
+ },
+ "h-e54cbdce": {
+  "text": "It zoomed past the sleeping hills,",
+  "mood": "jarring"
+ },
+ "h-1230ddb0": {
+  "text": "screeching a song.",
   "mood": "jarring"
  },
  "b872d8e9": {
   "text": "Below, the slow river rocked every stone it passed.",
   "mood": "calm"
  },
- "b65ebae5": {
-  "text": "Below, the slow river hugged every stone it passed.",
-  "mood": "happy"
- },
- "56187ab7": {
-  "text": "Below, the slow river tickled every stone it passed.",
-  "mood": "funny"
- },
- "31bad1d3": {
-  "text": "Below, the slow river swallowed every stone it passed.",
-  "mood": "scary"
- },
- "9c1328fc": {
-  "text": "Below, the slow river forgot every stone it passed.",
-  "mood": "sad"
- },
- "02a1a7ac": {
-  "text": "Below, the slow river pounded every stone it passed.",
-  "mood": "jarring"
- },
  "98b6ae63": {
   "text": "Below, the sparkling river hugged every stone it passed.",
   "mood": "happy"
- },
- "7717e7a1": {
-  "text": "Below, the sparkling river tickled every stone it passed.",
-  "mood": "funny"
- },
- "6f3c73b5": {
-  "text": "Below, the sparkling river swallowed every stone it passed.",
-  "mood": "scary"
- },
- "e4b9afc6": {
-  "text": "Below, the sparkling river forgot every stone it passed.",
-  "mood": "sad"
- },
- "9f29a3e6": {
-  "text": "Below, the sparkling river pounded every stone it passed.",
-  "mood": "jarring"
- },
- "4506d1f0": {
-  "text": "Below, the gurgly river rocked every stone it passed.",
-  "mood": "funny"
- },
- "b5dac7d8": {
-  "text": "Below, the gurgly river hugged every stone it passed.",
-  "mood": "funny"
  },
  "093aa6c8": {
   "text": "Below, the gurgly river tickled every stone it passed.",
   "mood": "funny"
  },
- "c0f292b8": {
-  "text": "Below, the gurgly river swallowed every stone it passed.",
-  "mood": "scary"
- },
- "b3ee78e5": {
-  "text": "Below, the gurgly river forgot every stone it passed.",
-  "mood": "sad"
- },
- "270ea2ef": {
-  "text": "Below, the gurgly river pounded every stone it passed.",
-  "mood": "jarring"
- },
- "fafba3c9": {
-  "text": "Below, the black river rocked every stone it passed.",
-  "mood": "scary"
- },
- "f9a1ee45": {
-  "text": "Below, the black river hugged every stone it passed.",
-  "mood": "scary"
- },
- "199cb297": {
-  "text": "Below, the black river tickled every stone it passed.",
-  "mood": "scary"
- },
  "d755df33": {
   "text": "Below, the black river swallowed every stone it passed.",
-  "mood": "scary"
- },
- "58c66adc": {
-  "text": "Below, the black river forgot every stone it passed.",
-  "mood": "scary"
- },
- "dced588c": {
-  "text": "Below, the black river pounded every stone it passed.",
-  "mood": "jarring"
- },
- "49073b0b": {
-  "text": "Below, the lonely river rocked every stone it passed.",
-  "mood": "sad"
- },
- "ddb679f7": {
-  "text": "Below, the lonely river hugged every stone it passed.",
-  "mood": "sad"
- },
- "04f7add5": {
-  "text": "Below, the lonely river tickled every stone it passed.",
-  "mood": "sad"
- },
- "f49e5661": {
-  "text": "Below, the lonely river swallowed every stone it passed.",
   "mood": "scary"
  },
  "5a3d8b1a": {
   "text": "Below, the lonely river forgot every stone it passed.",
   "mood": "sad"
  },
- "d1efd8da": {
-  "text": "Below, the lonely river pounded every stone it passed.",
-  "mood": "jarring"
- },
- "472d299a": {
-  "text": "Below, the roaring river rocked every stone it passed.",
-  "mood": "jarring"
- },
- "33a30542": {
-  "text": "Below, the roaring river hugged every stone it passed.",
-  "mood": "jarring"
- },
- "afe99efe": {
-  "text": "Below, the roaring river tickled every stone it passed.",
-  "mood": "jarring"
- },
- "421ca556": {
-  "text": "Below, the roaring river swallowed every stone it passed.",
-  "mood": "jarring"
- },
- "cf3769fb": {
-  "text": "Below, the roaring river forgot every stone it passed.",
-  "mood": "jarring"
- },
  "bae892cd": {
   "text": "Below, the roaring river pounded every stone it passed.",
+  "mood": "jarring"
+ },
+ "h-daf7264c": {
+  "text": "Below, the slow river",
+  "mood": "calm"
+ },
+ "h-1806cda6": {
+  "text": "rocked every stone it passed.",
+  "mood": "calm"
+ },
+ "h-da33f322": {
+  "text": "Below, the sparkling river",
+  "mood": "happy"
+ },
+ "h-e15da4ae": {
+  "text": "hugged every stone it passed.",
+  "mood": "happy"
+ },
+ "h-9fd51329": {
+  "text": "Below, the gurgly river",
+  "mood": "funny"
+ },
+ "h-2204746a": {
+  "text": "tickled every stone it passed.",
+  "mood": "funny"
+ },
+ "h-2c54572c": {
+  "text": "Below, the black river",
+  "mood": "scary"
+ },
+ "h-4826f55a": {
+  "text": "swallowed every stone it passed.",
+  "mood": "scary"
+ },
+ "h-5a826a26": {
+  "text": "Below, the lonely river",
+  "mood": "sad"
+ },
+ "h-750eeed7": {
+  "text": "forgot every stone it passed.",
+  "mood": "sad"
+ },
+ "h-dd6a06ab": {
+  "text": "Below, the roaring river",
+  "mood": "jarring"
+ },
+ "h-ef70e6e9": {
+  "text": "pounded every stone it passed.",
   "mood": "jarring"
  },
  "6e5b3d1c": {
@@ -483,568 +247,284 @@
   "text": "At last the little cloud snuggled into a warm bed of mist.",
   "mood": "calm"
  },
- "f1dfb0fd": {
-  "text": "At last the little cloud snuggled into a cheerful bed of mist.",
-  "mood": "happy"
- },
- "49651f4d": {
-  "text": "At last the little cloud snuggled into a squishy bed of mist.",
-  "mood": "funny"
- },
- "12a82ee7": {
-  "text": "At last the little cloud snuggled into a cold bed of mist.",
-  "mood": "scary"
- },
- "72314db8": {
-  "text": "At last the little cloud snuggled into a gray bed of mist.",
-  "mood": "sad"
- },
- "77c886e2": {
-  "text": "At last the little cloud snuggled into a scratchy bed of mist.",
-  "mood": "jarring"
- },
- "93db0c46": {
-  "text": "At last the little cloud twirled into a warm bed of mist.",
-  "mood": "happy"
- },
  "aa03a73d": {
   "text": "At last the little cloud twirled into a cheerful bed of mist.",
   "mood": "happy"
- },
- "429b678d": {
-  "text": "At last the little cloud twirled into a squishy bed of mist.",
-  "mood": "funny"
- },
- "498e5a27": {
-  "text": "At last the little cloud twirled into a cold bed of mist.",
-  "mood": "scary"
- },
- "c7d050f8": {
-  "text": "At last the little cloud twirled into a gray bed of mist.",
-  "mood": "sad"
- },
- "c678ea22": {
-  "text": "At last the little cloud twirled into a scratchy bed of mist.",
-  "mood": "jarring"
- },
- "b16c04f6": {
-  "text": "At last the little cloud belly-flopped into a warm bed of mist.",
-  "mood": "funny"
- },
- "e7e2b6ad": {
-  "text": "At last the little cloud belly-flopped into a cheerful bed of mist.",
-  "mood": "funny"
  },
  "d4b7467d": {
   "text": "At last the little cloud belly-flopped into a squishy bed of mist.",
   "mood": "funny"
  },
- "a6084d97": {
-  "text": "At last the little cloud belly-flopped into a cold bed of mist.",
-  "mood": "scary"
- },
- "c47f8ca8": {
-  "text": "At last the little cloud belly-flopped into a gray bed of mist.",
-  "mood": "sad"
- },
- "d256ad92": {
-  "text": "At last the little cloud belly-flopped into a scratchy bed of mist.",
-  "mood": "jarring"
- },
- "5ab4a0f5": {
-  "text": "At last the little cloud vanished into a warm bed of mist.",
-  "mood": "scary"
- },
- "a169e9d6": {
-  "text": "At last the little cloud vanished into a cheerful bed of mist.",
-  "mood": "scary"
- },
- "4c5c4840": {
-  "text": "At last the little cloud vanished into a squishy bed of mist.",
-  "mood": "scary"
- },
  "14a37db8": {
   "text": "At last the little cloud vanished into a cold bed of mist.",
-  "mood": "scary"
- },
- "9e597157": {
-  "text": "At last the little cloud vanished into a gray bed of mist.",
-  "mood": "scary"
- },
- "ee8825f9": {
-  "text": "At last the little cloud vanished into a scratchy bed of mist.",
-  "mood": "jarring"
- },
- "e93622ea": {
-  "text": "At last the little cloud sank into a warm bed of mist.",
-  "mood": "sad"
- },
- "9065ff69": {
-  "text": "At last the little cloud sank into a cheerful bed of mist.",
-  "mood": "sad"
- },
- "ba293371": {
-  "text": "At last the little cloud sank into a squishy bed of mist.",
-  "mood": "sad"
- },
- "cf66b103": {
-  "text": "At last the little cloud sank into a cold bed of mist.",
   "mood": "scary"
  },
  "0a884754": {
   "text": "At last the little cloud sank into a gray bed of mist.",
   "mood": "sad"
  },
- "d5149b2e": {
-  "text": "At last the little cloud sank into a scratchy bed of mist.",
-  "mood": "jarring"
- },
- "d77dd0d8": {
-  "text": "At last the little cloud slammed into a warm bed of mist.",
-  "mood": "jarring"
- },
- "9e0046b3": {
-  "text": "At last the little cloud slammed into a cheerful bed of mist.",
-  "mood": "jarring"
- },
- "f6bf9f0b": {
-  "text": "At last the little cloud slammed into a squishy bed of mist.",
-  "mood": "jarring"
- },
- "2384a1f1": {
-  "text": "At last the little cloud slammed into a cold bed of mist.",
-  "mood": "jarring"
- },
- "ada60412": {
-  "text": "At last the little cloud slammed into a gray bed of mist.",
-  "mood": "jarring"
- },
  "97be8974": {
   "text": "At last the little cloud slammed into a scratchy bed of mist.",
+  "mood": "jarring"
+ },
+ "h-35521073": {
+  "text": "At last the little cloud snuggled",
+  "mood": "calm"
+ },
+ "h-a7c83f32": {
+  "text": "into a warm bed of mist.",
+  "mood": "calm"
+ },
+ "h-6537e433": {
+  "text": "At last the little cloud twirled",
+  "mood": "happy"
+ },
+ "h-d07fd941": {
+  "text": "into a cheerful bed of mist.",
+  "mood": "happy"
+ },
+ "h-fb7486e3": {
+  "text": "At last the little cloud belly-flopped",
+  "mood": "funny"
+ },
+ "h-58f72229": {
+  "text": "into a squishy bed of mist.",
+  "mood": "funny"
+ },
+ "h-676833f2": {
+  "text": "At last the little cloud vanished",
+  "mood": "scary"
+ },
+ "h-9f9919bb": {
+  "text": "into a cold bed of mist.",
+  "mood": "scary"
+ },
+ "h-9008748f": {
+  "text": "At last the little cloud sank",
+  "mood": "sad"
+ },
+ "h-0f7b0d3c": {
+  "text": "into a gray bed of mist.",
+  "mood": "sad"
+ },
+ "h-c7a48d35": {
+  "text": "At last the little cloud slammed",
+  "mood": "jarring"
+ },
+ "h-9bd855e6": {
+  "text": "into a scratchy bed of mist.",
   "mood": "jarring"
  },
  "23a6c910": {
   "text": "A paper lantern glided away from the sleepy festival.",
   "mood": "calm"
  },
- "976d0d83": {
-  "text": "A paper lantern glided away from the merry festival.",
-  "mood": "happy"
- },
- "cb534da5": {
-  "text": "A paper lantern glided away from the kazoo-tooting festival.",
-  "mood": "funny"
- },
- "52743c9a": {
-  "text": "A paper lantern glided away from the deserted festival.",
-  "mood": "scary"
- },
- "2d40d30b": {
-  "text": "A paper lantern glided away from the fading festival.",
-  "mood": "sad"
- },
- "5e81b781": {
-  "text": "A paper lantern glided away from the clanging festival.",
-  "mood": "jarring"
- },
- "fe138873": {
-  "text": "A paper lantern bobbed away from the sleepy festival.",
-  "mood": "happy"
- },
  "dbc90d5a": {
   "text": "A paper lantern bobbed away from the merry festival.",
   "mood": "happy"
- },
- "84066f70": {
-  "text": "A paper lantern bobbed away from the kazoo-tooting festival.",
-  "mood": "funny"
- },
- "f06fae59": {
-  "text": "A paper lantern bobbed away from the deserted festival.",
-  "mood": "scary"
- },
- "e0caf0ac": {
-  "text": "A paper lantern bobbed away from the fading festival.",
-  "mood": "sad"
- },
- "145884ea": {
-  "text": "A paper lantern bobbed away from the clanging festival.",
-  "mood": "jarring"
- },
- "72b5cb8c": {
-  "text": "A paper lantern wobbled away from the sleepy festival.",
-  "mood": "funny"
- },
- "8fbc212f": {
-  "text": "A paper lantern wobbled away from the merry festival.",
-  "mood": "funny"
  },
  "caf946a9": {
   "text": "A paper lantern wobbled away from the kazoo-tooting festival.",
   "mood": "funny"
  },
- "a929d5be": {
-  "text": "A paper lantern wobbled away from the deserted festival.",
-  "mood": "scary"
- },
- "7b4abe8f": {
-  "text": "A paper lantern wobbled away from the fading festival.",
-  "mood": "sad"
- },
- "b626b51d": {
-  "text": "A paper lantern wobbled away from the clanging festival.",
-  "mood": "jarring"
- },
- "7b3ecfde": {
-  "text": "A paper lantern slunk away from the sleepy festival.",
-  "mood": "scary"
- },
- "9650e7b1": {
-  "text": "A paper lantern slunk away from the merry festival.",
-  "mood": "scary"
- },
- "ed411403": {
-  "text": "A paper lantern slunk away from the kazoo-tooting festival.",
-  "mood": "scary"
- },
  "8bc2fdac": {
   "text": "A paper lantern slunk away from the deserted festival.",
-  "mood": "scary"
- },
- "e9aacb31": {
-  "text": "A paper lantern slunk away from the fading festival.",
-  "mood": "scary"
- },
- "f340233f": {
-  "text": "A paper lantern slunk away from the clanging festival.",
-  "mood": "jarring"
- },
- "db85f415": {
-  "text": "A paper lantern strayed away from the sleepy festival.",
-  "mood": "sad"
- },
- "f8faa90c": {
-  "text": "A paper lantern strayed away from the merry festival.",
-  "mood": "sad"
- },
- "9e036112": {
-  "text": "A paper lantern strayed away from the kazoo-tooting festival.",
-  "mood": "sad"
- },
- "de95d377": {
-  "text": "A paper lantern strayed away from the deserted festival.",
   "mood": "scary"
  },
  "530e8e26": {
   "text": "A paper lantern strayed away from the fading festival.",
   "mood": "sad"
  },
- "9cd1c6f4": {
-  "text": "A paper lantern strayed away from the clanging festival.",
-  "mood": "jarring"
- },
- "b181140e": {
-  "text": "A paper lantern rocketed away from the sleepy festival.",
-  "mood": "jarring"
- },
- "852ed641": {
-  "text": "A paper lantern rocketed away from the merry festival.",
-  "mood": "jarring"
- },
- "44803a93": {
-  "text": "A paper lantern rocketed away from the kazoo-tooting festival.",
-  "mood": "jarring"
- },
- "856f82dc": {
-  "text": "A paper lantern rocketed away from the deserted festival.",
-  "mood": "jarring"
- },
- "1f150281": {
-  "text": "A paper lantern rocketed away from the fading festival.",
-  "mood": "jarring"
- },
  "84d4ce0f": {
   "text": "A paper lantern rocketed away from the clanging festival.",
+  "mood": "jarring"
+ },
+ "h-6f112165": {
+  "text": "A paper lantern glided away",
+  "mood": "calm"
+ },
+ "h-28d7d112": {
+  "text": "from the sleepy festival.",
+  "mood": "calm"
+ },
+ "h-4fc8aeaa": {
+  "text": "A paper lantern bobbed away",
+  "mood": "happy"
+ },
+ "h-709b92e5": {
+  "text": "from the merry festival.",
+  "mood": "happy"
+ },
+ "h-4ab171d1": {
+  "text": "A paper lantern wobbled away",
+  "mood": "funny"
+ },
+ "h-370348bf": {
+  "text": "from the kazoo-tooting festival.",
+  "mood": "funny"
+ },
+ "h-b9e9da73": {
+  "text": "A paper lantern slunk away",
+  "mood": "scary"
+ },
+ "h-1212e828": {
+  "text": "from the deserted festival.",
+  "mood": "scary"
+ },
+ "h-d2c7bbe4": {
+  "text": "A paper lantern strayed away",
+  "mood": "sad"
+ },
+ "h-032f630d": {
+  "text": "from the fading festival.",
+  "mood": "sad"
+ },
+ "h-fc81d8a3": {
+  "text": "A paper lantern rocketed away",
+  "mood": "jarring"
+ },
+ "h-ee1f5573": {
+  "text": "from the clanging festival.",
   "mood": "jarring"
  },
  "11fa7725": {
   "text": "It swayed over the rooftops while the town slept below.",
   "mood": "calm"
  },
- "dda2bf8e": {
-  "text": "It swayed over the rooftops while the town sang below.",
-  "mood": "happy"
- },
- "2db0ae8c": {
-  "text": "It swayed over the rooftops while the town snored below.",
-  "mood": "funny"
- },
- "59766ba6": {
-  "text": "It swayed over the rooftops while the town whispered below.",
-  "mood": "scary"
- },
- "279965a5": {
-  "text": "It swayed over the rooftops while the town mourned below.",
-  "mood": "sad"
- },
- "a1fc38c6": {
-  "text": "It swayed over the rooftops while the town honked below.",
-  "mood": "jarring"
- },
- "ae8c96b0": {
-  "text": "It soared over the rooftops while the town slept below.",
-  "mood": "happy"
- },
  "6d0eb07d": {
   "text": "It soared over the rooftops while the town sang below.",
   "mood": "happy"
- },
- "a065b4cf": {
-  "text": "It soared over the rooftops while the town snored below.",
-  "mood": "funny"
- },
- "da2b632b": {
-  "text": "It soared over the rooftops while the town whispered below.",
-  "mood": "scary"
- },
- "01c38820": {
-  "text": "It soared over the rooftops while the town mourned below.",
-  "mood": "sad"
- },
- "59e4c339": {
-  "text": "It soared over the rooftops while the town honked below.",
-  "mood": "jarring"
- },
- "d7b514be": {
-  "text": "It sneezed over the rooftops while the town slept below.",
-  "mood": "funny"
- },
- "2beb5d07": {
-  "text": "It sneezed over the rooftops while the town sang below.",
-  "mood": "funny"
  },
  "9c71aa05": {
   "text": "It sneezed over the rooftops while the town snored below.",
   "mood": "funny"
  },
- "674507a1": {
-  "text": "It sneezed over the rooftops while the town whispered below.",
-  "mood": "scary"
- },
- "ca1ecb26": {
-  "text": "It sneezed over the rooftops while the town mourned below.",
-  "mood": "sad"
- },
- "2e6fb86b": {
-  "text": "It sneezed over the rooftops while the town honked below.",
-  "mood": "jarring"
- },
- "41d6953f": {
-  "text": "It hovered over the rooftops while the town slept below.",
-  "mood": "scary"
- },
- "0f945f74": {
-  "text": "It hovered over the rooftops while the town sang below.",
-  "mood": "scary"
- },
- "4431f81e": {
-  "text": "It hovered over the rooftops while the town snored below.",
-  "mood": "scary"
- },
  "78aae250": {
   "text": "It hovered over the rooftops while the town whispered below.",
-  "mood": "scary"
- },
- "a93f2727": {
-  "text": "It hovered over the rooftops while the town mourned below.",
-  "mood": "scary"
- },
- "0732e164": {
-  "text": "It hovered over the rooftops while the town honked below.",
-  "mood": "jarring"
- },
- "0813c75d": {
-  "text": "It drooped over the rooftops while the town slept below.",
-  "mood": "sad"
- },
- "fc0d4876": {
-  "text": "It drooped over the rooftops while the town sang below.",
-  "mood": "sad"
- },
- "550a9ea4": {
-  "text": "It drooped over the rooftops while the town snored below.",
-  "mood": "sad"
- },
- "b42a67ce": {
-  "text": "It drooped over the rooftops while the town whispered below.",
   "mood": "scary"
  },
  "1d30ee5d": {
   "text": "It drooped over the rooftops while the town mourned below.",
   "mood": "sad"
  },
- "a7b6cc7e": {
-  "text": "It drooped over the rooftops while the town honked below.",
-  "mood": "jarring"
- },
- "aca6313b": {
-  "text": "It jerked over the rooftops while the town slept below.",
-  "mood": "jarring"
- },
- "298982a0": {
-  "text": "It jerked over the rooftops while the town sang below.",
-  "mood": "jarring"
- },
- "5f05b38a": {
-  "text": "It jerked over the rooftops while the town snored below.",
-  "mood": "jarring"
- },
- "f9d93b64": {
-  "text": "It jerked over the rooftops while the town whispered below.",
-  "mood": "jarring"
- },
- "1c9bf39b": {
-  "text": "It jerked over the rooftops while the town mourned below.",
-  "mood": "jarring"
- },
  "81cd4520": {
   "text": "It jerked over the rooftops while the town honked below.",
+  "mood": "jarring"
+ },
+ "h-b789c0b0": {
+  "text": "It swayed over the rooftops",
+  "mood": "calm"
+ },
+ "h-fe4d6d9a": {
+  "text": "while the town slept below.",
+  "mood": "calm"
+ },
+ "h-d1d32919": {
+  "text": "It soared over the rooftops",
+  "mood": "happy"
+ },
+ "h-f2aff253": {
+  "text": "while the town sang below.",
+  "mood": "happy"
+ },
+ "h-2a051d53": {
+  "text": "It sneezed over the rooftops",
+  "mood": "funny"
+ },
+ "h-2f885d61": {
+  "text": "while the town snored below.",
+  "mood": "funny"
+ },
+ "h-a8f56afe": {
+  "text": "It hovered over the rooftops",
+  "mood": "scary"
+ },
+ "h-60e23b05": {
+  "text": "while the town whispered below.",
+  "mood": "scary"
+ },
+ "h-e68591a8": {
+  "text": "It drooped over the rooftops",
+  "mood": "sad"
+ },
+ "h-d39faaea": {
+  "text": "while the town mourned below.",
+  "mood": "sad"
+ },
+ "h-b543b212": {
+  "text": "It jerked over the rooftops",
+  "mood": "jarring"
+ },
+ "h-1d14bb07": {
+  "text": "while the town honked below.",
   "mood": "jarring"
  },
  "b3a73ae5": {
   "text": "A drowsy owl blinked at it from an old pine.",
   "mood": "calm"
  },
- "d33bed14": {
-  "text": "A drowsy owl winked at it from an old pine.",
-  "mood": "happy"
- },
- "945f2bf9": {
-  "text": "A drowsy owl made faces at it from an old pine.",
-  "mood": "funny"
- },
- "18c5e66b": {
-  "text": "A drowsy owl stared at it from an old pine.",
-  "mood": "scary"
- },
- "2c3d7db8": {
-  "text": "A drowsy owl sighed at it from an old pine.",
-  "mood": "sad"
- },
- "d2743ac1": {
-  "text": "A drowsy owl shrieked at it from an old pine.",
-  "mood": "jarring"
- },
- "294cac0e": {
-  "text": "A friendly owl blinked at it from an old pine.",
-  "mood": "happy"
- },
  "e299e1d1": {
   "text": "A friendly owl winked at it from an old pine.",
   "mood": "happy"
  },
- "ba44ffcc": {
-  "text": "A friendly owl made faces at it from an old pine.",
-  "mood": "funny"
- },
- "2b7bc746": {
-  "text": "A friendly owl stared at it from an old pine.",
-  "mood": "scary"
- },
- "5d29d6ed": {
-  "text": "A friendly owl sighed at it from an old pine.",
-  "mood": "sad"
- },
- "6bc43fc4": {
-  "text": "A friendly owl shrieked at it from an old pine.",
-  "mood": "jarring"
- },
- "921b6191": {
-  "text": "A cross-eyed owl blinked at it from an old pine.",
-  "mood": "funny"
- },
- "df6cbdd8": {
-  "text": "A cross-eyed owl winked at it from an old pine.",
-  "mood": "funny"
- },
- "12a06f17": {
-  "text": "A cross-eyed owl stared at it from an old pine.",
-  "mood": "scary"
- },
- "910bebc4": {
-  "text": "A cross-eyed owl sighed at it from an old pine.",
-  "mood": "sad"
- },
- "49d26d9d": {
-  "text": "A cross-eyed owl shrieked at it from an old pine.",
-  "mood": "jarring"
- },
- "e85acb7c": {
-  "text": "A hollow-eyed owl blinked at it from an old pine.",
-  "mood": "scary"
- },
- "e685cffb": {
-  "text": "A hollow-eyed owl winked at it from an old pine.",
-  "mood": "scary"
- },
- "f70586e6": {
-  "text": "A hollow-eyed owl made faces at it from an old pine.",
-  "mood": "scary"
- },
  "edcc3df4": {
   "text": "A hollow-eyed owl stared at it from an old pine.",
-  "mood": "scary"
- },
- "4198fab3": {
-  "text": "A hollow-eyed owl sighed at it from an old pine.",
-  "mood": "scary"
- },
- "2c03eb6e": {
-  "text": "A hollow-eyed owl shrieked at it from an old pine.",
-  "mood": "jarring"
- },
- "12a5d463": {
-  "text": "A weary owl blinked at it from an old pine.",
-  "mood": "sad"
- },
- "55d3b726": {
-  "text": "A weary owl winked at it from an old pine.",
-  "mood": "sad"
- },
- "53b33c73": {
-  "text": "A weary owl made faces at it from an old pine.",
-  "mood": "sad"
- },
- "675bbb79": {
-  "text": "A weary owl stared at it from an old pine.",
   "mood": "scary"
  },
  "bb49a14e": {
   "text": "A weary owl sighed at it from an old pine.",
   "mood": "sad"
  },
- "48ba7eb3": {
-  "text": "A weary owl shrieked at it from an old pine.",
-  "mood": "jarring"
- },
- "3f9971c1": {
-  "text": "A squawking owl blinked at it from an old pine.",
-  "mood": "jarring"
- },
- "af9c9ac5": {
-  "text": "A squawking owl made faces at it from an old pine.",
-  "mood": "jarring"
- },
- "81a04807": {
-  "text": "A squawking owl stared at it from an old pine.",
-  "mood": "jarring"
- },
- "dffae674": {
-  "text": "A squawking owl sighed at it from an old pine.",
-  "mood": "jarring"
- },
  "2e7c9b6d": {
   "text": "A squawking owl shrieked at it from an old pine.",
+  "mood": "jarring"
+ },
+ "h-d3d8d1b2": {
+  "text": "A drowsy owl",
+  "mood": "calm"
+ },
+ "h-e0b14c1c": {
+  "text": "blinked at it from an old pine.",
+  "mood": "calm"
+ },
+ "h-25befae1": {
+  "text": "A friendly owl",
+  "mood": "happy"
+ },
+ "h-a851839b": {
+  "text": "winked at it from an old pine.",
+  "mood": "happy"
+ },
+ "h-9f726bbe": {
+  "text": "A cross-eyed owl",
+  "mood": "funny"
+ },
+ "h-94cc8b06": {
+  "text": "made faces at it from an old pine.",
+  "mood": "funny"
+ },
+ "h-9df157c7": {
+  "text": "A hollow-eyed owl",
+  "mood": "scary"
+ },
+ "h-c9940c94": {
+  "text": "stared at it from an old pine.",
+  "mood": "scary"
+ },
+ "h-6c54b1b0": {
+  "text": "A weary owl",
+  "mood": "sad"
+ },
+ "h-18c791d3": {
+  "text": "sighed at it from an old pine.",
+  "mood": "sad"
+ },
+ "h-20d1896e": {
+  "text": "A squawking owl",
+  "mood": "jarring"
+ },
+ "h-273b818e": {
+  "text": "shrieked at it from an old pine.",
   "mood": "jarring"
  },
  "7014c42d": {
@@ -1075,560 +555,288 @@
   "text": "Finally, it settled down beside a still pond.",
   "mood": "calm"
  },
- "7b961b51": {
-  "text": "Finally, it settled down beside a twinkling pond.",
-  "mood": "happy"
- },
- "cdefc666": {
-  "text": "Finally, it settled down beside a froggy pond.",
-  "mood": "funny"
- },
- "3493fd12": {
-  "text": "Finally, it settled down beside a murky pond.",
-  "mood": "scary"
- },
- "4bebf286": {
-  "text": "Finally, it settled down beside a churning pond.",
-  "mood": "jarring"
- },
- "adad74c2": {
-  "text": "Finally, it fluttered down beside a still pond.",
-  "mood": "happy"
- },
  "9b4c713f": {
   "text": "Finally, it fluttered down beside a twinkling pond.",
   "mood": "happy"
- },
- "0d2f4fc8": {
-  "text": "Finally, it fluttered down beside a froggy pond.",
-  "mood": "funny"
- },
- "91fea27c": {
-  "text": "Finally, it fluttered down beside a murky pond.",
-  "mood": "scary"
- },
- "b0f21c30": {
-  "text": "Finally, it fluttered down beside a frozen pond.",
-  "mood": "sad"
- },
- "0a02e728": {
-  "text": "Finally, it fluttered down beside a churning pond.",
-  "mood": "jarring"
- },
- "0e9e1ee1": {
-  "text": "Finally, it plopped down beside a still pond.",
-  "mood": "funny"
- },
- "1782ce50": {
-  "text": "Finally, it plopped down beside a twinkling pond.",
-  "mood": "funny"
  },
  "7514f82d": {
   "text": "Finally, it plopped down beside a froggy pond.",
   "mood": "funny"
  },
- "5c5c1e2f": {
-  "text": "Finally, it plopped down beside a murky pond.",
-  "mood": "scary"
- },
- "3fa65131": {
-  "text": "Finally, it plopped down beside a frozen pond.",
-  "mood": "sad"
- },
- "86203c5d": {
-  "text": "Finally, it plopped down beside a churning pond.",
-  "mood": "jarring"
- },
- "980f75ea": {
-  "text": "Finally, it was dragged down beside a still pond.",
-  "mood": "scary"
- },
- "fab28cd7": {
-  "text": "Finally, it was dragged down beside a twinkling pond.",
-  "mood": "scary"
- },
- "4ceaa730": {
-  "text": "Finally, it was dragged down beside a froggy pond.",
-  "mood": "scary"
- },
  "f93e11c4": {
   "text": "Finally, it was dragged down beside a murky pond.",
-  "mood": "scary"
- },
- "686a63b0": {
-  "text": "Finally, it was dragged down beside a churning pond.",
-  "mood": "jarring"
- },
- "fdf08234": {
-  "text": "Finally, it sagged down beside a still pond.",
-  "mood": "sad"
- },
- "0abab829": {
-  "text": "Finally, it sagged down beside a twinkling pond.",
-  "mood": "sad"
- },
- "9cc1994e": {
-  "text": "Finally, it sagged down beside a froggy pond.",
-  "mood": "sad"
- },
- "6e0bc3fa": {
-  "text": "Finally, it sagged down beside a murky pond.",
   "mood": "scary"
  },
  "cd4745fe": {
   "text": "Finally, it sagged down beside a frozen pond.",
   "mood": "sad"
  },
- "0158016e": {
-  "text": "Finally, it sagged down beside a churning pond.",
-  "mood": "jarring"
- },
- "94c7b203": {
-  "text": "Finally, it crashed down beside a still pond.",
-  "mood": "jarring"
- },
- "9e87dd52": {
-  "text": "Finally, it crashed down beside a twinkling pond.",
-  "mood": "jarring"
- },
- "df14c483": {
-  "text": "Finally, it crashed down beside a froggy pond.",
-  "mood": "jarring"
- },
- "0f02071d": {
-  "text": "Finally, it crashed down beside a murky pond.",
-  "mood": "jarring"
- },
- "7f559367": {
-  "text": "Finally, it crashed down beside a frozen pond.",
-  "mood": "jarring"
- },
  "f4e3d4d3": {
   "text": "Finally, it crashed down beside a churning pond.",
+  "mood": "jarring"
+ },
+ "h-b74a0844": {
+  "text": "Finally, it settled down",
+  "mood": "calm"
+ },
+ "h-c9250231": {
+  "text": "beside a still pond.",
+  "mood": "calm"
+ },
+ "h-b701212e": {
+  "text": "Finally, it fluttered down",
+  "mood": "happy"
+ },
+ "h-5d5d9460": {
+  "text": "beside a twinkling pond.",
+  "mood": "happy"
+ },
+ "h-bc0a06b7": {
+  "text": "Finally, it plopped down",
+  "mood": "funny"
+ },
+ "h-2f98969d": {
+  "text": "beside a froggy pond.",
+  "mood": "funny"
+ },
+ "h-3eda0436": {
+  "text": "Finally, it was dragged down",
+  "mood": "scary"
+ },
+ "h-9cf0465f": {
+  "text": "beside a murky pond.",
+  "mood": "scary"
+ },
+ "h-b6eb424c": {
+  "text": "Finally, it sagged down",
+  "mood": "sad"
+ },
+ "h-0a0e6aa1": {
+  "text": "beside a frozen pond.",
+  "mood": "sad"
+ },
+ "h-29063215": {
+  "text": "Finally, it crashed down",
+  "mood": "jarring"
+ },
+ "h-966dd5cd": {
+  "text": "beside a churning pond.",
   "mood": "jarring"
  },
  "89f692eb": {
   "text": "A small paper boat slid down the gentle stream.",
   "mood": "calm"
  },
- "573acf89": {
-  "text": "A small paper boat slid down the laughing stream.",
-  "mood": "happy"
- },
- "bb5b623b": {
-  "text": "A small paper boat slid down the shadowed stream.",
-  "mood": "scary"
- },
- "2c165145": {
-  "text": "A small paper boat slid down the weeping stream.",
-  "mood": "sad"
- },
- "f67a332c": {
-  "text": "A small paper boat slid down the rushing stream.",
-  "mood": "jarring"
- },
- "e5ee81ff": {
-  "text": "A small paper boat bounced down the gentle stream.",
-  "mood": "happy"
- },
  "093dd685": {
   "text": "A small paper boat bounced down the laughing stream.",
   "mood": "happy"
- },
- "4633d1d8": {
-  "text": "A small paper boat bounced down the soapy stream.",
-  "mood": "funny"
- },
- "846bd4c7": {
-  "text": "A small paper boat bounced down the shadowed stream.",
-  "mood": "scary"
- },
- "2ac3b859": {
-  "text": "A small paper boat bounced down the weeping stream.",
-  "mood": "sad"
- },
- "1795f480": {
-  "text": "A small paper boat bounced down the rushing stream.",
-  "mood": "jarring"
- },
- "d4dbf2d7": {
-  "text": "A small paper boat zigzagged down the gentle stream.",
-  "mood": "funny"
- },
- "68b33e9d": {
-  "text": "A small paper boat zigzagged down the laughing stream.",
-  "mood": "funny"
  },
  "2a5f63a0": {
   "text": "A small paper boat zigzagged down the soapy stream.",
   "mood": "funny"
  },
- "ded0cc3f": {
-  "text": "A small paper boat zigzagged down the shadowed stream.",
-  "mood": "scary"
- },
- "a9767561": {
-  "text": "A small paper boat zigzagged down the weeping stream.",
-  "mood": "sad"
- },
- "c6e3f098": {
-  "text": "A small paper boat zigzagged down the rushing stream.",
-  "mood": "jarring"
- },
- "9cdd63e7": {
-  "text": "A small paper boat was swept down the gentle stream.",
-  "mood": "scary"
- },
- "6f5717ad": {
-  "text": "A small paper boat was swept down the laughing stream.",
-  "mood": "scary"
- },
- "fb4b9310": {
-  "text": "A small paper boat was swept down the soapy stream.",
-  "mood": "scary"
- },
  "9e12156f": {
   "text": "A small paper boat was swept down the shadowed stream.",
-  "mood": "scary"
- },
- "c19d3531": {
-  "text": "A small paper boat was swept down the weeping stream.",
-  "mood": "scary"
- },
- "f5b15fc8": {
-  "text": "A small paper boat was swept down the rushing stream.",
-  "mood": "jarring"
- },
- "96548eae": {
-  "text": "A small paper boat trailed down the gentle stream.",
-  "mood": "sad"
- },
- "8de44bbc": {
-  "text": "A small paper boat trailed down the laughing stream.",
-  "mood": "sad"
- },
- "cff61857": {
-  "text": "A small paper boat trailed down the soapy stream.",
-  "mood": "sad"
- },
- "92c185a6": {
-  "text": "A small paper boat trailed down the shadowed stream.",
   "mood": "scary"
  },
  "29c85612": {
   "text": "A small paper boat trailed down the weeping stream.",
   "mood": "sad"
  },
- "600a38ff": {
-  "text": "A small paper boat trailed down the rushing stream.",
-  "mood": "jarring"
- },
- "fbd76b6e": {
-  "text": "A small paper boat smashed down the gentle stream.",
-  "mood": "jarring"
- },
- "1a777a7c": {
-  "text": "A small paper boat smashed down the laughing stream.",
-  "mood": "jarring"
- },
- "2b5a6d17": {
-  "text": "A small paper boat smashed down the soapy stream.",
-  "mood": "jarring"
- },
- "785b7f66": {
-  "text": "A small paper boat smashed down the shadowed stream.",
-  "mood": "jarring"
- },
- "a2ece2d2": {
-  "text": "A small paper boat smashed down the weeping stream.",
-  "mood": "jarring"
- },
  "ce2a11bf": {
   "text": "A small paper boat smashed down the rushing stream.",
+  "mood": "jarring"
+ },
+ "h-fff773cd": {
+  "text": "A small paper boat slid",
+  "mood": "calm"
+ },
+ "h-c2cee0b5": {
+  "text": "down the gentle stream.",
+  "mood": "calm"
+ },
+ "h-e26c61c1": {
+  "text": "A small paper boat bounced",
+  "mood": "happy"
+ },
+ "h-b53f89cf": {
+  "text": "down the laughing stream.",
+  "mood": "happy"
+ },
+ "h-8024cd29": {
+  "text": "A small paper boat zigzagged",
+  "mood": "funny"
+ },
+ "h-761f6272": {
+  "text": "down the soapy stream.",
+  "mood": "funny"
+ },
+ "h-cb62b4f9": {
+  "text": "A small paper boat was swept",
+  "mood": "scary"
+ },
+ "h-1b41ffc9": {
+  "text": "down the shadowed stream.",
+  "mood": "scary"
+ },
+ "h-9005f9ec": {
+  "text": "A small paper boat trailed",
+  "mood": "sad"
+ },
+ "h-43404fef": {
+  "text": "down the weeping stream.",
+  "mood": "sad"
+ },
+ "h-3b17922c": {
+  "text": "A small paper boat smashed",
+  "mood": "jarring"
+ },
+ "h-7d347e4a": {
+  "text": "down the rushing stream.",
   "mood": "jarring"
  },
  "34b9917e": {
   "text": "It passed a dozing frog who yawned as it went by.",
   "mood": "calm"
  },
- "ddcb59e5": {
-  "text": "It passed a dozing frog who waved as it went by.",
-  "mood": "happy"
- },
- "382032d0": {
-  "text": "It passed a dozing frog who toppled over as it went by.",
-  "mood": "funny"
- },
- "5a6ebdd0": {
-  "text": "It passed a dozing frog who licked its lips as it went by.",
-  "mood": "scary"
- },
- "58a5c6f4": {
-  "text": "It passed a dozing frog who looked away as it went by.",
-  "mood": "sad"
- },
- "b350e476": {
-  "text": "It passed a dozing frog who bellowed as it went by.",
-  "mood": "jarring"
- },
- "fea552d3": {
-  "text": "It passed a grinning frog who yawned as it went by.",
-  "mood": "happy"
- },
  "bcc65dd6": {
   "text": "It passed a grinning frog who waved as it went by.",
   "mood": "happy"
- },
- "ffa99249": {
-  "text": "It passed a grinning frog who toppled over as it went by.",
-  "mood": "funny"
- },
- "e81217d3": {
-  "text": "It passed a grinning frog who licked its lips as it went by.",
-  "mood": "scary"
- },
- "f19c4677": {
-  "text": "It passed a grinning frog who looked away as it went by.",
-  "mood": "sad"
- },
- "829d8333": {
-  "text": "It passed a grinning frog who bellowed as it went by.",
-  "mood": "jarring"
- },
- "80c8548e": {
-  "text": "It passed a pudgy frog who yawned as it went by.",
-  "mood": "funny"
- },
- "e1076a15": {
-  "text": "It passed a pudgy frog who waved as it went by.",
-  "mood": "funny"
  },
  "8c953e40": {
   "text": "It passed a pudgy frog who toppled over as it went by.",
   "mood": "funny"
  },
- "c629e464": {
-  "text": "It passed a pudgy frog who looked away as it went by.",
-  "mood": "sad"
- },
- "a386cd26": {
-  "text": "It passed a pudgy frog who bellowed as it went by.",
-  "mood": "jarring"
- },
- "eeefe28b": {
-  "text": "It passed a bulging-eyed frog who yawned as it went by.",
-  "mood": "scary"
- },
- "a4bee65e": {
-  "text": "It passed a bulging-eyed frog who waved as it went by.",
-  "mood": "scary"
- },
- "c8322511": {
-  "text": "It passed a bulging-eyed frog who toppled over as it went by.",
-  "mood": "scary"
- },
  "c4f9919b": {
   "text": "It passed a bulging-eyed frog who licked its lips as it went by.",
-  "mood": "scary"
- },
- "e44c2c0f": {
-  "text": "It passed a bulging-eyed frog who looked away as it went by.",
-  "mood": "scary"
- },
- "a1b20b1b": {
-  "text": "It passed a bulging-eyed frog who bellowed as it went by.",
-  "mood": "jarring"
- },
- "aa3d75ee": {
-  "text": "It passed a shivering frog who yawned as it went by.",
-  "mood": "sad"
- },
- "545f72f5": {
-  "text": "It passed a shivering frog who waved as it went by.",
-  "mood": "sad"
- },
- "bcf8ca20": {
-  "text": "It passed a shivering frog who toppled over as it went by.",
-  "mood": "sad"
- },
- "6f7bda60": {
-  "text": "It passed a shivering frog who licked its lips as it went by.",
   "mood": "scary"
  },
  "50f29b44": {
   "text": "It passed a shivering frog who looked away as it went by.",
   "mood": "sad"
  },
- "4462cc06": {
-  "text": "It passed a shivering frog who bellowed as it went by.",
-  "mood": "jarring"
- },
- "e7378305": {
-  "text": "It passed a croaking frog who yawned as it went by.",
-  "mood": "jarring"
- },
- "8b146c3c": {
-  "text": "It passed a croaking frog who waved as it went by.",
-  "mood": "jarring"
- },
- "3a10b25b": {
-  "text": "It passed a croaking frog who toppled over as it went by.",
-  "mood": "jarring"
- },
- "8c43b2f1": {
-  "text": "It passed a croaking frog who licked its lips as it went by.",
-  "mood": "jarring"
- },
- "a6b6423d": {
-  "text": "It passed a croaking frog who looked away as it went by.",
-  "mood": "jarring"
- },
  "238e1801": {
   "text": "It passed a croaking frog who bellowed as it went by.",
+  "mood": "jarring"
+ },
+ "h-0ff1c46c": {
+  "text": "It passed a dozing frog",
+  "mood": "calm"
+ },
+ "h-a46be86d": {
+  "text": "who yawned as it went by.",
+  "mood": "calm"
+ },
+ "h-e2c12499": {
+  "text": "It passed a grinning frog",
+  "mood": "happy"
+ },
+ "h-23c179f4": {
+  "text": "who waved as it went by.",
+  "mood": "happy"
+ },
+ "h-af89333c": {
+  "text": "It passed a pudgy frog",
+  "mood": "funny"
+ },
+ "h-d3f4af13": {
+  "text": "who toppled over as it went by.",
+  "mood": "funny"
+ },
+ "h-59809051": {
+  "text": "It passed a bulging-eyed frog",
+  "mood": "scary"
+ },
+ "h-f7909489": {
+  "text": "who licked its lips as it went by.",
+  "mood": "scary"
+ },
+ "h-e762299c": {
+  "text": "It passed a shivering frog",
+  "mood": "sad"
+ },
+ "h-e6f2e425": {
+  "text": "who looked away as it went by.",
+  "mood": "sad"
+ },
+ "h-5e53a49f": {
+  "text": "It passed a croaking frog",
+  "mood": "jarring"
+ },
+ "h-8077a679": {
+  "text": "who bellowed as it went by.",
   "mood": "jarring"
  },
  "d29281dd": {
   "text": "Then the soft rain began to patter.",
   "mood": "calm"
  },
- "9d84fe55": {
-  "text": "Then the soft rain began to sparkle.",
-  "mood": "happy"
- },
- "efd065aa": {
-  "text": "Then the soft rain began to tap-dance.",
-  "mood": "funny"
- },
- "d8f9215e": {
-  "text": "Then the soft rain began to hiss.",
-  "mood": "scary"
- },
- "df60fa2a": {
-  "text": "Then the soft rain began to weep.",
-  "mood": "sad"
- },
- "73acf8eb": {
-  "text": "Then the soft rain began to batter.",
-  "mood": "jarring"
- },
- "e009d878": {
-  "text": "Then the summer rain began to patter.",
-  "mood": "happy"
- },
  "f4ca56be": {
   "text": "Then the summer rain began to sparkle.",
   "mood": "happy"
- },
- "35df7a21": {
-  "text": "Then the summer rain began to tap-dance.",
-  "mood": "funny"
- },
- "5cf05e17": {
-  "text": "Then the summer rain began to hiss.",
-  "mood": "scary"
- },
- "595267e7": {
-  "text": "Then the summer rain began to weep.",
-  "mood": "sad"
- },
- "df147f9a": {
-  "text": "Then the summer rain began to batter.",
-  "mood": "jarring"
- },
- "16074a52": {
-  "text": "Then the upside-down rain began to patter.",
-  "mood": "funny"
- },
- "3acba08c": {
-  "text": "Then the upside-down rain began to sparkle.",
-  "mood": "funny"
  },
  "ef078e0b": {
   "text": "Then the upside-down rain began to tap-dance.",
   "mood": "funny"
  },
- "5f2112ed": {
-  "text": "Then the upside-down rain began to hiss.",
-  "mood": "scary"
- },
- "e7a176f1": {
-  "text": "Then the upside-down rain began to weep.",
-  "mood": "sad"
- },
- "bfa017d0": {
-  "text": "Then the upside-down rain began to batter.",
-  "mood": "jarring"
- },
- "31e10818": {
-  "text": "Then the icy rain began to patter.",
-  "mood": "scary"
- },
- "aa8ab45e": {
-  "text": "Then the icy rain began to sparkle.",
-  "mood": "scary"
- },
- "a879a5c1": {
-  "text": "Then the icy rain began to tap-dance.",
-  "mood": "scary"
- },
  "481c21b7": {
   "text": "Then the icy rain began to hiss.",
-  "mood": "scary"
- },
- "d4f6e807": {
-  "text": "Then the icy rain began to weep.",
-  "mood": "scary"
- },
- "b5e2fd3a": {
-  "text": "Then the icy rain began to batter.",
-  "mood": "jarring"
- },
- "c8a4c2e7": {
-  "text": "Then the endless rain began to patter.",
-  "mood": "sad"
- },
- "dc78d85b": {
-  "text": "Then the endless rain began to sparkle.",
-  "mood": "sad"
- },
- "18494bbc": {
-  "text": "Then the endless rain began to tap-dance.",
-  "mood": "sad"
- },
- "6dbe1b4c": {
-  "text": "Then the endless rain began to hiss.",
   "mood": "scary"
  },
  "3ab17e2c": {
   "text": "Then the endless rain began to weep.",
   "mood": "sad"
  },
- "90032b19": {
-  "text": "Then the endless rain began to batter.",
-  "mood": "jarring"
- },
- "21a9d825": {
-  "text": "Then the hammering rain began to patter.",
-  "mood": "jarring"
- },
- "eade118d": {
-  "text": "Then the hammering rain began to sparkle.",
-  "mood": "jarring"
- },
- "349b65c2": {
-  "text": "Then the hammering rain began to tap-dance.",
-  "mood": "jarring"
- },
- "fc9fc5a6": {
-  "text": "Then the hammering rain began to hiss.",
-  "mood": "jarring"
- },
- "e5ac4572": {
-  "text": "Then the hammering rain began to weep.",
-  "mood": "jarring"
- },
  "687fc0d3": {
   "text": "Then the hammering rain began to batter.",
+  "mood": "jarring"
+ },
+ "h-4581b3ab": {
+  "text": "Then the soft rain",
+  "mood": "calm"
+ },
+ "h-97593c49": {
+  "text": "began to patter.",
+  "mood": "calm"
+ },
+ "h-773101a4": {
+  "text": "Then the summer rain",
+  "mood": "happy"
+ },
+ "h-1dc68de1": {
+  "text": "began to sparkle.",
+  "mood": "happy"
+ },
+ "h-49627402": {
+  "text": "Then the upside-down rain",
+  "mood": "funny"
+ },
+ "h-53df890e": {
+  "text": "began to tap-dance.",
+  "mood": "funny"
+ },
+ "h-326a58c4": {
+  "text": "Then the icy rain",
+  "mood": "scary"
+ },
+ "h-680db4d2": {
+  "text": "began to hiss.",
+  "mood": "scary"
+ },
+ "h-a2062911": {
+  "text": "Then the endless rain",
+  "mood": "sad"
+ },
+ "h-b459e036": {
+  "text": "began to weep.",
+  "mood": "sad"
+ },
+ "h-153a1413": {
+  "text": "Then the hammering rain",
+  "mood": "jarring"
+ },
+ "h-2a4795b7": {
+  "text": "began to batter.",
   "mood": "jarring"
  },
  "9c44f7c6": {
@@ -1659,144 +867,72 @@
   "text": "In the morning, the boat washed onto a quiet shore.",
   "mood": "calm"
  },
- "416f4fb1": {
-  "text": "In the morning, the boat washed onto a sunny shore.",
-  "mood": "happy"
- },
- "1ce6213d": {
-  "text": "In the morning, the boat washed onto a ticklish shore.",
-  "mood": "funny"
- },
- "78b6381c": {
-  "text": "In the morning, the boat washed onto a bone-white shore.",
-  "mood": "scary"
- },
- "8ca178d7": {
-  "text": "In the morning, the boat washed onto a far-off shore.",
-  "mood": "sad"
- },
- "c5762abc": {
-  "text": "In the morning, the boat washed onto a jagged shore.",
-  "mood": "jarring"
- },
- "455eef37": {
-  "text": "In the morning, the boat bounded onto a quiet shore.",
-  "mood": "happy"
- },
  "f62cf24a": {
   "text": "In the morning, the boat bounded onto a sunny shore.",
   "mood": "happy"
- },
- "4fd59ab4": {
-  "text": "In the morning, the boat bounded onto a ticklish shore.",
-  "mood": "funny"
- },
- "324aa749": {
-  "text": "In the morning, the boat bounded onto a bone-white shore.",
-  "mood": "scary"
- },
- "631b6f6c": {
-  "text": "In the morning, the boat bounded onto a far-off shore.",
-  "mood": "sad"
- },
- "77b220bd": {
-  "text": "In the morning, the boat bounded onto a jagged shore.",
-  "mood": "jarring"
- },
- "d0a16a7e": {
-  "text": "In the morning, the boat flip-flopped onto a quiet shore.",
-  "mood": "funny"
- },
- "d484ffc3": {
-  "text": "In the morning, the boat flip-flopped onto a sunny shore.",
-  "mood": "funny"
  },
  "84b404d3": {
   "text": "In the morning, the boat flip-flopped onto a ticklish shore.",
   "mood": "funny"
  },
- "660a8c16": {
-  "text": "In the morning, the boat flip-flopped onto a bone-white shore.",
-  "mood": "scary"
- },
- "a0d66d11": {
-  "text": "In the morning, the boat flip-flopped onto a far-off shore.",
-  "mood": "sad"
- },
- "7a20add2": {
-  "text": "In the morning, the boat flip-flopped onto a jagged shore.",
-  "mood": "jarring"
- },
- "a5b53fbc": {
-  "text": "In the morning, the boat crawled onto a quiet shore.",
-  "mood": "scary"
- },
- "a06d9315": {
-  "text": "In the morning, the boat crawled onto a sunny shore.",
-  "mood": "scary"
- },
- "047146f1": {
-  "text": "In the morning, the boat crawled onto a ticklish shore.",
-  "mood": "scary"
- },
  "38f68928": {
   "text": "In the morning, the boat crawled onto a bone-white shore.",
-  "mood": "scary"
- },
- "a31e9b7b": {
-  "text": "In the morning, the boat crawled onto a far-off shore.",
-  "mood": "scary"
- },
- "ac297ba0": {
-  "text": "In the morning, the boat crawled onto a jagged shore.",
-  "mood": "jarring"
- },
- "696a7d1d": {
-  "text": "In the morning, the boat limped onto a quiet shore.",
-  "mood": "sad"
- },
- "015ecb0c": {
-  "text": "In the morning, the boat limped onto a sunny shore.",
-  "mood": "sad"
- },
- "ca18693a": {
-  "text": "In the morning, the boat limped onto a ticklish shore.",
-  "mood": "sad"
- },
- "1240552b": {
-  "text": "In the morning, the boat limped onto a bone-white shore.",
   "mood": "scary"
  },
  "c24ef7e6": {
   "text": "In the morning, the boat limped onto a far-off shore.",
   "mood": "sad"
  },
- "fa371883": {
-  "text": "In the morning, the boat limped onto a jagged shore.",
-  "mood": "jarring"
- },
- "6f68022a": {
-  "text": "In the morning, the boat smacked onto a quiet shore.",
-  "mood": "jarring"
- },
- "a046df0f": {
-  "text": "In the morning, the boat smacked onto a sunny shore.",
-  "mood": "jarring"
- },
- "f1812e4f": {
-  "text": "In the morning, the boat smacked onto a ticklish shore.",
-  "mood": "jarring"
- },
- "b493194a": {
-  "text": "In the morning, the boat smacked onto a bone-white shore.",
-  "mood": "jarring"
- },
- "0ac2f4ad": {
-  "text": "In the morning, the boat smacked onto a far-off shore.",
-  "mood": "jarring"
- },
  "91d24dae": {
   "text": "In the morning, the boat smacked onto a jagged shore.",
+  "mood": "jarring"
+ },
+ "h-9c15a8c8": {
+  "text": "In the morning, the boat washed",
+  "mood": "calm"
+ },
+ "h-d7ddecb3": {
+  "text": "onto a quiet shore.",
+  "mood": "calm"
+ },
+ "h-2d352bcb": {
+  "text": "In the morning, the boat bounded",
+  "mood": "happy"
+ },
+ "h-47c87db6": {
+  "text": "onto a sunny shore.",
+  "mood": "happy"
+ },
+ "h-bd8566c2": {
+  "text": "In the morning, the boat flip-flopped",
+  "mood": "funny"
+ },
+ "h-116c88e0": {
+  "text": "onto a ticklish shore.",
+  "mood": "funny"
+ },
+ "h-8e0e7bac": {
+  "text": "In the morning, the boat crawled",
+  "mood": "scary"
+ },
+ "h-dc47da8d": {
+  "text": "onto a bone-white shore.",
+  "mood": "scary"
+ },
+ "h-a226977d": {
+  "text": "In the morning, the boat limped",
+  "mood": "sad"
+ },
+ "h-32bfa168": {
+  "text": "onto a far-off shore.",
+  "mood": "sad"
+ },
+ "h-1204a54e": {
+  "text": "In the morning, the boat smacked",
+  "mood": "jarring"
+ },
+ "h-4e1b3359": {
+  "text": "onto a jagged shore.",
   "mood": "jarring"
  }
 }

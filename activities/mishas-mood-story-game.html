@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  MISHA'S MOOD STORY GAME — engine: lullaby · variant: mood-missions · version 2
+  MISHA'S MOOD STORY GAME (file: lullaby-for-a-giant.html) — engine: lullaby · variant: mood-missions · version 2
 
   Misha tells a five-verse story to an audience: the giant baby (room scene)
   or a campfire crowd (clearing scene). The student picks a MISSION, which sets
@@ -70,6 +70,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .tools{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 12px);right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:8px}
 .icon-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:rgba(28,20,44,.62);backdrop-filter:blur(8px);font-size:17px}
 .icon-btn[aria-pressed="false"]{opacity:.5}
+.icon-btn.wide{width:auto;padding:0 14px;font-size:14px;font-weight:700}
+.leave-q{font-family:var(--display);font-size:18px;color:var(--paper)!important;margin:0}
 .pop{position:fixed;z-index:9;top:calc(env(safe-area-inset-top,0px) + 60px);right:max(16px,env(safe-area-inset-right,0px));width:min(320px,calc(100vw - 32px));
   background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:14px}
 .pop label.cap{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
@@ -85,6 +87,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
   padding:32px max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-left,0px))}
 .wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:11px}
 .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--lantern)}
+.colA,.colB{display:flex;flex-direction:column;gap:11px;min-width:0}
 #story{display:flex;flex-direction:column;gap:2px;font-family:var(--display);color:var(--muted);font-size:15px;line-height:1.5}
 #story p{margin:0;opacity:.8}
 #line{font-family:var(--display);font-size:clamp(20px,2.6vw,27px);line-height:1.65;margin:0;text-wrap:balance}
@@ -168,6 +171,38 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .recap{font-family:var(--display);text-align:left;font-size:16px;line-height:1.7;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;padding:14px 16px;width:100%;max-height:30vh;overflow-y:auto}
 .recap p{margin:0}
 #copyFallback{width:100%;min-height:120px;border-radius:10px;background:var(--ink);color:var(--paper);border:1px solid var(--line);padding:10px;font-family:var(--body);font-size:13px}
+/* short wide screens (laptops): compact start menu so it fits without scrolling */
+@media (min-width:900px) and (max-height:820px){
+  .start{align-items:center}
+  .card{gap:10px;max-width:800px}
+  .card h1{font-size:clamp(30px,3.4vw,42px)}
+  .card .sub{font-size:14px}
+  .modes{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+  .mode{padding:9px 11px}
+  .mode h3{font-size:15px}
+  .mode p{font-size:12px}
+  .how{font-size:13px;gap:2px}
+  .how .k{width:18px;height:18px;font-size:11px}
+  .hero-micha{max-height:calc(100vh - 40px)}
+}
+/* narrow: one stacked column, story-so-far first */
+@media (max-width:899px){ .colA,.colB{display:contents} #story{order:-1} }
+/* wide: two columns use the side space, so the panel stays short and the type can be bigger */
+@media (min-width:900px){
+  #panel{max-height:44%;padding-top:26px}
+  #panel .wrap{max-width:1280px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);column-gap:40px;align-items:start}
+  #line{font-size:clamp(24px,2.2vw,32px)}
+  .opt{font-size:18px;padding:10px 16px}
+  .opts.stack .opt{font-size:17px}
+  .chal-head{font-size:clamp(21px,1.9vw,27px)}
+  #story{font-size:15px;max-height:6.2em;overflow-y:auto;opacity:.9}
+  #opts:empty{display:none}
+  .whys li,.ask{font-size:15px}
+  .react{font-size:20px}
+  .result{border-top:0;padding-top:0}
+  .colB .result:only-child,.colB #story:empty{margin:0}
+  .field{height:180px}
+}
 @media (max-width:560px){.modes{grid-template-columns:1fr 1fr}#story p:not(:last-child){display:none}.hud{padding:7px 10px;gap:5px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -182,9 +217,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </div>
 
 <div class="tools">
+  <button class="icon-btn wide" id="backBtn" type="button" hidden aria-label="Back to the mission menu">← Menu</button>
   <button class="icon-btn" id="musicBtn" type="button" aria-pressed="true" aria-label="Music box on or off" title="Music box">♪</button>
   <button class="icon-btn" id="volBtn" type="button" aria-expanded="false" aria-label="Volume" title="Volume">🔊</button>
   <button class="icon-btn" id="setBtn" type="button" aria-expanded="false" aria-label="Settings" title="Settings">⚙</button>
+</div>
+<div class="pop" id="leavePop" hidden role="dialog" aria-labelledby="leaveQ">
+  <p class="leave-q" id="leaveQ">Leave this story and go back to the menu?</p>
+  <p>This story's progress won't be saved.</p>
+  <div class="actions"><button class="btn primary" id="leaveYes" type="button">Leave story</button><button class="btn" id="leaveNo" type="button">Keep telling</button></div>
 </div>
 <div class="pop" id="volPop" hidden>
   <div class="vol"><label class="cap" for="volMaster">Volume</label><input type="range" id="volMaster" min="0" max="100" step="1"><output id="volMasterOut"></output></div>
@@ -202,12 +243,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 
 <section id="panel" aria-live="polite" hidden>
   <div class="wrap" id="verseUI">
+   <div class="colA">
     <div class="eyebrow" id="verseNo">Verse 1 of 5</div>
-    <div id="story"></div>
     <p id="line"></p>
     <p class="ask" id="ask"></p>
+    <div id="story"></div>
+   </div>
+   <div class="colB">
     <div class="opts" id="opts"></div>
-    <div class="actions">
+    <div class="actions" id="pickActions">
       <button class="btn" id="hintBtn" type="button">✦ Sense the words <span class="cost">−1 light</span></button>
       <button class="btn primary" id="tellBtn" type="button">Tell it <span class="cost">−2 light</span></button>
       <button class="btn" id="earnNowBtn" type="button" hidden>🏮 Earn more light</button>
@@ -218,19 +262,24 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
       <ul class="whys" id="why"></ul>
       <div class="actions"><button class="btn primary" id="nextBtn" type="button">Next verse →</button><button class="btn" id="replayBtn" type="button">🔊 Hear it again</button></div>
     </div>
+   </div>
   </div>
 
   <div class="wrap" id="chalUI" hidden>
+   <div class="colA">
     <div class="eyebrow" id="chalEyebrow"></div>
     <p class="ask" id="chalSub"></p>
     <p class="chal-head" id="chalHead"></p>
     <div class="timer" id="timer"><div id="timerFill"></div></div>
+   </div>
+   <div class="colB">
     <div id="chalBody"></div>
     <div class="result" id="chalResult" hidden>
       <p class="verdict" id="chalVerdict"></p>
       <p class="ask" id="chalWhy"></p>
     </div>
     <div class="actions"><button class="btn primary" id="chalNext" type="button" hidden>Next challenge</button><button class="btn" id="chalSkip" type="button" hidden>Tell the next verse anyway</button></div>
+   </div>
   </div>
 </section>
 
@@ -568,7 +617,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "A sharp, snapping sound. The ear jumps at it."
        }
       }
-     ]
+     ],
+     "split": "across the {1} sky."
     },
     {
      "tpl": "It {0} past the sleeping hills, {1} a song.",
@@ -625,7 +675,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "High and harsh. It scrapes on the ear."
        }
       }
-     ]
+     ],
+     "split": "{1} a song."
     },
     {
      "tpl": "Below, the {0} river {1} every stone it passed.",
@@ -682,7 +733,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "Pounding is heavy hitting. It jolts the sentence."
        }
       }
-     ]
+     ],
+     "split": "{1} every stone it passed."
     },
     {
      "syntax": true,
@@ -770,7 +822,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "Scratchy is uncomfortable. It makes you squirm."
        }
       }
-     ]
+     ],
+     "split": "into a {1} bed of mist."
     }
    ]
   },
@@ -833,7 +886,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "Clanging is metal on metal. The ear flinches."
        }
       }
-     ]
+     ],
+     "split": "from the {1} festival."
     },
     {
      "tpl": "It {0} over the rooftops while the town {1} below.",
@@ -890,7 +944,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "Honking is loud and impatient."
        }
       }
-     ]
+     ],
+     "split": "while the town {1} below."
     },
     {
      "tpl": "A {0} owl {1} at it from an old pine.",
@@ -947,7 +1002,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "A shriek is a scream that hurts the ear."
        }
       }
-     ]
+     ],
+     "split": "{1} at it from an old pine."
     },
     {
      "syntax": true,
@@ -1035,7 +1091,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "Churning water is rough and restless."
        }
       }
-     ]
+     ],
+     "split": "beside a {1} pond."
     }
    ]
   },
@@ -1098,7 +1155,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "Rushing water is loud and in a hurry."
        }
       }
-     ]
+     ],
+     "split": "down the {1} stream."
     },
     {
      "tpl": "It passed a {0} frog who {1} as it went by.",
@@ -1155,7 +1213,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "A bellow is a loud, angry roar."
        }
       }
-     ]
+     ],
+     "split": "who {1} as it went by."
     },
     {
      "tpl": "Then the {0} rain began to {1}.",
@@ -1212,7 +1271,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "Battering is hard and violent."
        }
       }
-     ]
+     ],
+     "split": "began to {1}."
     },
     {
      "syntax": true,
@@ -1300,7 +1360,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
         "why": "Jagged rocks are sharp and harsh."
        }
       }
-     ]
+     ],
+     "split": "onto a {1} shore."
     }
    ]
   }
@@ -2177,7 +2238,27 @@ function say(text, mood, onend){
   a.onerror = () => { missingClip.add(id); if (curAudio === a) { curAudio = null; ttsSay(text, mood, done); } };
   a.play().catch(() => { if (curAudio === a && !a.error) { curAudio = null; ttsSay(text, mood, done); } });
 }
-function sayAll(lines){ let i = 0; const next = () => { if (i < lines.length){ const l = lines[i++]; say(l.text, l.mood, next); } }; next(); }
+/* mixed-mood sentences play as two half-clips, each in its own mood, with a short breath between */
+function sayParts(parts, text, mood, onend){
+  stopVoice(); speaking = true;
+  const done = () => { speaking = false; onend && onend(); };
+  let i = 0, failed = false;
+  const fallback = () => { if (failed) return; failed = true; curAudio = null; ttsSay(text, mood, done); };
+  const next = () => {
+    if (failed) return;
+    if (i >= parts.length) { curAudio = null; done(); return; }
+    const pt = parts[i++], id = fnv(pt.text);
+    if (missingClip.has("h" + id)) { fallback(); return; }
+    const a = new Audio(BASE + "voice/h-" + id + ".mp3");
+    voiceRoute(a, pt.mood); curAudio = a;
+    a.onended = () => { if (curAudio === a) setTimeout(next, i < parts.length ? 140 : 0); };
+    a.onerror = () => { missingClip.add("h" + id); if (curAudio === a) fallback(); };
+    a.play().catch(() => { if (curAudio === a && !a.error) fallback(); });
+  };
+  next();
+}
+const sayLine = (l, onend) => l.parts ? sayParts(l.parts, l.text, l.mood, onend) : say(l.text, l.mood, onend);
+function sayAll(lines){ let i = 0; const next = () => { if (i < lines.length) sayLine(lines[i++], next); }; next(); }
 
 /* ===================== volume ===================== */
 const VOL = { master:.7, voice:1, music:.45 };
@@ -2380,7 +2461,7 @@ $("hintBtn").onclick = () => {
 $("tellBtn").onclick = tell;
 $("earnNowBtn").onclick = () => openEarn("resume");
 $("nextBtn").onclick = () => { G.v++; gate(); };
-$("replayBtn").onclick = () => { if (G.last) say(G.last.text, G.last.mood); };
+$("replayBtn").onclick = () => { if (G.last) sayLine(G.last); };
 
 function tell(){
   const V = VERSES[G.v];
@@ -2396,8 +2477,14 @@ function tell(){
   G.energy -= COST.tell;
   G.goal = clamp(G.goal + dg, 0, 100);
   G.lose = clamp(G.lose + dl, 0, 100);
-  G.story.push({ text, mood:voiceMood });
-  G.last = { text, mood:voiceMood };
+  let parts = null;
+  if (!V.syntax && V.split && feels[0] !== feels[1]){
+    const h1 = V.tpl.slice(0, V.tpl.length - V.split.length).trim().replace(/\{(\d)\}/g, (_,i) => words[+i]);
+    const h2 = V.split.replace(/\{(\d)\}/g, (_,i) => words[+i]);
+    parts = [{ text:h1, mood:feels[0] }, { text:h2, mood:feels[1] }];
+  }
+  G.story.push({ text, mood:voiceMood, parts });
+  G.last = { text, mood:voiceMood, parts };
   G.log.push({ k:"verse", n:G.v+1, text, picks: feels.map((m,k) => (V.syntax ? "sentence shape" : V.blanks[k][m].w) + " (" + FEEL[m].label + (m===M.target?", on target":"") + ")"), hints:G.verseHints });
   G.phase = "told";
   updateHud(); render();
@@ -2408,7 +2495,7 @@ function tell(){
   $("result").hidden = false; $("nextBtn").hidden = true;
   react(shown, shown === M.target);
   spawnWords(V.syntax ? text.replace(/[^\w\s'-]/g,"").split(/\s+/).filter((_,i)=>i%3===0).slice(0,5) : words, shown);
-  say(text, voiceMood);
+  sayLine(G.last);
   setTimeout(checkEnd, 1700);
 }
 function checkEnd(){
@@ -2430,11 +2517,27 @@ function showEnd(k){
   $("endEyebrow").textContent = e.eb; $("endTitle").textContent = e.t; $("endSub").textContent = e.s;
   $("recap").innerHTML = G.story.length ? G.story.map(s => `<p>${esc(s.text)}</p>`).join("") : "<p>(No verses told.)</p>";
   $("copyMsg").hidden = true; $("copyFallback").hidden = true;
-  $("panel").hidden = true; $("endOv").hidden = false;
+  $("panel").hidden = true; $("backBtn").hidden = true; $("leavePop").hidden = true; $("endOv").hidden = false;
 }
 $("readAllBtn").onclick = () => sayAll(G.story);
-$("againBtn").onclick = () => { stopVoice(); $("endOv").hidden = true; $("panel").hidden = false; newGame(); };
-$("pickAgainBtn").onclick = () => { stopVoice(); $("endOv").hidden = true; $("startOv").hidden = false; G.over = null; if (musicOn) startMenuMusic(); };
+$("againBtn").onclick = () => { stopVoice(); $("endOv").hidden = true; $("panel").hidden = false; $("backBtn").hidden = false; newGame(); };
+function toMenu(){
+  stopVoice();
+  if (CH){ CH.done = true; CH = null; }
+  G.over = null; G.phase = "menu"; reaction = null;
+  ["endOv","panel","leavePop","backBtn"].forEach(id => $(id).hidden = true);
+  $("startOv").hidden = false;
+  if (musicOn) startMenuMusic();
+}
+$("pickAgainBtn").onclick = toMenu;
+$("backBtn").onclick = () => {
+  const midStory = !G.over && (G.story.length > 0 || G.hintsUsed > 0 || (G.log && G.log.length > 0));
+  if (!midStory) { toMenu(); return; }
+  ["volPop","setPop"].forEach(id => $(id).hidden = true);
+  $("leavePop").hidden = false; $("leaveNo").focus();
+};
+$("leaveYes").onclick = toMenu;
+$("leaveNo").onclick = () => { $("leavePop").hidden = true; $("backBtn").focus(); };
 
 /* ===================== challenges ===================== */
 let CH = null, TIMER_MULT = store("lfg-relaxed") === "1" ? 2 : 1;
@@ -2677,7 +2780,7 @@ loadImg("micha-stand").then(i => { if (i) $("heroMisha").src = i.src; });
 $("beginBtn").onclick = () => {
   initAudio(); if (ac && ac.state !== "running") ac.resume();
   stopMenuMusic(); nextNote = ac ? ac.currentTime + .6 : 0;
-  $("startOv").hidden = true; $("panel").hidden = false; newGame();
+  $("startOv").hidden = true; $("panel").hidden = false; $("backBtn").hidden = false; newGame();
 };
 $("musicBtn").setAttribute("aria-pressed", String(musicOn));
 $("musicBtn").onclick = () => {
@@ -2687,8 +2790,8 @@ $("musicBtn").onclick = () => {
   if (musicOn && !$("startOv").hidden) startMenuMusic(); else stopMenuMusic();
 };
 bindVol("volMaster","master"); bindVol("volVoice","voice"); bindVol("volMusic","music");
-$("volBtn").onclick = () => { const p = $("volPop"); p.hidden = !p.hidden; $("setPop").hidden = true; $("volBtn").setAttribute("aria-expanded", String(!p.hidden)); };
-$("setBtn").onclick = () => { const p = $("setPop"); p.hidden = !p.hidden; $("volPop").hidden = true; $("setBtn").setAttribute("aria-expanded", String(!p.hidden)); };
+$("volBtn").onclick = () => { const p = $("volPop"); p.hidden = !p.hidden; $("setPop").hidden = true; $("leavePop").hidden = true; $("volBtn").setAttribute("aria-expanded", String(!p.hidden)); };
+$("setBtn").onclick = () => { const p = $("setPop"); p.hidden = !p.hidden; $("volPop").hidden = true; $("leavePop").hidden = true; $("setBtn").setAttribute("aria-expanded", String(!p.hidden)); };
 $("voiceSel").onchange = e => { voice = voices.find(v => v.name === e.target.value) || voice; store("lfg-voice", e.target.value); };
 $("voiceTest").onclick = () => say("Once, a little cloud drifted across the velvet sky.", "calm");
 
@@ -2818,7 +2921,7 @@ function drawSlot(slot, dx, dy, w, scale){
 
 /* The scene is laid out for a fixed panel height. When the panel grows (results, challenges) it just covers more of the
    bottom of the picture; nothing moves, so characters stay planted on the painted ground. */
-const stableSceneH = () => Math.max(220, Math.round(H * (W < 640 ? .55 : .64)));
+const stableSceneH = () => Math.max(220, Math.round(H * (W < 640 ? .55 : W < 900 ? .62 : .70)));
 /* baby scene: room covers the canvas; the giant stands centre-right; Misha sits front-left */
 function babyLayout(){
   const sceneH = stableSceneH(), narrow = W < 640, top = narrow ? 14 : 24, UNITS = 1800;
