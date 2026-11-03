@@ -186,7 +186,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
   .hero-micha{max-height:calc(100vh - 40px)}
 }
 /* narrow: one stacked column, story-so-far first */
-@media (max-width:899px){ .colA,.colB{display:contents} #story{order:-1} }
+@media (max-width:899px){ .colA,.colB{display:contents} }
 /* wide: two columns use the side space, so the panel stays short and the type can be bigger */
 @media (min-width:900px){
   #panel{max-height:44%;padding-top:26px}
@@ -245,9 +245,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
   <div class="wrap" id="verseUI">
    <div class="colA">
     <div class="eyebrow" id="verseNo">Verse 1 of 5</div>
+    <div id="story"></div>
     <p id="line"></p>
     <p class="ask" id="ask"></p>
-    <div id="story"></div>
    </div>
    <div class="colB">
     <div class="opts" id="opts"></div>
@@ -2145,7 +2145,179 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
     "stability": 0.0
    }
   }
- }
+ },
+ "sfx": [
+  {
+   "id": "hiccup",
+   "words": [
+    "hiccuped"
+   ],
+   "prompt": "a single cute cartoon hiccup",
+   "dur": 0.8
+  },
+  {
+   "id": "burp",
+   "words": [
+    "burping"
+   ],
+   "prompt": "a short comedic cartoon burp",
+   "dur": 1.0
+  },
+  {
+   "id": "hum",
+   "words": [
+    "humming"
+   ],
+   "prompt": "a soft gentle hummed lullaby phrase, warm voice, short",
+   "dur": 2.0
+  },
+  {
+   "id": "whistle",
+   "words": [
+    "whistling"
+   ],
+   "prompt": "a short cheerful whistled tune, three bright notes",
+   "dur": 1.5
+  },
+  {
+   "id": "moan",
+   "words": [
+    "moaning"
+   ],
+   "prompt": "a spooky ghostly moan echoing, short",
+   "dur": 2.0
+  },
+  {
+   "id": "sob",
+   "words": [
+    "sobbing"
+   ],
+   "prompt": "a short soft sob and sniffle",
+   "dur": 1.5
+  },
+  {
+   "id": "howl",
+   "words": [
+    "howling"
+   ],
+   "prompt": "eerie wind howling through trees, short",
+   "dur": 2.0
+  },
+  {
+   "id": "sneeze",
+   "words": [
+    "sneezed"
+   ],
+   "prompt": "a small cartoon sneeze, achoo",
+   "dur": 1.0
+  },
+  {
+   "id": "snore",
+   "words": [
+    "snored"
+   ],
+   "prompt": "a cartoonish snore, one long breath in and whistle out",
+   "dur": 2.0
+  },
+  {
+   "id": "kazoo",
+   "words": [
+    "kazoo-tooting"
+   ],
+   "prompt": "a short silly kazoo toot",
+   "dur": 1.2
+  },
+  {
+   "id": "plop",
+   "words": [
+    "plopped"
+   ],
+   "prompt": "a comic plop sound",
+   "dur": 0.7
+  },
+  {
+   "id": "splash",
+   "words": [
+    "belly-flopped",
+    "flip-flopped"
+   ],
+   "prompt": "a big comedic belly flop splash into water",
+   "dur": 1.2
+  },
+  {
+   "id": "croak",
+   "words": [
+    "croaking"
+   ],
+   "prompt": "a single deep frog croak",
+   "dur": 1.0
+  },
+  {
+   "id": "honk",
+   "words": [
+    "honked"
+   ],
+   "prompt": "a short old car horn honk",
+   "dur": 0.8
+  },
+  {
+   "id": "squawk",
+   "words": [
+    "squawking"
+   ],
+   "prompt": "a short harsh bird squawk",
+   "dur": 0.8
+  },
+  {
+   "id": "clang",
+   "words": [
+    "clanging"
+   ],
+   "prompt": "a metal pot clang",
+   "dur": 0.8
+  },
+  {
+   "id": "yawn",
+   "words": [
+    "yawned"
+   ],
+   "prompt": "a soft sleepy yawn",
+   "dur": 1.5
+  },
+  {
+   "id": "patter",
+   "words": [
+    "patter"
+   ],
+   "prompt": "soft rain pattering on leaves, short",
+   "dur": 2.0
+  },
+  {
+   "id": "whisper",
+   "words": [
+    "whispered"
+   ],
+   "prompt": "eerie overlapping whispers, short",
+   "dur": 2.0
+  },
+  {
+   "id": "tapdance",
+   "words": [
+    "tap-dance"
+   ],
+   "prompt": "a quick tap dance shoe rhythm",
+   "dur": 1.5
+  },
+  {
+   "id": "tumble",
+   "words": [
+    "toppled over",
+    "tumbled"
+   ],
+   "prompt": "a cartoon tumble ending in a soft thud",
+   "dur": 1.0
+  }
+ ]
 }
 </script>
 
@@ -2257,14 +2429,32 @@ function sayParts(parts, text, mood, onend){
   };
   next();
 }
-const sayLine = (l, onend) => l.parts ? sayParts(l.parts, l.text, l.mood, onend) : say(l.text, l.mood, onend);
-function sayAll(lines){ let i = 0; const next = () => { if (i < lines.length) sayLine(lines[i++], next); }; next(); }
+/* sound words (burping, sneezed, croaking…) get a short sound effect after the line is read */
+const SFX_BY_WORD = {}; (DATA.sfx || []).forEach(x => x.words.forEach(w => SFX_BY_WORD[w] = x.id));
+function playSfx(ids, onend){
+  let i = 0;
+  const next = () => {
+    if (i >= ids.length) { curAudio = null; speaking = false; onend && onend(); return; }
+    const a = new Audio(BASE + "sfx/" + ids[i++] + ".mp3");
+    voiceRoute(a, "sfx"); curAudio = a; speaking = true;
+    a.onended = () => { if (curAudio === a) setTimeout(next, 120); };
+    a.onerror = () => { if (curAudio === a) next(); };
+    a.play().catch(() => { if (curAudio === a) next(); });
+  };
+  next();
+}
+function sayLine(l, onend){
+  const ids = [...new Set((l.words || []).map(w => SFX_BY_WORD[w]).filter(Boolean))];
+  const after = ids.length ? () => setTimeout(() => playSfx(ids, onend), 220) : onend;
+  l.parts ? sayParts(l.parts, l.text, l.mood, after) : say(l.text, l.mood, after);
+}
+function sayAll(lines){ let i = 0; const next = () => { if (i < lines.length) sayLine(lines[i++], () => setTimeout(next, 600)); }; next(); }
 
 /* ===================== volume ===================== */
 const VOL = { master:.7, voice:1, music:.45 };
 try { Object.assign(VOL, JSON.parse(store("lfg-vol") || "{}")); } catch(e){}
 const MUSIC_CAP = .06;                                    // music peak gain at 100%: well below the voice
-const VOICE_TRIM = { jarring:.7, scary:.9, funny:.9, happy:.95, calm:1, sad:1 };   // shouted takes run hot
+const VOICE_TRIM = { jarring:.7, scary:.9, funny:.9, happy:.95, calm:1, sad:1, sfx:.7 };   // shouted takes run hot
 const voiceLevel = m => VOL.master * VOL.voice * (VOICE_TRIM[m] || 1);
 const musicLevel = () => VOL.master * VOL.music * MUSIC_CAP;
 function bindVol(id, key){
@@ -2483,8 +2673,8 @@ function tell(){
     const h2 = V.split.replace(/\{(\d)\}/g, (_,i) => words[+i]);
     parts = [{ text:h1, mood:feels[0] }, { text:h2, mood:feels[1] }];
   }
-  G.story.push({ text, mood:voiceMood, parts });
-  G.last = { text, mood:voiceMood, parts };
+  G.story.push({ text, mood:voiceMood, parts, words });
+  G.last = { text, mood:voiceMood, parts, words };
   G.log.push({ k:"verse", n:G.v+1, text, picks: feels.map((m,k) => (V.syntax ? "sentence shape" : V.blanks[k][m].w) + " (" + FEEL[m].label + (m===M.target?", on target":"") + ")"), hints:G.verseHints });
   G.phase = "told";
   updateHud(); render();
