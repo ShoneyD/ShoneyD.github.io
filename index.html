@@ -238,6 +238,19 @@
 const ITEMS = [
   {
     type: 'activity',
+    course: 'English',
+    file: 'activities/lullaby-for-a-giant.html',
+    engine: 'lullaby', variant: 'mood-missions', version: 2, updated: '2026-11-03',
+    title: 'Lullaby for a Giant',
+    tag: 'storytelling game',
+    desc: 'Micha tells a five-verse story and the student chooses every word. Eight missions set the target mood: for the giant baby, Lullaby (calm), Sunny Side Up (happy) and Giggle Fit (funny); for a campfire crowd of villagers, Settle Down, Warm Hearts, Make Them Laugh, Spine Chiller (scary) and Tearjerker (sad). Each blank offers four words (the target mood, a near-miss, a jarring word and one other); on-target words fill the goal meter, the rest fill Temper or Losing them, and the baby or the crowd reacts in painted art. Verse 4 is a sentence-shape round where the same moment is written as long-and-flowing, exclamatory, punchline, fragments or trailing (counts double). Light is the resource: telling costs 2, a hint that reveals each word\u2019s feeling costs 1. Run short and an Earn round opens (word pairs, find the word that breaks the mood, a firefly catch); coast with light to spare and a Toll fires (near-synonyms or rhythm, pay 2). Three stories (The Little Cloud, The Lost Lantern, The Paper Boat) each carry a full six-mood word bank; students pick one or let \u201cSurprise me\u201d draw a different one each time, and within a story the events stay put while the diction changes the mood.',
+    skills: 'Diction \u00b7 connotation \u00b7 mood (calm, happy, funny, scary, sad) \u00b7 tone \u00b7 syntax and pacing (sentence length, fragments, polysyndeton, punchline placement, punctuation) \u00b7 near-synonyms \u00b7 grades 6\u20138',
+    note: 'v2: mission system, campfire scene, three stories with six-mood word banks (content.stories), \u201cWin them back\u201d rounds when even a perfect finish can\u2019t fill the goal meter, volume controls (master, storyteller, music capped well under the voice; recorded clips run through a compressor) and a menu waltz. New engine (Repaint is the nearest relative). Content-swappable: everything the student reads is in the JSON block id="content" (missions, story bank keyed by mood, effects, challenge pools per mood, voice tags). Art in assets/lullaby/: room, giant body and seven faces, Micha (three sitting poses plus a standing pose on the start screen), campfire clearing, rock, and the crowd in seven states (listening, calm, happy, funny, scared, sad, bored); each mission loads only its scene. Characters were generated as transparent PNGs from Sean\u2019s references (crowd, rock and sad face with gpt-image-2.5-sunburst via scripts/lullaby_art.mjs). Voice: every one of the 450 possible lines (150 per story) is shared across missions and plays assets/lullaby/voice/<fnv1a(text)>.mp3, recorded with ElevenLabs by scripts/lullaby_voice.mjs; a missing clip falls back to the browser voice. Light balancing: needed = 2 \u00d7 verses left, checked before each verse; Earn wins +1, a miss +5 to the lose meter; Tolls at most twice, only with 2+ spare light and the goal on pace. Option order shuffles. Settings: relaxed timers (\u00d72). Turn-in: \u201cCopy my story for Canvas\u201d (mission, story, every choice with its feeling, hints, challenge results). One-page game (ll-format meta). About 10\u201315 minutes per mission.',
+    height: 900
+  },
+
+  {
+    type: 'activity',
     course: 'Korean 1A',
     file: 'activities/yesterday-mode.html',
     engine: 'particles', variant: 'past-tense', version: 2, updated: '2026-11-02',
