@@ -74,6 +74,10 @@ details.check ol{ margin:.4rem 0 0; padding-left:1.4rem; font-size:1.2rem }
 .done-look{ background:var(--calm-soft); border:1px solid var(--calm-line); border-radius:10px; padding:.9rem 1.15rem; margin:1.5rem 0 }
 .done-look .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--calm); margin:0 0 .3rem }
 .done-look p{ margin:0 }
+/* one-day embed: the day's page and the cheat card, nothing else */
+.one-day .tabs, .one-day .why, .one-day .sub{ display:none }
+.one-day .day > h2::before{ content:"Journal Week: Saying No · " }
+.one-day > .wrap > h1{ display:none }
 @media (max-width:560px){ .moves{ grid-template-columns:1fr 1fr } }
 @media print{
   .tabs, .say, .dict, details.check summary{ display:none }
@@ -191,8 +195,15 @@ function show(k){
   try{ localStorage.setItem('kjNoDay', k); }catch(e){}
 }
 tabs.addEventListener('click', e => { const b = e.target.closest('[data-d]'); if (b) show(+b.dataset.d); });
-let start = 0; try{ start = Math.min(DAYS.length - 1, Math.max(0, +(localStorage.getItem('kjNoDay') || 0))); }catch(e){}
-show(start);
+/* ?part=day1 … day5 shows one day only (one Canvas embed per day); no part = the whole week with tabs. */
+const PART = (new URLSearchParams(location.search).get('part') || '').match(/^day([1-9])$/);
+if (PART && +PART[1] <= DAYS.length){
+  document.body.classList.add('one-day');
+  document.getElementById('dayHost').querySelectorAll('.day').forEach((s, j) => s.classList.toggle('show', j === +PART[1] - 1));
+} else {
+  let start = 0; try{ start = Math.min(DAYS.length - 1, Math.max(0, +(localStorage.getItem('kjNoDay') || 0))); }catch(e){}
+  show(start);
+}
 </script>
 
 <script type="application/json" id="qsummary">

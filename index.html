@@ -573,6 +573,18 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'English',
+    file: 'activities/swap-test.html',
+    engine: 'chain', variant: 'tone-diction', version: 2, updated: '2026-11-04',
+    title: 'The Swap Test',
+    tag: 'tap to swap',
+    desc: 'Six short, original passages (biking, a high dive, a science fair, Lego, camping, a flight), each with one word carrying the tone. Part 1: name the tone (Excited, Grumpy, Nervous, Peaceful). Part 2: tap the word that makes it, from four words in that passage. Part 3: the swap test. The student writes a hypothesis first, then swaps that one word to flip the passage to a target tone, and the passage re-reads live with each tap. Part 4: one sentence of their own with the tone word in CAPITALS, plus a swap that flips it.',
+    skills: 'Tone \u00b7 word choice \u00b7 diction \u00b7 connotation \u00b7 author\u2019s attitude \u00b7 grades 5\u20138',
+    note: 'Rejigger of The Tell (chain engine) with one engine change, hence v2: Part 2 is tap-the-word (chips drawn from the passage) and Part 3 is a live single-word swap. Generic, so no text needs to be read first. Text-swappable: MOVES (the four tones) and LINES (text with one {w} slot, key, tone, chips, target, swaps mapped to a tone or flat, three why lines). Swap distractors teach the near-misses: one keeps the same tone, one goes flat. A console check warns if a passage has anything other than exactly one swap hitting its target. Writing is two short boxes, with a type-or-say line. Everything shuffles on load. About 15 minutes.',
+    height: 1300
+  },
+  {
+    type: 'activity',
+    course: 'English',
     file: 'activities/the-tell.html',
     engine: 'chain', variant: 'motive-tone', version: 1, updated: '2026-10-21',
     title: 'The Tell',
@@ -821,8 +833,15 @@ const ITEMS = [
     tag: 'paper homework',
     desc: 'Five days of the paper Korean Journal aimed at negatives. Each day has five words to copy and read aloud (with audio to check), three recorded dictation lines to write from sound with a hidden self-check, and a line-of-your-own prompt with a starter: something not done yet (아직 … 안 …었어요), how you feel the short and long way, can\u2019t vs don\u2019t, a negative question for Sean answered both ways, and a three-line entry with at least two negatives. Ends with a one-card summary of the week and the Sunday photo upload.',
     skills: 'Korean negation 안 / -지 않다 · 못 · 없다, 모르다 · 아직, 벌써 · negative questions · handwriting · dictation · spaced review',
-    note: 'Paper on purpose, same four moves as resources/korean-journal.html. Nothing typed here: links lesson.css and theme.js, not lesson.js. Content-swappable: the JSON block id="days". Dictation and word audio are recorded ElevenLabs clips (scripts/voice/korean-journal.json) with the browser voice as fallback; answers sit in a closed details block and are hidden in print. Day tab remembered per browser. Paired with activities/the-interrogation.html.',
-    height: 1500
+    note: 'Paper on purpose, same four moves as resources/korean-journal.html. Nothing typed here: links lesson.css and theme.js, not lesson.js. Content-swappable: the JSON block id="days". Dictation and word audio are recorded ElevenLabs clips (scripts/voice/korean-journal.json) with the browser voice as fallback; answers sit in a closed details block and are hidden in print. Day tab remembered per browser. Paired with activities/the-interrogation.html. Embeds: the whole week with day tabs (no part), or one day per Canvas item with ?part=day1 … day5, which hides the tabs and intro.',
+    height: 2050,
+    parts: [
+      { key:'day1', label:'📝⏳ Homework: Day 1, not yet and already', height: 1780 },
+      { key:'day2', label:'📝😮‍💨 Homework: Day 2, how you feel', height: 1780 },
+      { key:'day3', label:'📝🙅 Homework: Day 3, words that already mean no', height: 1780 },
+      { key:'day4', label:'📝❓ Homework: Day 4, questions with a trap', height: 1800 },
+      { key:'day5', label:'📝📓 Homework: Day 5, your own page', height: 1700 }
+    ]
   },
   {
     type: 'resource',
