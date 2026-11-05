@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — activity: The Story Machine
+  engine: builder · variant: narrative-short-story · v1
+  Rejiggered from activities/reform-machine.html (same stage engine, same copy
+  machinery, same second save layer). First builder with dark mode: the palette
+  is dark-default tokens with a light toggle (same 'll-theme' key as
+  assets/theme.js, so the choice follows the student between pages).
+
+  WHAT IT IS: a short narrative (1,000-1,200 words) in three phases.
+    A  Plan   form, characters, setting, conflict, plot, theme, form tie-in.
+              Ends in a copyable outline, its own Canvas submission.
+    B  Write  one screen per plot part. Her outline beats sit in the box as
+              [PLAN: ...] lines she writes over; the guide, a grammar card and
+              a transition bank are pinned above it; the Story Map at the top
+              shows words per part against a band, and rubric chips light up
+              from her tags plus automatic dialogue detection.
+    C  Revise automatic checks (sentence variety, dialogue punctuation,
+              capitals, weak words, stated morals) + the Step 4 checklist,
+              then the merged story, editable, copied into Canvas.
+  The machine never writes a sentence of her story. Stems live in the
+  outline only; placeholders in the story boxes are her own beats.
+
+  CONTENT-SWAPPABLE: FORMS, CONFLICTS, PLOT, GUIDES, GRAMMAR, TRANSITIONS,
+  REV_ITEMS and GOAL at the top of the script.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Story Machine</title>
+<script>
+(function(){ try{ if (localStorage.getItem('ll-theme') === 'light') document.documentElement.setAttribute('data-theme','light'); }catch(e){} })();
+</script>
+<style>
+  :root{ --bg:#14161a; --card:#1d2128; --field:#232830; --ink:#f3f5f8; --soft:#c5cdd8; --faint:#8b95a3;
+         --line:#2e343d; --field-line:#414a56; --on-accent:#0f1216;
+         --accent:#6fbde3; --accent-soft:#16303d; --accent-line:#2b5a72;
+         --calm:#5ecb92; --calm-soft:#123123; --calm-line:#2a5c44;
+         --warn:#e8a94e; --warn-soft:#38290f; --warn-line:#6b5124;
+         --gold:#f2c75c; --hl:#4a3d12; --paper:#1d2128; --empty:#2b313a; color-scheme:dark }
+  :root[data-theme="light"]{ --bg:#faf8f5; --card:#fffdfa; --field:#ffffff; --ink:#22252a; --soft:#555a63; --faint:#6b737d;
+         --line:#e2ddd4; --field-line:#b9c4cc; --on-accent:#ffffff;
+         --accent:#2f6f8f; --accent-soft:#e8f1f6; --accent-line:#c3dbe7;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --calm-line:#c4e0d2;
+         --warn:#a8641b; --warn-soft:#fbf0e2; --warn-line:#ddbf94;
+         --gold:#c68a1a; --hl:#fdf1b8; --paper:#ffffff; --empty:#eee9e0; color-scheme:light }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:48rem; margin:0 auto; position:relative }
+  h1{ font-size:1.5rem; margin:0 2.8rem .25rem 0 }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  h3{ font-size:1rem; margin:1.3rem 0 .45rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+  .themetog{ position:absolute; right:0; top:0; width:2.4rem; height:2.4rem; border-radius:50%;
+        cursor:pointer; font-size:1.05rem; line-height:1; border:1px solid var(--line);
+        background:var(--card); color:var(--ink) }
+  .themetog:hover{ border-color:var(--accent) }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem; margin:0 0 1rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold); animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.93rem }
+  .steps .lab{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps .sess{ display:grid; gap:.7rem; grid-template-columns:repeat(3,1fr) }
+  @media(max-width:700px){ .steps .sess{ grid-template-columns:1fr } }
+  .steps .sess div{ border-left:3px solid var(--accent-line); padding-left:.7rem }
+  .steps .sess b{ display:block }
+  .steps .sess span{ color:var(--soft); font-size:.86rem }
+
+  .phase{ display:flex; align-items:center; gap:.7rem; margin:2rem 0 1rem; font-weight:700;
+          font-size:.82rem; letter-spacing:.07em; text-transform:uppercase; color:var(--accent) }
+  .phase::after{ content:''; flex:1; height:1px; background:var(--accent-line) }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .stage-body{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.25rem; margin:0 0 1rem }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid var(--calm-line); border-radius:10px;
+        padding:.65rem 1rem; margin:0 0 .7rem; font:inherit; font-size:.92rem; color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem; text-align:right }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer; border-radius:8px;
+        padding:.6rem 1.15rem; border:1px solid var(--accent); background:var(--accent); color:var(--on-accent) }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.sm{ font-size:.82rem; padding:.3rem .7rem }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid var(--warn-line) }
+  .fb.good{ background:var(--calm-soft); border:1px solid var(--calm-line) }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.1rem 0 .35rem; font-size:1rem }
+  .abox{ border:2px dashed var(--field-line); border-radius:8px; background:var(--field); padding:.75rem 1rem; margin:0 0 1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--soft); margin:0 0 .3rem }
+  .abox textarea, .abox input[type=text]{ width:100%; border:0; outline:0; resize:vertical; min-height:2.4rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder, .abox input::placeholder, .fld input::placeholder{ color:var(--faint) }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .abox.big textarea{ min-height:14rem }
+  .nospell{ color:var(--soft); font-size:.86rem; margin:.4rem 0 1rem }
+
+  .fld{ margin:0 0 .7rem }
+  .fld label{ display:block; font-size:.8rem; font-weight:700; color:var(--soft); margin:0 0 .2rem }
+  .fld input, .fld select, select.sel{ width:100%; font:inherit; font-size:.95rem; padding:.45rem .6rem;
+        border:1px solid var(--field-line); border-radius:6px; background:var(--field); color:var(--ink) }
+  .grid2{ display:grid; gap:.2rem .8rem; grid-template-columns:1fr 1fr }
+  @media(max-width:640px){ .grid2{ grid-template-columns:1fr } }
+  .sensrow{ display:grid; gap:.6rem; grid-template-columns:8.5rem 1fr; margin:0 0 .5rem }
+
+  .pgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(13.5rem,1fr)); gap:.5rem; margin:.4rem 0 .9rem }
+  .chip{ text-align:left; font:inherit; font-size:.92rem; cursor:pointer; background:var(--field);
+        border:2px solid var(--line); border-radius:8px; padding:.55rem .8rem; color:var(--ink);
+        display:flex; gap:.55rem; align-items:flex-start; line-height:1.45 }
+  .chip:hover{ border-color:var(--accent) }
+  .chip.on{ border-color:var(--calm); background:var(--calm-soft) }
+  .chip .ttl{ display:block; font-weight:700 }
+  .chip .plain{ display:block; font-size:.84rem; color:var(--soft); margin-top:.15rem }
+  .truebox{ display:flex; gap:.6rem; align-items:flex-start; background:var(--accent-soft); border:1px solid var(--accent-line);
+        border-radius:8px; padding:.6rem .9rem; margin:.2rem 0 .9rem; font-size:.92rem; cursor:pointer }
+  .truebox input{ margin-top:.35rem; width:1.1rem; height:1.1rem }
+
+  .model{ border:1px dashed var(--field-line); border-radius:8px; padding:.6rem .9rem; margin:.2rem 0 1rem;
+          font-size:.9rem; color:var(--soft) }
+  .model .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin:0 0 .25rem }
+  .model b{ color:var(--ink) }
+  .featbox{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:8px; padding:.7rem 1rem; margin:.2rem 0 1rem; font-size:.93rem; display:none }
+  .featbox.show{ display:block }
+  .featbox ul{ margin:.2rem 0 0; padding-left:1.2rem }
+
+  .donelooks{ background:var(--bg); border:1px solid var(--line); border-left:4px solid var(--accent);
+        border-radius:8px; padding:.75rem 1.1rem; margin:1.1rem 0 .9rem; font-size:.93rem }
+  .donelooks .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--soft); margin:0 0 .4rem }
+  .donelooks ul{ list-style:none; margin:0; padding:0 }
+  .donelooks li{ display:flex; gap:.55rem; align-items:flex-start; margin:0 0 .3rem; line-height:1.5 }
+  .donelooks li .mk{ flex:0 0 1.2rem; font-weight:700; color:var(--faint) }
+  .donelooks li.ok .mk{ color:var(--calm) }
+  .donelooks li.ok{ color:var(--soft) }
+
+  .restored{ background:var(--calm-soft); border:1px solid var(--calm-line); border-radius:8px; padding:.7rem 1rem;
+        margin:0 0 1rem; font-size:.9rem; display:flex; gap:.7rem; align-items:center; flex-wrap:wrap }
+  .restored button, .linkbtn{ font:inherit; font-size:.85rem; background:none; border:0; color:var(--accent);
+        text-decoration:underline; cursor:pointer; padding:0 }
+  details.import{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:.6rem 1rem; margin:0 0 1rem; font-size:.92rem }
+  details.import summary{ cursor:pointer; font-weight:700 }
+  details.import textarea{ width:100%; min-height:7rem; margin:.6rem 0; font:inherit; font-size:.88rem;
+        background:var(--field); color:var(--ink); border:1px solid var(--field-line); border-radius:6px; padding:.6rem }
+
+  /* plot arc */
+  .arc{ width:100%; height:auto; display:block; margin:.2rem 0 1rem }
+  .plotslot{ border-left:4px solid var(--accent-line); padding:.1rem 0 .1rem .9rem; margin:0 0 1rem }
+  .plotslot h3{ margin:.2rem 0 .15rem }
+  .plotslot .job{ font-size:.9rem; color:var(--soft); margin:0 0 .4rem }
+
+  /* writing stages */
+  .pinned{ display:grid; gap:.7rem; grid-template-columns:1fr 1fr; margin:0 0 1rem }
+  @media(max-width:700px){ .pinned{ grid-template-columns:1fr } }
+  .pin{ background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.65rem .9rem; font-size:.9rem }
+  .pin .lab, .gcard .lab, .guide .lab, .tbank .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin:0 0 .3rem }
+  .pin ul{ margin:0; padding-left:1.1rem }
+  .beat{ display:flex; gap:.5rem; align-items:flex-start; margin:0 0 .25rem; cursor:pointer }
+  .beat input{ margin-top:.35rem }
+  .beat.ok span{ color:var(--soft); text-decoration:line-through }
+  .guide{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:8px; padding:.7rem 1rem; margin:0 0 1rem; font-size:.92rem }
+  .guide ul{ margin:0; padding-left:1.2rem } .guide li{ margin-bottom:.2rem }
+  .gcard{ background:var(--warn-soft); border:1px solid var(--warn-line); border-radius:10px; padding:.8rem 1rem; margin:0 0 1rem; font-size:.92rem }
+  .gcard .lab{ color:var(--warn) }
+  .gcard h4{ margin:0 0 .5rem; font-size:1rem }
+  .gcard dl{ margin:0; display:grid; grid-template-columns:7.2rem 1fr; gap:.35rem .8rem }
+  @media(max-width:600px){ .gcard dl{ grid-template-columns:1fr } }
+  .gcard dt{ font-weight:700; font-size:.82rem; color:var(--warn) }
+  .gcard dd{ margin:0 }
+  .gcard .ex{ background:var(--bg); border-radius:6px; padding:.35rem .6rem; margin:.15rem 0; display:block }
+  .gcard .ex mark{ background:var(--hl); color:inherit; padding:0 .12rem; border-radius:3px }
+  .gcard .bad{ color:var(--soft) }
+  details.toolbox{ margin:0 0 1rem; font-size:.92rem }
+  details.toolbox > summary{ cursor:pointer; font-weight:700; color:var(--accent); margin:0 0 .5rem }
+  .tbank{ margin:0 0 .6rem }
+  .tbank .tb{ display:flex; flex-wrap:wrap; gap:.35rem }
+  .tbank button, .tags button{ font:inherit; font-size:.84rem; cursor:pointer; background:var(--field); color:var(--ink);
+        border:2px solid var(--line); border-radius:999px; padding:.18rem .7rem }
+  .tbank button:hover{ border-color:var(--accent) }
+  .tags{ margin:.3rem 0 .9rem }
+  .tags .grp{ display:flex; flex-wrap:wrap; gap:.35rem; align-items:center; margin:0 0 .4rem }
+  .tags .grp > span{ font-size:.8rem; font-weight:700; color:var(--soft); min-width:7.6rem }
+  .tags button.on{ border-color:var(--calm); background:var(--calm-soft) }
+  .partcount{ font-size:.88rem; color:var(--soft); margin:-.5rem 0 .8rem }
+  .partcount b{ color:var(--ink) }
+
+  /* story map */
+  .storymap{ display:none; background:var(--card); border:2px solid var(--accent-line); border-radius:12px; padding:.9rem 1.1rem; margin:0 0 1.2rem }
+  .storymap.show{ display:block }
+  .storymap h3{ margin:0 0 .3rem }
+  .storymap .tot{ font-size:.92rem; color:var(--soft); margin:0 0 .4rem }
+  .rubric{ display:grid; gap:.5rem; grid-template-columns:repeat(auto-fill,minmax(14rem,1fr)); margin:.5rem 0 0 }
+  .rgrp{ background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.5rem .7rem; font-size:.84rem }
+  .rgrp b{ display:block; font-size:.78rem; letter-spacing:.04em; text-transform:uppercase; color:var(--soft); margin:0 0 .3rem }
+  .lamp{ display:inline-block; border:1px solid var(--line); border-radius:999px; padding:.05rem .55rem; margin:0 .25rem .3rem 0; color:var(--faint) }
+  .lamp.on{ border-color:var(--calm); background:var(--calm-soft); color:var(--ink) }
+  .lamp.on::before{ content:'✓ '; color:var(--calm); font-weight:700 }
+  .lamp.warn{ border-color:var(--warn); background:var(--warn-soft); color:var(--ink) }
+
+  /* revise */
+  .check{ border:1px solid var(--line); border-radius:8px; padding:.6rem .9rem; margin:0 0 .6rem; background:var(--bg); font-size:.92rem }
+  .check h4{ margin:0 0 .3rem; font-size:.95rem }
+  .check ul{ margin:.2rem 0 0; padding-left:1.1rem }
+  .check li{ margin-bottom:.25rem }
+  .check .snip{ color:var(--soft) }
+  .check.clear h4::before{ content:'✓ '; color:var(--calm) }
+  .vstrip{ width:100%; height:64px; display:block; margin:.3rem 0 }
+  .revlist label{ display:flex; gap:.6rem; align-items:flex-start; margin:0 0 .45rem; cursor:pointer; font-size:.93rem }
+  .revlist input{ margin-top:.4rem; width:1.05rem; height:1.05rem }
+  .revlist .why{ display:block; color:var(--soft); font-size:.85rem }
+
+  .outlinebox{ white-space:pre-wrap; background:var(--paper); border:1px solid var(--line); border-radius:8px;
+        padding:1rem 1.2rem; font-size:.9rem; line-height:1.6; margin:.6rem 0 1rem; max-height:26rem; overflow:auto }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px; padding:1.25rem 1.5rem; margin:1rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .paperbox{ background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:1.25rem 1.4rem;
+        margin:1rem 0; font-size:.97rem; line-height:1.9 }
+  .paperbox[contenteditable]:focus{ outline:3px solid var(--accent); outline-offset:2px }
+  .paperbox .hdr{ font-size:.9rem; line-height:1.6; margin:0 0 .9rem }
+  .paperbox .ttl{ text-align:center; font-weight:700; margin:0 0 .9rem }
+  .paperbox p{ margin:0 0 .6rem; text-indent:1.6rem }
+  .meta{ display:grid; gap:.2rem .8rem; grid-template-columns:1fr 1fr; margin:0 0 .6rem }
+  @media(max-width:640px){ .meta{ grid-template-columns:1fr } }
+  .wcount{ font-size:.88rem; color:var(--soft); margin:.2rem 0 1rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:14rem; font-family:Consolas,monospace; font-size:.82rem; line-height:1.6;
+        padding:.9rem 1.1rem; border-radius:8px; border:1px solid var(--line); background:var(--field); color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <button class="themetog" id="themetog" type="button"></button>
+  <h1>The Story Machine</h1>
+  <p class="sub">Plan a short story, turn in the plan, then write it one part at a time with the plan right above every box. At the end it all merges into one story you copy into Canvas.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p class="lab">The plan: three class periods. Your work saves, so you can stop anywhere.</p>
+    <div class="sess">
+      <div><b>Day 1 · Plan it</b><span>Steps 1–8, about 45 min. Ends with your <strong>outline</strong> turned in.</span></div>
+      <div><b>Day 2 · Write it</b><span>Five parts, about 50 min. 1,000–1,200 words total.</span></div>
+      <div><b>Day 3 · Fix it, turn it in</b><span>Revise with the checker, then copy your story into Canvas.</span></div>
+    </div>
+  </div>
+
+  <div class="phase">Plan your story · this is your outline</div>
+
+  <!-- ============ P1 form ============ -->
+  <section class="stage active" id="p1" data-title="Choose your form">
+    <button class="donebar" onclick="LL.toggle('p1')"><span class="tick">✓</span> <strong>Step 1: Your form</strong><span class="sum" id="sum-p1"></span></button>
+    <div class="stage-body">
+      <h2>Step 1: Choose your literary form</h2>
+      <p>Tap <strong>one</strong>. Under each name is what a reader expects from that kind of story. Your story will have to show those things, so pick one that sounds fun to write. Any of them can get a full grade.</p>
+      <label class="truebox"><input type="checkbox" id="trueStory"><span><strong>My story really happened.</strong> A true story is allowed. Pick <strong>Realism</strong> or <strong>Coming-of-Age</strong>, and change names if you want to. Everything else works the same.</span></label>
+      <div class="pgrid" id="forms"></div>
+      <div id="otherWrap" style="display:none">
+        <p class="nospell"><strong>“Other” needs your teacher’s OK.</strong> Ask before you go on.</p>
+        <div class="grid2">
+          <div class="fld"><label for="of0">Your form</label><input type="text" id="of0" data-q="Other form: its name." placeholder="e.g. Fairy tale retelling"></div>
+          <div class="fld"><label for="of1">Thing a reader expects #1</label><input type="text" id="of1" data-q="Other form: feature 1."></div>
+          <div class="fld"><label for="of2">Thing a reader expects #2</label><input type="text" id="of2" data-q="Other form: feature 2."></div>
+          <div class="fld"><label for="of3">Thing a reader expects #3</label><input type="text" id="of3" data-q="Other form: feature 3."></div>
+        </div>
+      </div>
+      <div class="featbox" id="featbox"></div>
+      <div class="donelooks" id="dl-p1"></div>
+      <div class="fb" id="fb-p1" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('p1')">That's my form →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ P2 main character ============ -->
+  <section class="stage" id="p2" data-title="Main character">
+    <button class="donebar" onclick="LL.toggle('p2')"><span class="tick">✓</span> <strong>Step 2: Main character</strong><span class="sum" id="sum-p2"></span></button>
+    <div class="stage-body">
+      <h2>Step 2: Your main character</h2>
+      <p>Short answers. A few words in each box is plenty. You are collecting ideas, not writing sentences yet.</p>
+      <div class="model"><p class="lab">Example from a different story (don't copy it)</p>
+        <b>Marisol</b>, 15, the second-fastest swimmer on her team. <b>Wants:</b> her relay spot back. <b>Struggles with:</b> she won't ask for help. <b>Detail:</b> chews her goggle strap. <b>Talks:</b> short sentences, jokes when she's nervous.</div>
+      <div class="grid2">
+        <div class="fld"><label for="c1name">Name</label><input type="text" id="c1name" data-q="Main character: name."></div>
+        <div class="fld"><label for="c1who">Age, and who they are</label><input type="text" id="c1who" data-q="Main character: age and who they are." placeholder="e.g. 16, a lighthouse keeper's daughter"></div>
+        <div class="fld"><label for="c1want">Wants…</label><input type="text" id="c1want" data-q="Main character: what they want." placeholder="what they're after"></div>
+        <div class="fld"><label for="c1flaw">Is afraid of, or struggles with…</label><input type="text" id="c1flaw" data-q="Main character: fear or flaw." placeholder="what gets in their own way"></div>
+        <div class="fld"><label for="c1detail">One detail a reader could see</label><input type="text" id="c1detail" data-q="Main character: one visible detail." placeholder="a habit, a scar, a jacket"></div>
+        <div class="fld"><label for="c1voice">How they talk</label><input type="text" id="c1voice" data-q="Main character: how they talk." placeholder="fast? quiet? sarcastic?"></div>
+      </div>
+      <p class="nospell">Spelling doesn't count in the plan. You can say any answer out loud and your teacher will type it.</p>
+      <div class="donelooks" id="dl-p2"></div>
+      <div class="fb" id="fb-p2" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('p2')">That's my main character →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ P3 other characters ============ -->
+  <section class="stage" id="p3" data-title="Other characters">
+    <button class="donebar" onclick="LL.toggle('p3')"><span class="tick">✓</span> <strong>Step 3: Other characters</strong><span class="sum" id="sum-p3"></span></button>
+    <div class="stage-body">
+      <h2>Step 3: Who else is in the story?</h2>
+      <p>Your main character needs at least <strong>one person to talk to, or argue with</strong>. That is where your dialogue comes from. A second extra character is optional.</p>
+      <div class="model"><p class="lab">Example</p><b>Coach Reyes</b>, Marisol's coach. <b>Wants:</b> her to rest her shoulder. <b>Talks:</b> calm, answers a question with a question.</div>
+      <h3>Character 2</h3>
+      <div class="grid2">
+        <div class="fld"><label for="c2name">Name</label><input type="text" id="c2name" data-q="Character 2: name."></div>
+        <div class="fld"><label for="c2rel">Who they are to your main character</label><input type="text" id="c2rel" data-q="Character 2: who they are to the main character." placeholder="sister, rival, stranger…"></div>
+        <div class="fld"><label for="c2want">Wants…</label><input type="text" id="c2want" data-q="Character 2: what they want."></div>
+        <div class="fld"><label for="c2voice">How they talk</label><input type="text" id="c2voice" data-q="Character 2: how they talk."></div>
+      </div>
+      <h3>Character 3 <span style="font-weight:400;color:var(--soft)">(optional)</span></h3>
+      <div class="grid2">
+        <div class="fld"><label for="c3name">Name</label><input type="text" id="c3name" data-q="Character 3 (optional): name."></div>
+        <div class="fld"><label for="c3rel">Who they are</label><input type="text" id="c3rel" data-q="Character 3 (optional): who they are."></div>
+      </div>
+      <div class="donelooks" id="dl-p3"></div>
+      <div class="fb" id="fb-p3" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('p3')">That's everyone →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ P4 setting ============ -->
+  <section class="stage" id="p4" data-title="Setting">
+    <button class="donebar" onclick="LL.toggle('p4')"><span class="tick">✓</span> <strong>Step 4: Setting</strong><span class="sum" id="sum-p4"></span></button>
+    <div class="stage-body">
+      <h2>Step 4: Where and when</h2>
+      <div class="grid2">
+        <div class="fld"><label for="s_where">Where</label><input type="text" id="s_where" data-q="Setting: where." placeholder="a specific place, not just 'a town'"></div>
+        <div class="fld"><label for="s_when">When</label><input type="text" id="s_when" data-q="Setting: when." placeholder="year, season, time of day"></div>
+      </div>
+      <div class="fld"><label for="s_mood">How should this place make a reader feel? (the mood)</label><input type="text" id="s_mood" data-q="Setting: the mood." placeholder="tap one or type your own"></div>
+      <div class="tbank"><div class="tb" id="moods"></div></div>
+      <h3>Three things a reader will sense there</h3>
+      <p style="font-size:.92rem;margin:0 0 .5rem">Use <strong>at least two different senses</strong>. These become your imagery when you write.</p>
+      <div class="model" style="margin-bottom:.6rem"><p class="lab">Example</p><b>sound:</b> the pool filter humming like an old fridge</div>
+      <div class="sensrow"><select class="sel" id="sn1" data-q="Sense 1: which sense." aria-label="Sense 1"></select><div class="fld" style="margin:0"><input type="text" id="sv1" data-q="Sense 1: the detail." aria-label="Sense 1 detail"></div></div>
+      <div class="sensrow"><select class="sel" id="sn2" data-q="Sense 2: which sense." aria-label="Sense 2"></select><div class="fld" style="margin:0"><input type="text" id="sv2" data-q="Sense 2: the detail." aria-label="Sense 2 detail"></div></div>
+      <div class="sensrow"><select class="sel" id="sn3" data-q="Sense 3: which sense." aria-label="Sense 3"></select><div class="fld" style="margin:0"><input type="text" id="sv3" data-q="Sense 3: the detail." aria-label="Sense 3 detail"></div></div>
+      <div class="donelooks" id="dl-p4"></div>
+      <div class="fb" id="fb-p4" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('p4')">That's my setting →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ P5 conflict ============ -->
+  <section class="stage" id="p5" data-title="Central conflict">
+    <button class="donebar" onclick="LL.toggle('p5')"><span class="tick">✓</span> <strong>Step 5: Conflict</strong><span class="sum" id="sum-p5"></span></button>
+    <div class="stage-body">
+      <h2>Step 5: What's the problem?</h2>
+      <p><strong>Tap the kind of conflict</strong> your story has. Stories can have more than one; pick the main one.</p>
+      <div class="pgrid" id="conflicts"></div>
+      <p class="q"><strong>Q1.</strong> The conflict in one sentence. The first part is already filled in from Step 2, so finish the blank.</p>
+      <div class="abox"><p class="lab">The conflict</p><textarea id="cf_core" data-q="Q1. The central conflict in one sentence." rows="2"></textarea></div>
+      <p class="q"><strong>Q2.</strong> The conflict has to <strong>change or challenge</strong> your main character. How are they different by the end?</p>
+      <div class="abox"><p class="lab">How they change</p><textarea id="cf_change" data-q="Q2. How the conflict changes the main character." rows="2"></textarea></div>
+      <div class="model"><p class="lab">Example</p>Marisol wants her relay spot back, but her shoulder isn't healing and she won't tell anyone. At the start, Marisol hides everything. By the end, Marisol asks for help out loud.</div>
+      <div class="donelooks" id="dl-p5"></div>
+      <div class="fb" id="fb-p5" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('p5')">That's my conflict →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ P6 plot ============ -->
+  <section class="stage" id="p6" data-title="Plot outline">
+    <button class="donebar" onclick="LL.toggle('p6')"><span class="tick">✓</span> <strong>Step 6: Plot</strong><span class="sum" id="sum-p6"></span></button>
+    <div class="stage-body">
+      <h2>Step 6: Plan the plot, five parts</h2>
+      <p>Write <strong>one event per line</strong>, a few words each. These lines become your checklist when you write, so keep them short. Each dot on the arc turns green when its part is planned.</p>
+      <svg class="arc" id="arcsvg" viewBox="0 -16 520 186" role="img" aria-label="The plot arc: 1 exposition on the flat start, 2 rising action climbing, 3 climax at the peak, 4 falling action coming down, 5 resolution on the flat end."></svg>
+      <div id="plotslots"></div>
+      <div class="donelooks" id="dl-p6"></div>
+      <div class="fb" id="fb-p6" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('p6')">That's my plot →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ P7 theme + form ============ -->
+  <section class="stage" id="p7" data-title="Theme and form">
+    <button class="donebar" onclick="LL.toggle('p7')"><span class="tick">✓</span> <strong>Step 7: Theme and form</strong><span class="sum" id="sum-p7"></span></button>
+    <div class="stage-body">
+      <h2>Step 7: The message, and where your form shows up</h2>
+      <div class="guide"><p class="lab">Theme, in one minute</p>
+        <ul><li>A theme is a <strong>whole sentence about life</strong>, not one word. “Friendship” is a topic. “Real friends tell you what you don't want to hear” is a theme.</li>
+        <li>You plan it here, but you <strong>never write it into the story</strong>. The events should make a reader feel it on their own.</li></ul></div>
+      <p class="q"><strong>Q3.</strong> Your theme.</p>
+      <div class="abox"><p class="lab">Theme</p><textarea id="th_msg" data-q="Q3. Theme or central message." rows="2"></textarea></div>
+      <div class="grid2">
+        <div class="fld"><label for="th_where">Which part lets the reader feel it most?</label><select id="th_where" data-q="Theme: the part where the reader feels it."></select></div>
+        <div class="fld"><label for="th_how">What happens there that does it?</label><input type="text" id="th_how" data-q="Theme: what happens there."></div>
+      </div>
+      <h3>Where your form shows up</h3>
+      <p style="font-size:.92rem;margin:0 0 .5rem">Your story has to show <strong>all three</strong> of these. Pick the part where each one appears first, and say how in a few words.</p>
+      <div id="formties"></div>
+      <div class="donelooks" id="dl-p7"></div>
+      <div class="fb" id="fb-p7" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('p7')">Build my outline →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ P8 turn in outline ============ -->
+  <section class="stage" id="p8" data-title="Turn in your outline">
+    <button class="donebar" onclick="LL.toggle('p8')"><span class="tick">✓</span> <strong>Step 8: Outline turned in</strong><span class="sum" id="sum-p8"></span></button>
+    <div class="stage-body">
+      <h2>Step 8: Turn in your outline</h2>
+      <p>This is your planning organizer, built from your answers. Check it over, then copy it into the <strong>outline</strong> assignment in Canvas.</p>
+      <div class="donelooks" id="dl-p8"></div>
+      <div class="outlinebox" id="outlinebox"></div>
+      <div class="row">
+        <button class="btn big" id="copyOutline">📋 Copy my outline</button>
+        <button class="btn ghost" id="fixOutline">Something's wrong, let me fix it</button>
+      </div>
+      <div class="fb" id="outFb" role="status" aria-live="polite"></div>
+      <div class="preview" id="outPrev"><textarea id="outPrevText" readonly aria-label="Outline as plain text"></textarea>
+        <p class="tip">If the button didn't work, click in this box, press Ctrl+A, then Ctrl+C.</p></div>
+      <div class="fb" id="fb-p8" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('p8')">I turned it in. Start writing →</button></div>
+    </div>
+  </section>
+
+  <div class="phase">Write your story · one part at a time</div>
+
+  <details class="import" id="importBox">
+    <summary>Writing on a different computer? Paste your outline back in.</summary>
+    <p style="margin:.5rem 0 0">Copy your outline from your Canvas submission and paste it here. The machine reads it and fills your plan back in.</p>
+    <textarea id="importText" aria-label="Paste your outline here"></textarea>
+    <div class="row" style="margin:0"><button class="btn sm" id="importGo">Read my outline</button></div>
+    <div class="fb" id="importFb" role="status" aria-live="polite"></div>
+  </details>
+
+  <div class="storymap" id="storymap" aria-live="polite">
+    <h3>Your story map</h3>
+    <p class="tot" id="smTotal"></p>
+    <svg id="smBars" viewBox="0 0 560 168" width="100%" role="img" aria-label="Words written in each of the five parts, against each part's target band."></svg>
+    <div class="rubric" id="smRubric"></div>
+  </div>
+
+  <section class="stage" id="w1" data-title="Write the exposition">
+    <button class="donebar" onclick="LL.toggle('w1')"><span class="tick">✓</span> <strong>Part 1: Exposition</strong><span class="sum" id="sum-w1"></span></button>
+    <div class="stage-body" id="body-w1"></div>
+  </section>
+  <section class="stage" id="w2" data-title="Write the rising action">
+    <button class="donebar" onclick="LL.toggle('w2')"><span class="tick">✓</span> <strong>Part 2: Rising action</strong><span class="sum" id="sum-w2"></span></button>
+    <div class="stage-body" id="body-w2"></div>
+  </section>
+  <section class="stage" id="w3" data-title="Write the climax">
+    <button class="donebar" onclick="LL.toggle('w3')"><span class="tick">✓</span> <strong>Part 3: Climax</strong><span class="sum" id="sum-w3"></span></button>
+    <div class="stage-body" id="body-w3"></div>
+  </section>
+  <section class="stage" id="w4" data-title="Write the falling action">
+    <button class="donebar" onclick="LL.toggle('w4')"><span class="tick">✓</span> <strong>Part 4: Falling action</strong><span class="sum" id="sum-w4"></span></button>
+    <div class="stage-body" id="body-w4"></div>
+  </section>
+  <section class="stage" id="w5" data-title="Write the resolution">
+    <button class="donebar" onclick="LL.toggle('w5')"><span class="tick">✓</span> <strong>Part 5: Resolution</strong><span class="sum" id="sum-w5"></span></button>
+    <div class="stage-body" id="body-w5"></div>
+  </section>
+
+  <div class="phase">Revise, then turn it in</div>
+
+  <section class="stage" id="r1" data-title="Revise and edit">
+    <button class="donebar" onclick="LL.toggle('r1')"><span class="tick">✓</span> <strong>Revise and edit</strong><span class="sum" id="sum-r1"></span></button>
+    <div class="stage-body">
+      <h2>Revise and edit</h2>
+      <p>The checker reads your whole story and points at things worth a second look. It can be wrong, so you decide. Tap <strong>Go to it</strong> to open that part, fix it, then come back and press <strong>Check again</strong>.</p>
+      <div class="row"><button class="btn sm" id="recheck">↻ Check again</button></div>
+      <div id="checks"></div>
+      <h3>Your editing checklist</h3>
+      <p style="font-size:.92rem;margin:0 0 .5rem">Tick each one when you've done it. <strong>Read the story out loud once</strong>: your ear catches what your eyes skip.</p>
+      <div class="revlist" id="revlist"></div>
+      <div class="fb" id="fb-r1" role="status" aria-live="polite"></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('r1')">My story is ready →</button></div>
+    </div>
+  </section>
+
+  <section class="stage" id="turnin">
+    <div class="stage-body" style="background:none;border:0;padding:0">
+      <div class="turnin">
+        <h2>Your story</h2>
+        <p class="lede">All five parts, merged. Click into it and change any word before you copy it.</p>
+        <div class="meta">
+          <div class="fld"><label for="mName">Your name</label><input type="text" id="mName"></div>
+          <div class="fld"><label for="mTeacher">Teacher</label><input type="text" id="mTeacher"></div>
+          <div class="fld"><label for="mCourse">Course</label><input type="text" id="mCourse" value="Honors English 10A"></div>
+          <div class="fld"><label for="mDate">Date</label><input type="text" id="mDate"></div>
+        </div>
+        <div class="fld"><label for="mTitle">Your story's title</label><input type="text" id="mTitle" placeholder="a title that hints, without giving the ending away"></div>
+        <div class="row" style="margin:.6rem 0 .4rem"><button class="btn" id="rebuild">↻ Build it / rebuild it</button></div>
+        <div class="paperbox" id="paperbox" contenteditable="true" spellcheck="true" aria-label="Your story, editable"></div>
+        <p class="wcount" id="wcount"></p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy my story</button>
+          <button class="btn ghost" id="showPrev">Show me the plain text</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview"><textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, press Ctrl+A, then Ctrl+C.</p></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Step 1: Literary form", "questions": ["Pick one of eleven forms (or Other, teacher-approved); each card lists three features the story must show. True-story toggle points to Realism or Coming-of-Age."] },
+  { "title": "Steps 2–3: Characters", "questions": ["Main character: name, age and role, want, fear or flaw, one visible detail, how they talk.", "Character 2: name, relationship, want, how they talk. Character 3 optional."] },
+  { "title": "Step 4: Setting", "questions": ["Where, when, mood, and three sensory details using at least two senses."] },
+  { "title": "Step 5: Conflict", "questions": ["Pick the conflict type (person vs. self, person, society, nature, technology, supernatural).", "Q1. The conflict in one sentence (stem prefilled from the character).", "Q2. How the conflict changes the main character."] },
+  { "title": "Step 6: Plot", "questions": ["One event per line for exposition, rising action (two or more), climax, falling action and resolution."] },
+  { "title": "Step 7: Theme and form", "questions": ["Q3. Theme as a full sentence; the part where the reader feels it and what happens there.", "For each of the form's three features: the part it shows up in and how."] },
+  { "title": "Step 8: Outline", "questions": ["The planning organizer assembled and copied into the outline assignment."] },
+  { "title": "Write: five parts", "questions": ["Exposition, rising action, climax, falling action, resolution, each written over her own [PLAN] beats, with a word band (1,000–1,200 total), a guide, a grammar card (appositive, participial phrase, absolute phrase, dialogue punctuation) and a transition bank.", "Each part: tag characterization methods, senses, grammar moves and form features used."] },
+  { "title": "Revise", "questions": ["Automatic checks: sentence variety, dialogue punctuation, capitalization, weak and repeated words, a stated moral.", "Tick the eight Step 4 items: organization, sentence variety, grammar, punctuation, spelling, capitalization, transitions, word choice."] },
+  { "title": "Turn in", "questions": ["Story merged with heading and title, editable, one button copies it into a Canvas Text Submission."] }
+]
+</script>
+<script>
+/* ============================================================
+   CONTENT — swap these for another narrative task.
+   ============================================================ */
+const GOAL = { min:1000, max:1200 };
+const BLANK = '____';
+const SENSES = ['sight','sound','smell','touch','taste'];
+const MOODS = ['tense','eerie','lonely','cozy','hopeful','chaotic','peaceful','strange'];
+
+const FORMS = [
+  { k:'satire',   t:'Satire',            s:'Mocks something real by blowing it up.',
+    f:['Exaggeration of a real flaw in people or society','Irony: saying one thing, meaning the opposite','A real-world target the reader recognizes'] },
+  { k:'allegory', t:'Allegory',          s:'Characters and places stand for bigger ideas.',
+    f:['Characters or places that stand for ideas','A hidden second meaning under the plot','A lesson the whole story carries (never stated)'] },
+  { k:'magreal',  t:'Magical Realism',   s:'One impossible thing in a normal world.',
+    f:['One impossible thing in an everyday world','Characters treat the magic as normal','Realistic, ordinary detail all around it'] },
+  { k:'gothic',   t:'Gothic Literature', s:'Dread, darkness, and secrets.',
+    f:['Dread and suspense that build','A dark, decaying or isolated setting','The past or a secret coming back'] },
+  { k:'realism',  t:'Realism',           s:'Everyday people, real problems. True stories fit here.',
+    f:['Ordinary people and places','Believable cause and effect, no magic','An everyday problem taken seriously'] },
+  { k:'dystopia', t:'Dystopian Fiction', s:'A "perfect" society that isn\u2019t.',
+    f:['A society that looks controlled or perfect but isn\u2019t','Rules or technology that limit freedom','A character who starts to question it'] },
+  { k:'scifi',    t:'Science Fiction',   s:'What if this technology existed?',
+    f:['One new technology or scientific idea','How it changes people\u2019s lives','"What if" consequences followed logically'] },
+  { k:'histfic',  t:'Historical Fiction',s:'A real time and place in the past.',
+    f:['A real time and place, accurately shown','Period details: clothes, tools, the way people talk','A character shaped by events of that time'] },
+  { k:'fantasy',  t:'Fantasy',           s:'A world with its own rules or magic.',
+    f:['A world with its own rules or magic system','Creatures or powers that don\u2019t exist','A quest, a test or a prophecy'] },
+  { k:'mystery',  t:'Mystery',           s:'A question the reader needs answered.',
+    f:['A question or crime the reader wants solved','Clues planted early','A reveal that makes sense looking back'] },
+  { k:'coming',   t:'Coming-of-Age',     s:'Growing up, one moment at a time. True stories fit here.',
+    f:['A young main character','A moment that forces them to grow up','A change in how they see themselves or the world'] },
+  { k:'other',    t:'Other',             s:'Your idea. Needs your teacher\u2019s OK first.', f:null }
+];
+
+const CONFLICTS = [
+  { k:'self',    t:'Person vs. Self',         s:'fighting a fear, a habit, a choice' },
+  { k:'person',  t:'Person vs. Person',       s:'against another character' },
+  { k:'society', t:'Person vs. Society',      s:'against rules, a group, a system' },
+  { k:'nature',  t:'Person vs. Nature',       s:'storms, wilderness, illness, animals' },
+  { k:'tech',    t:'Person vs. Technology',   s:'a machine, an app, an invention' },
+  { k:'super',   t:'Person vs. Supernatural', s:'ghosts, curses, magic, fate' }
+];
+
+/* word bands add up to GOAL: 1,000 at the bottoms, 1,200 at the tops */
+const PLOT = [
+  { k:'expo',   st:'w1', t:'Exposition',     min:200, max:240, gram:'appositive',
+    job:'Who, where, what is normal, and the first hint of trouble.',
+    stem:'{N} is ____ (where, doing what).\nThe first hint of trouble: ____' },
+  { k:'rise',   st:'w2', t:'Rising action',  min:320, max:380, gram:'participial',
+    job:'Two or three events that make the problem worse. Each one raises the stakes.',
+    stem:'First, ____\nThen, ____\nWorst of all, ____' },
+  { k:'climax', st:'w3', t:'Climax',         min:220, max:260, gram:'absolute',
+    job:'The point of no return. Your main character makes a choice, and we watch them make it.',
+    stem:'{N} has to choose: ____\n{N} chooses to ____' },
+  { k:'fall',   st:'w4', t:'Falling action', min:140, max:170, gram:'dialogue',
+    job:'What happens right after the choice. The consequences land.',
+    stem:'Right after, ____' },
+  { k:'res',    st:'w5', t:'Resolution',     min:120, max:150, gram:'any',
+    job:'The new normal. Show how your main character has changed.',
+    stem:'In the end, {N} ____' }
+];
+
+const GUIDES = {
+  expo:  ['<strong>Start inside a scene</strong>, with someone doing something. Not a summary, and not a question to the reader.',
+          'Show your main character through <strong>one action and one line of dialogue</strong> before you explain anything about them.',
+          'Use one or two of your <strong>sense details</strong> from Step 4 to set the mood.',
+          'End the part on the <strong>first hint of trouble</strong>.'],
+  rise:  ['<strong>Each event makes things harder</strong> than the one before. If an event could be cut and nothing changes, cut it.',
+          'Let the characters <strong>talk</strong>. What someone says, and doesn\u2019t say, shows who they are.',
+          'Give the reader at least one <strong>thought</strong>: what your main character thinks but won\u2019t say out loud.'],
+  climax:['<strong>Slow down.</strong> This part gets more words, not fewer. Write it as a scene, moment by moment, never as a summary.',
+          'Your main character makes the choice <strong>themselves</strong>. Nobody rescues them.',
+          'Use <strong>at least two senses</strong>. What do they see, hear, feel, right then?'],
+  fall:  ['Show <strong>what the choice cost</strong>, or what it won.',
+          'Let another character <strong>react in dialogue</strong>.',
+          'Tie off one loose thread from the rising action.'],
+  res:   ['<strong>Show</strong> how your main character changed. Echo something from the first page and let it be different now.',
+          'End on an <strong>image or a line of dialogue</strong>, not on the moral. Never write “I learned that…”.',
+          'Your theme should be something the reader <strong>feels</strong> here, without being told.']
+};
+
+/* the four-part card: what it is, why a story needs it, ask yourself, the move */
+const GRAMMAR = {
+  appositive: { t:'Appositive phrase', tag:'Appositive',
+    what:'A noun phrase set right beside a name to rename it, with commas around it.',
+    why:'It introduces a character without stopping the story for a separate “description sentence.” The label can also show how the narrator feels about them.',
+    ask:['Did I write a short sentence whose only job is to say who someone is?','Could a name get a label that shows who they are in a few words?'],
+    move:'Put the phrase straight after the name. Commas on both sides, or one comma if it ends the sentence.',
+    bad:'Mr. Hale was the janitor. He unlocked the gym at six.',
+    ex:'Mr. Hale, <mark>the only janitor who whistled</mark>, unlocked the gym at six.' },
+  participial: { t:'Participial phrase', tag:'Participial',
+    what:'A phrase built on an <em>-ing</em> or <em>-ed</em> verb that describes a noun.',
+    why:'A character can do two things in one sentence: the action, and how. Rising action moves faster and shows instead of tells.',
+    ask:['Do three of my sentences in a row start with “She ___ed”?','Is there a small action in its own sentence that could ride along with a bigger one?'],
+    move:'Open the sentence with the phrase and a comma. The noun right after the comma must be the one doing it.',
+    bad:'Gripping the railing, the stairs creaked under her. (The stairs aren\u2019t gripping anything.)',
+    ex:'<mark>Gripping the railing</mark>, Nora counted the steps down to the cellar.' },
+  absolute: { t:'Absolute phrase', tag:'Absolute',
+    what:'A noun plus an <em>-ing</em> or <em>-ed</em> word, attached to a whole sentence: <em>her hands shaking</em>. It has its own subject but no full verb.',
+    why:'It freezes the camera on one image while the main action happens. That is exactly what a climax needs: slow it down and make it vivid.',
+    ask:['At the biggest moment, did I rush through in summary?','What is one body part, object or sound doing right then?'],
+    move:'Add <em>noun + -ing/-ed word</em> to the front or the end of a sentence, set off with a comma.',
+    bad:'Nora opened the door. She was scared.',
+    ex:'<mark>Her heart pounding</mark>, Nora pulled the door open, <mark>the hinges shrieking in the dark</mark>.' },
+  dialogue: { t:'Dialogue punctuation', tag:null,
+    what:'The rules that make speech readable. The rubric checks these.',
+    why:'Wrong punctuation makes a reader lose track of who is talking, and good dialogue is half your characterization grade.',
+    ask:['Is the comma or end mark <strong>inside</strong> the closing quotation mark?','Did a new speaker get a new paragraph?'],
+    move:'<span class="ex">“Stop<mark>,</mark>” she said.</span><span class="ex">She said<mark>,</mark> “Stop.”</span><span class="ex">“Stop<mark>!</mark>” she yelled. <span class="bad">(! or ? replaces the comma; “she” stays lowercase)</span></span><span class="ex">“If you go<mark>,</mark>” he said<mark>,</mark> “don\u2019t come back.”</span>New speaker, new paragraph: press Enter.',
+    bad:null, ex:null }
+};
+
+const TRANSITIONS = {
+  expo:  ['Every morning,','On the day it started,','For as long as she could remember,','That fall,','By six o\u2019clock,'],
+  rise:  ['By the next morning,','Before anyone could answer,','Later that night,','That was when','Even worse,','Meanwhile,'],
+  climax:['In that moment,','Without thinking,','For one long second,','Just as','Then, all at once,'],
+  fall:  ['Afterward,','When it was over,','By the time','Slowly,','For the rest of the night,'],
+  res:   ['Weeks later,','Now,','From then on,','The next time','Years later,']
+};
+
+const CHAR_TAGS = [['dialogue','Dialogue'],['action','Actions'],['thought','Thoughts'],['interaction','Interactions'],['description','Description']];
+
+const REV_ITEMS = [
+  ['org','Organization','All five parts are there, in order, and each one does its job.'],
+  ['variety','Sentence variety','A mix of short and long sentences; no three in a row starting the same way.'],
+  ['grammar','Grammar','Verb tense stays the same (all past or all present); subjects and verbs agree.'],
+  ['punct','Punctuation','Dialogue follows the card; a comma after an opening phrase.'],
+  ['spell','Spelling','One read just for spelling. Right-click the red underlines.'],
+  ['caps','Capitalization','Every sentence, every name and “I” start with a capital.'],
+  ['trans','Transitions','Each part opens with a time or cause link, so a reader never gets lost.'],
+  ['word','Word choice','Weak words (very, really, just, got) swapped for exact ones.']
+];
+
+/* ---------------- state ---------------- */
+let FORM = null, CONFLICT = null;
+const blankTags = () => ({ c:[], s:[], g:[], f:[] });
+let TAGS = { w1:blankTags(), w2:blankTags(), w3:blankTags(), w4:blankTags(), w5:blankTags() };
+let BEATS_OK = { w1:[], w2:[], w3:[], w4:[], w5:[] };
+let REV = {};
+
+/* ---------------- helpers ---------------- */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const $ = id => document.getElementById(id);
+const v = id => { const el = $(id); return el ? String(el.value).trim() : ''; };
+const lc = s => s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+const words = s => (s.trim().match(/[A-Za-z0-9\u00C0-\u024F'\u2019-]+/g) || []).length;
+const hasBlank = s => !s || s.indexOf(BLANK) > -1;
+const nm = () => v('c1name') || 'your main character';
+const partOf = st => PLOT.find(p => p.st === st);
+const partK = k => PLOT.find(p => p.k === k);
+function say(stage, kind, head, body){
+  const fb = $('fb-' + stage); if (!fb) return;
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+function clearSay(stage){ const fb = $('fb-' + stage); if (fb) fb.className = 'fb'; }
+const planOnly = s => !s.replace(/\[PLAN:[^\]]*\]/g, '').trim();
+function setAuto(el, val){
+  if (!el) return;
+  const cur = el.value.trim();
+  if (!cur || cur === (el.dataset.auto || '').trim() || (cur.indexOf('[PLAN:') > -1 && planOnly(cur))) el.value = val;
+  el.dataset.auto = val;
+}
+function chipHtml(attr, key, title, sub, on){
+  return '<button type="button" class="chip' + (on ? ' on' : '') + '" ' + attr + '="' + key + '"><span><span class="ttl">' +
+    esc(title) + '</span>' + (sub ? '<span class="plain">' + esc(sub) + '</span>' : '') + '</span></button>';
+}
+function dl(id, items){
+  const box = $('dl-' + id); if (!box) return;
+  box.innerHTML = '<p class="lab">Done looks like</p><ul>' + items.map(([ok, t]) =>
+    '<li class="' + (ok ? 'ok' : '') + '"><span class="mk" aria-hidden="true">' + (ok ? '✓' : '☐') + '</span><span>' + t + '</span></li>').join('') + '</ul>';
+}
+function formObj(){ return FORMS.find(f => f.k === FORM) || null; }
+function formName(){ return FORM === 'other' ? (v('of0') || 'Other') : (formObj() ? formObj().t : ''); }
+function feats(){
+  if (!FORM) return [];
+  if (FORM === 'other') return [1,2,3].map(i => v('of' + i) || '(name this feature in Step 1)');
+  return formObj().f;
+}
+const beats = k => v('pl-' + k).split('\n').map(s => s.trim()).filter(Boolean);
+const partSelect = () => '<option value="">Pick a part…</option>' + PLOT.map(p => '<option value="' + p.k + '">' + p.t + '</option>').join('');
+
+/* ---------------- theme toggle ---------------- */
+(function(){
+  const b = $('themetog'), root = document.documentElement;
+  const light = () => root.getAttribute('data-theme') === 'light';
+  const paint = () => { b.textContent = light() ? '☾' : '☀'; b.title = b.ariaLabel = light() ? 'Switch to the dark page' : 'Switch to the light page'; };
+  b.addEventListener('click', () => {
+    const was = light();
+    if (was) root.removeAttribute('data-theme'); else root.setAttribute('data-theme','light');
+    try { localStorage.setItem('ll-theme', was ? 'dark' : 'light'); } catch(e){}
+    paint();
+  });
+  paint();
+})();
+
+/* ---------------- Step 1: form ---------------- */
+function renderForms(){
+  $('forms').innerHTML = FORMS.map(f => chipHtml('data-f', f.k, f.t, f.s, f.k === FORM)).join('');
+  $('forms').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { FORM = b.dataset.f; clearSay('p1'); afterForm(); }));
+  $('otherWrap').style.display = FORM === 'other' ? '' : 'none';
+  const fb = $('featbox');
+  if (FORM){
+    const ts = $('trueStory').checked && !['realism','coming'].includes(FORM);
+    fb.className = 'featbox show';
+    fb.innerHTML = '<strong>' + esc(formName()) + ': your story has to show all three of these.</strong><ul>' +
+      feats().map(f => '<li>' + esc(f) + '</li>').join('') + '</ul>' +
+      (ts ? '<p style="margin:.5rem 0 0">You ticked <em>true story</em>. A true story fits <strong>Realism</strong> or <strong>Coming-of-Age</strong> best. Check with your teacher before using this form for a true story.</p>' : '');
+  } else fb.className = 'featbox';
+}
+function afterForm(){ renderForms(); renderFormTies(); refreshAll(); saveBank(); }
+$('trueStory').addEventListener('change', () => { renderForms(); refreshAll(); saveBank(); });
+
+/* ---------------- Step 4: senses and moods ---------------- */
+['sn1','sn2','sn3'].forEach((id, i) => {
+  $(id).innerHTML = '<option value="">sense…</option>' + SENSES.map(s => '<option>' + s + '</option>').join('');
+});
+$('moods').innerHTML = MOODS.map(m => '<button type="button" data-m="' + m + '">' + m + '</button>').join('');
+$('moods').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  $('s_mood').value = b.dataset.m; $('s_mood').dispatchEvent(new Event('input', { bubbles:true }));
+}));
+
+/* ---------------- Step 5: conflict ---------------- */
+function renderConflicts(){
+  $('conflicts').innerHTML = CONFLICTS.map(c => chipHtml('data-c', c.k, c.t, c.s, c.k === CONFLICT)).join('');
+  $('conflicts').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { CONFLICT = b.dataset.c; clearSay('p5'); renderConflicts(); refreshAll(); saveBank(); }));
+}
+
+/* ---------------- Step 6: plot ---------------- */
+function buildPlot(){
+  $('plotslots').innerHTML = PLOT.map((p, i) =>
+    '<div class="plotslot"><h3>' + (i + 1) + '. ' + p.t + '</h3><p class="job">' + esc(p.job) + '</p>' +
+    '<div class="abox"><p class="lab">' + p.t + (p.k === 'rise' ? ' (two or more lines)' : '') + '</p>' +
+    '<textarea id="pl-' + p.k + '" data-q="Plot: ' + p.t + ', one event per line." rows="' + (p.k === 'rise' ? 4 : 2) + '"></textarea></div></div>').join('');
+}
+function renderArc(){
+  const pts = [[50,128],[170,82],[290,24],[400,82],[490,128]];
+  let s = '<path d="M14,128 L50,128 L290,24 L460,124 L506,128" fill="none" stroke="var(--accent-line)" stroke-width="4" stroke-linejoin="round"/>';
+  PLOT.forEach((p, i) => {
+    const ok = beats(p.k).length && !hasBlank(v('pl-' + p.k)) && (p.k !== 'rise' || beats(p.k).length >= 2);
+    const [x, y] = pts[i];
+    s += '<circle cx="' + x + '" cy="' + y + '" r="13" fill="' + (ok ? 'var(--calm)' : 'var(--card)') + '" stroke="' + (ok ? 'var(--calm)' : 'var(--accent)') + '" stroke-width="2.5"/>' +
+         '<text x="' + x + '" y="' + (y + 5) + '" text-anchor="middle" font-size="14" font-weight="700" fill="' + (ok ? 'var(--on-accent)' : 'var(--ink)') + '">' + (ok ? '✓' : i + 1) + '</text>' +
+         '<text x="' + x + '" y="' + (i === 2 ? y - 18 : y + 30) + '" text-anchor="middle" font-size="13" fill="var(--ink)">' + p.t + '</text>';
+  });
+  $('arcsvg').innerHTML = s;
+}
+
+/* ---------------- Step 7: theme + form ties ---------------- */
+function buildFormTies(){
+  $('th_where').innerHTML = partSelect();
+  $('formties').innerHTML = [0,1,2].map(i =>
+    '<div class="pin" style="margin:0 0 .6rem"><p class="lab" id="ftl' + i + '">Feature ' + (i + 1) + '</p><div class="grid2">' +
+    '<div class="fld"><label for="ftp' + i + '">Shows up first in</label><select id="ftp' + i + '" data-q="Form feature ' + (i + 1) + ': the part it shows up in.">' + partSelect() + '</select></div>' +
+    '<div class="fld"><label for="fth' + i + '">How, in a few words</label><input type="text" id="fth' + i + '" data-q="Form feature ' + (i + 1) + ': how it shows."></div></div></div>').join('');
+}
+function renderFormTies(){
+  const f = feats();
+  [0,1,2].forEach(i => { $('ftl' + i).textContent = 'Feature ' + (i + 1) + (f[i] ? ': ' + f[i] : ' (pick a form in Step 1)'); });
+}
+
+/* ---------------- stems ---------------- */
+function fillStems(){
+  const N = cap(nm());
+  setAuto($('cf_core'), N + ' wants ' + (lc(v('c1want')) || BLANK) + ', but ' + BLANK + '.');
+  setAuto($('cf_change'), 'At the start, ' + N + ' ' + BLANK + '. By the end, ' + N + ' ' + BLANK + '.');
+  setAuto($('th_msg'), 'This story shows that ' + BLANK + '.');
+  PLOT.forEach(p => setAuto($('pl-' + p.k), p.stem.replace(/\{N\}/g, N)));
+}
+
+/* ---------------- done-looks-like for the plan ---------------- */
+function planChecks(){
+  const s = [v('sn1'), v('sn2'), v('sn3')].filter(Boolean);
+  const otherOk = FORM !== 'other' || (v('of0') && v('of1') && v('of2') && v('of3'));
+  return {
+    p1: [[!!FORM, '<strong>One form picked.</strong>'], [!!(FORM && otherOk), FORM === 'other' ? '<strong>Your form and its three features named</strong>, and your teacher said yes.' : '<strong>You read its three features.</strong> (They show up below the cards.)']],
+    p2: [[!!(v('c1name') && v('c1who')), '<strong>A name</strong>, an age, and who they are.'],
+         [!!(v('c1want') && v('c1flaw')), '<strong>What they want</strong>, and what gets in their way.'],
+         [!!(v('c1detail') && v('c1voice')), '<strong>One detail</strong> a reader could see, and <strong>how they talk</strong>.']],
+    p3: [[!!(v('c2name') && v('c2rel') && v('c2want')), '<strong>At least one other character</strong>: name, who they are, what they want.']],
+    p4: [[!!(v('s_where') && v('s_when')), '<strong>Where and when</strong>, specific.'], [!!v('s_mood'), '<strong>A mood.</strong>'],
+         [!!(v('sv1') && v('sv2') && v('sv3') && s.length === 3), '<strong>Three sense details</strong>, each with its sense picked.'],
+         [new Set(s).size >= 2, '<strong>At least two different senses.</strong>']],
+    p5: [[!!CONFLICT, '<strong>A conflict type</strong> picked.'], [!hasBlank(v('cf_core')), '<strong>Q1</strong>: the conflict, no blanks left.'],
+         [!hasBlank(v('cf_change')), '<strong>Q2</strong>: how your main character changes, no blanks left.']],
+    p6: PLOT.map(p => [beats(p.k).length >= (p.k === 'rise' ? 2 : 1) && !hasBlank(v('pl-' + p.k)),
+          '<strong>' + p.t + '</strong>' + (p.k === 'rise' ? ': two or more events.' : ': at least one event.')]),
+    p7: [[!hasBlank(v('th_msg')), '<strong>Q3</strong>: your theme as a full sentence.'], [!!(v('th_where') && v('th_how')), '<strong>Where</strong> the reader feels it, and what happens there.'],
+         [[0,1,2].every(i => v('ftp' + i) && v('fth' + i)), '<strong>All three form features</strong> placed in a part, with a few words on how.']]
+  };
+}
+const ORGANIZER = [
+  ['Main characters', ['p2','p3']], ['Setting', ['p4']], ['Central conflict', ['p5']],
+  ['Plot outline: beginning, rising action, climax, falling action, resolution', ['p6']],
+  ['Theme or central message', ['p7a']], ['How your literary form is incorporated', ['p1','p7b']]
+];
+function refreshDL(){
+  const c = planChecks();
+  ['p1','p2','p3','p4','p5','p6','p7'].forEach(id => dl(id, c[id]));
+  const ok = id => id === 'p7a' ? c.p7[0][0] && c.p7[1][0] : id === 'p7b' ? c.p7[2][0] : c[id].every(x => x[0]);
+  dl('p8', ORGANIZER.map(([t, ids]) => [ids.every(ok), '<strong>' + t + '</strong>']));
+}
+
+/* ---------------- Step 8: the outline ---------------- */
+function outlineLines(){
+  const L = [], f = feats(), cf = CONFLICTS.find(c => c.k === CONFLICT);
+  L.push('NARRATIVE PLANNING ORGANIZER', '');
+  L.push('Literary form: ' + formName(), 'True story: ' + ($('trueStory').checked ? 'yes' : 'no'));
+  f.forEach((x, i) => L.push('Form feature ' + (i + 1) + ': ' + x));
+  L.push('', 'MAIN CHARACTERS',
+    'Main character: ' + v('c1name'), 'Who they are: ' + v('c1who'), 'Wants: ' + v('c1want'),
+    'Fear or flaw: ' + v('c1flaw'), 'Visible detail: ' + v('c1detail'), 'How they talk: ' + v('c1voice'),
+    'Character 2: ' + v('c2name'), 'Character 2 is: ' + v('c2rel'), 'Character 2 wants: ' + v('c2want'), 'Character 2 talks: ' + v('c2voice'));
+  if (v('c3name')) L.push('Character 3: ' + v('c3name'), 'Character 3 is: ' + v('c3rel'));
+  L.push('', 'SETTING', 'Where: ' + v('s_where'), 'When: ' + v('s_when'), 'Mood: ' + v('s_mood'));
+  [1,2,3].forEach(i => L.push('Sense ' + i + ' (' + (v('sn' + i) || 'sense') + '): ' + v('sv' + i)));
+  L.push('', 'CENTRAL CONFLICT', 'Conflict type: ' + (cf ? cf.t : ''), 'Conflict: ' + v('cf_core'), 'How the main character changes: ' + v('cf_change'));
+  L.push('', 'PLOT OUTLINE');
+  PLOT.forEach(p => L.push(p.t + ': ' + beats(p.k).join(' | ')));
+  const tw = partK(v('th_where'));
+  L.push('', 'THEME', 'Theme: ' + v('th_msg'), 'Reader feels it in: ' + (tw ? tw.t : ''), 'How: ' + v('th_how'));
+  L.push('', 'HOW MY FORM SHOWS UP');
+  [0,1,2].forEach(i => { const p = partK(v('ftp' + i)); L.push('Feature ' + (i + 1) + ' → ' + (p ? p.t : '?') + ': ' + v('fth' + i)); });
+  return L;
+}
+function renderOutline(){ $('outlinebox').textContent = outlineLines().join('\n'); }
+async function copyRich(html, plain, prevBox, prevText){
+  $(prevText).value = plain;
+  let ok = false;
+  try {
+    if (navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html':new Blob([html],{type:'text/html'}), 'text/plain':new Blob([plain],{type:'text/plain'}) })]); ok = true;
+    } else if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(plain); ok = true; }
+  } catch(e){ ok = false; }
+  if (!ok){ try { const ta = $(prevText); $(prevBox).classList.add('show'); ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch(e){ ok = false; } }
+  return ok;
+}
+function fbBox(id, kind, head, body){ const b = $(id); b.className = 'fb show ' + kind; b.innerHTML = '<span class="fb-head">' + head + '</span>' + body; }
+$('copyOutline').addEventListener('click', async () => {
+  renderOutline();
+  const lines = outlineLines();
+  const html = '<div style="font-family:Georgia,serif;font-size:12pt;line-height:1.6;">' + lines.map(l =>
+    !l ? '<br>' : /^[A-Z ]+$/.test(l) ? '<p style="margin:12pt 0 4pt;"><strong>' + esc(l) + '</strong></p>' : '<div>' + esc(l) + '</div>').join('') + '</div>';
+  const ok = await copyRich(html, lines.join('\n'), 'outPrev', 'outPrevText');
+  if (ok) fbBox('outFb','good','✓ Copied: your outline.','Go to the <strong>outline</strong> assignment in Canvas, click <strong>Text Submission</strong>, paste (Ctrl+V), and Submit. Then come back and press the green button.');
+  else { $('outPrev').classList.add('show'); fbBox('outFb','hint','Copy it by hand.','It is in the box below. Click in it, press <strong>Ctrl+A</strong>, then <strong>Ctrl+C</strong>.'); }
+});
+$('fixOutline').addEventListener('click', () => fbBox('outFb','hint','Fix it in its step.','Scroll up and tap the green bar of the step you want to change. It opens again. Your outline here updates by itself.'));
+
+/* ---------------- paste the outline back in ---------------- */
+function importOutline(text){
+  let n = 0;
+  const set = (id, val) => { const el = $(id); if (el && val){ el.value = val; el.dataset.auto = ''; n++; } };
+  const map = { 'main character':'c1name', 'who they are':'c1who', 'wants':'c1want', 'fear or flaw':'c1flaw', 'visible detail':'c1detail',
+    'how they talk':'c1voice', 'character 2':'c2name', 'character 2 is':'c2rel', 'character 2 wants':'c2want', 'character 2 talks':'c2voice',
+    'character 3':'c3name', 'character 3 is':'c3rel', 'where':'s_where', 'when':'s_when', 'mood':'s_mood',
+    'conflict':'cf_core', 'how the main character changes':'cf_change', 'theme':'th_msg', 'how':'th_how' };
+  text.split(/\r?\n/).forEach(line => {
+    const m = line.match(/^\s*([^:]+?):\s*(.*)$/); if (!m) return;
+    const key = m[1].trim().toLowerCase(), val = m[2].trim(); let r;
+    if (map[key]) return set(map[key], val);
+    if (key === 'literary form'){ const f = FORMS.find(x => x.t.toLowerCase() === val.toLowerCase()); if (f) FORM = f.k; else if (val){ FORM = 'other'; set('of0', val); } n++; return; }
+    if (key === 'true story'){ $('trueStory').checked = /^y/i.test(val); return; }
+    if ((r = key.match(/^form feature (\d)$/)) && FORM === 'other') return set('of' + r[1], val);
+    if ((r = key.match(/^sense (\d) \((\w+)\)$/))){ if (SENSES.includes(r[2])) set('sn' + r[1], r[2]); return set('sv' + r[1], val); }
+    if (key === 'conflict type'){ const c = CONFLICTS.find(x => x.t.toLowerCase() === val.toLowerCase()); if (c){ CONFLICT = c.k; n++; } return; }
+    if (key === 'reader feels it in'){ const p = PLOT.find(x => x.t.toLowerCase() === val.toLowerCase()); if (p) set('th_where', p.k); return; }
+    if ((r = key.match(/^feature (\d) → (.+)$/))){ const p = PLOT.find(x => x.t.toLowerCase() === r[2].trim().toLowerCase()); if (p) set('ftp' + (r[1] - 1), p.k); return set('fth' + (r[1] - 1), val); }
+    const p = PLOT.find(x => x.t.toLowerCase() === key); if (p) return set('pl-' + p.k, val.split(/\s*\|\s*/).join('\n'));
+  });
+  return n;
+}
+$('importGo').addEventListener('click', () => {
+  const n = importOutline(v('importText'));
+  if (n < 5){ fbBox('importFb','hint','That didn’t look like your outline.','Copy the whole outline from your Canvas submission, from “NARRATIVE PLANNING ORGANIZER” to the last line, and paste it again.'); return; }
+  renderForms(); renderConflicts(); renderFormTies(); refreshAll();
+  ['p1','p2','p3','p4','p5','p6','p7','p8'].forEach(id => LL.markDone(id));
+  LL.next(); saveBank();
+  document.querySelectorAll('[data-q]').forEach(el => el.dispatchEvent(new Event('input', { bubbles:true })));
+  fbBox('importFb','good','✓ Your plan is back.', n + ' answers read in. Start writing below.');
+});
+
+/* ---------------- writing stages ---------------- */
+function gcardHtml(g, label){
+  return '<div class="gcard">' + (label ? '<p class="lab">' + label + '</p>' : '') + '<h4>' + g.t + '</h4><dl>' +
+    '<dt>What it is</dt><dd>' + g.what + '</dd>' +
+    '<dt>Why a story needs it</dt><dd>' + g.why + '</dd>' +
+    '<dt>Ask yourself</dt><dd>' + g.ask.map(a => '• ' + a).join('<br>') + '</dd>' +
+    '<dt>The move</dt><dd>' + g.move +
+      (g.bad ? '<span class="ex bad">✗ ' + g.bad + '</span>' : '') + (g.ex ? '<span class="ex">✓ ' + g.ex + '</span>' : '') + '</dd>' +
+    '</dl></div>';
+}
+function buildWriteStages(){
+  PLOT.forEach((p, i) => {
+    const any = p.gram === 'any';
+    const g = any
+      ? '<div class="gcard"><p class="lab">Grammar move for this part</p><h4>Your pick: your favourite of the three, again</h4><p style="margin:0">An ending feels finished when its sentences feel built. Use at least one appositive, participial or absolute phrase here and tag it. All four cards are just below.</p></div>'
+      : gcardHtml(GRAMMAR[p.gram], 'Grammar move for this part');
+    const rest = Object.keys(GRAMMAR).filter(k => k !== p.gram).map(k => gcardHtml(GRAMMAR[k], '')).join('');
+    $('body-' + p.st).innerHTML =
+      '<h2>Part ' + (i + 1) + ': ' + p.t + '</h2>' +
+      '<p>' + esc(p.job) + ' <strong>Target: ' + p.min + '–' + p.max + ' words.</strong></p>' +
+      '<div class="pinned"><div class="pin" id="plan-' + p.st + '"></div><div class="pin" id="ctx-' + p.st + '"></div></div>' +
+      '<div class="guide"><p class="lab">How to write this part</p><ul>' + GUIDES[p.k].map(x => '<li>' + x + '</li>').join('') + '</ul></div>' + g +
+      '<details class="toolbox"><summary>' + (any ? 'All four grammar cards' : 'The other grammar cards') + '</summary>' + rest + '</details>' +
+      '<div class="tbank"><p class="lab">Transitions for this part · tap one to add it where your cursor is</p><div class="tb" id="tb-' + p.st + '">' +
+        TRANSITIONS[p.k].map(t => '<button type="button" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div></div>' +
+      '<p class="q"><strong>Write it.</strong> Your plan is already in the box as <strong>[PLAN: …]</strong> lines. Write over each one in full sentences. Press <strong>Enter</strong> to start a new paragraph, and start a new one every time someone new speaks.</p>' +
+      '<div class="abox big"><p class="lab">' + p.t + '</p><textarea id="tx-' + p.st + '" data-q="Story: ' + p.t + '." rows="12" spellcheck="true"></textarea></div>' +
+      '<p class="partcount" id="pc-' + p.st + '"></p>' +
+      '<p style="margin:0 0 .2rem"><strong>Tag what you used in this part.</strong> Tags light up your story map.</p><div class="tags" id="tags-' + p.st + '"></div>' +
+      '<p class="nospell">Spelling gets fixed on Day 3. Right now, just get it down. Stuck on a sentence? Say it out loud first.</p>' +
+      '<div class="fb" id="fb-' + p.st + '" role="status" aria-live="polite"></div>' +
+      '<div class="row"><button class="btn go" onclick="LL.finish(\'' + p.st + '\')">' + (i < 4 ? 'Done with this part →' : 'My draft is done →') + '</button></div>';
+    $('tb-' + p.st).querySelectorAll('button').forEach(b => {
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => insertAt($('tx-' + p.st), b.dataset.t + ' '));
+    });
+  });
+}
+function insertAt(ta, text){
+  const s = ta.selectionStart == null ? ta.value.length : ta.selectionStart, e = ta.selectionEnd == null ? s : ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = s + text.length;
+  ta.dispatchEvent(new Event('input', { bubbles:true }));
+}
+const storyText = st => v('tx-' + st).replace(/\[PLAN:[^\]]*\]/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+function li(lab, val){ return val ? '<li><strong>' + esc(lab) + ':</strong> ' + esc(val) + '</li>' : ''; }
+function renderPins(st){
+  const p = partOf(st), b = beats(p.k), f = feats();
+  let plan = '<p class="lab">Your plan for this part · tick as you write</p>' + (b.length ? b.map((x, i) =>
+    '<label class="beat' + (BEATS_OK[st].includes(i) ? ' ok' : '') + '"><input type="checkbox" data-b="' + i + '"' + (BEATS_OK[st].includes(i) ? ' checked' : '') + '><span>' + esc(x) + '</span></label>').join('')
+    : '<p style="margin:0">No events planned for this part. Go back to Step 6.</p>');
+  [0,1,2].forEach(i => { if (v('ftp' + i) === p.k) plan += '<p style="margin:.4rem 0 0"><strong>Your form here:</strong> ' + esc(f[i] || '') + (v('fth' + i) ? ', ' + esc(v('fth' + i)) : '') + '</p>'; });
+  $('plan-' + st).innerHTML = plan;
+  $('plan-' + st).querySelectorAll('input').forEach(c => c.addEventListener('change', () => {
+    const i = +c.dataset.b, a = BEATS_OK[st], j = a.indexOf(i);
+    if (c.checked && j < 0) a.push(i);
+    if (!c.checked && j > -1) a.splice(j, 1);
+    c.closest('.beat').classList.toggle('ok', c.checked); saveBank();
+  }));
+  const senses = [1,2,3].map(i => v('sv' + i) ? v('sn' + i) + ': ' + v('sv' + i) : '').filter(Boolean).join('; ');
+  const c2 = v('c2name') ? v('c2name') + (v('c2rel') ? ' (' + v('c2rel') + ')' : '') + (v('c2voice') ? ', talks ' + v('c2voice') : '') : '';
+  let ctx = '';
+  if (p.k === 'expo') ctx = li(v('c1name') || 'Main character', [v('c1who'), v('c1detail'), v('c1voice') ? 'talks ' + v('c1voice') : ''].filter(Boolean).join('; ')) +
+                            li('Setting', [v('s_where'), v('s_when')].filter(Boolean).join(', ')) + li('Mood', v('s_mood')) + li('Senses', senses);
+  if (p.k === 'rise') ctx = li('The conflict', v('cf_core')) + li('Talks with', c2) + li('Also there', v('c3name') ? v('c3name') + (v('c3rel') ? ' (' + v('c3rel') + ')' : '') : '');
+  if (p.k === 'climax') ctx = li('The conflict', v('cf_core')) + li('The change', v('cf_change')) + li('Senses you planned', senses);
+  if (p.k === 'fall') ctx = li('Who reacts', c2) + li('The change', v('cf_change'));
+  if (p.k === 'res') ctx = li('The change', v('cf_change')) + li('Your theme (show it, never say it)', v('th_msg'));
+  if (v('th_where') === p.k) ctx += li('Your theme lands here', v('th_how'));
+  $('ctx-' + st).innerHTML = '<p class="lab">From your outline</p><ul>' + (ctx || '<li>Nothing extra for this part.</li>') + '</ul>';
+}
+function tagGroups(){
+  return [['c','Characterization', CHAR_TAGS], ['s','Senses', SENSES.map(s => [s, s])],
+          ['g','Grammar', [['appositive','Appositive'],['participial','Participial'],['absolute','Absolute']]],
+          ['f','Your form', feats().map((x, i) => [String(i), x.length > 34 ? x.slice(0, 32) + '…' : x])]];
+}
+function renderTags(st){
+  const box = $('tags-' + st); if (!box) return;
+  box.innerHTML = tagGroups().map(([g, lab, list]) => '<div class="grp"><span>' + lab + '</span>' + list.map(([k, t]) => {
+    const on = TAGS[st][g].includes(k);
+    return '<button type="button" class="' + (on ? 'on' : '') + '" data-g="' + g + '" data-k="' + esc(k) + '">' + (on ? '✓ ' : '') + esc(t) + '</button>';
+  }).join('') + '</div>').join('');
+  box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const a = TAGS[st][b.dataset.g], i = a.indexOf(b.dataset.k);
+    if (i > -1) a.splice(i, 1); else a.push(b.dataset.k);
+    clearSay(st); renderTags(st); renderMap(); saveBank();
+  }));
+}
+function partCount(st){
+  const p = partOf(st), n = words(storyText(st));
+  const state = n < p.min ? 'aim for ' + p.min + '–' + p.max : n > p.max ? 'over the band. Can anything be cut?' : '✓ right in the band';
+  $('pc-' + st).innerHTML = 'This part: <b>' + n + '</b> words · ' + state;
+}
+function refreshWriting(st){
+  const p = partOf(st);
+  setAuto($('tx-' + st), beats(p.k).map(b => '[PLAN: ' + b + ']').join('\n\n'));
+  renderPins(st); renderTags(st); partCount(st);
+}
+
+/* ---------------- dialogue: count and lint ---------------- */
+const TAGW = '(said|says|asked|asks|yelled|whispered|shouted|replied|called|muttered|added|cried|answered|screamed|snapped)';
+function dialogueCount(t){ return (t.match(/["\u201C][^"\u201C\u201D\n]{2,}?["\u201D]/g) || []).length; }
+function snip(t, i, n){ const a = Math.max(0, i - 25), b = Math.min(t.length, i + (n || 0) + 25); return (a ? '…' : '') + t.slice(a, b).replace(/\n/g, ' ') + (b < t.length ? '…' : ''); }
+function lintDialogue(t){
+  const out = [], rules = [
+    [new RegExp('[A-Za-z]["\\u201D]\\s+(he|she|they|i|we|[A-Z][a-z]+)\\s+' + TAGW + '\\b', 'g'), 'Add a comma inside the quotation marks before the speaker tag: “Stop,” she said.'],
+    [new RegExp('\\b' + TAGW + '\\s+["\\u201C]', 'gi'), 'Add a comma after the speaking word: She said, “Stop.”'],
+    [new RegExp('\\.["\\u201D]\\s+(he|she|they|i|we)\\s+' + TAGW + '\\b', 'g'), 'Use a comma, not a period, when a speaker tag follows: “Stop,” she said.'],
+    [new RegExp('[,!?]["\\u201D]\\s+(He|She|They|We)\\s+' + TAGW + '\\b', 'g'), 'The speaker tag stays lowercase after the quote: “Stop!” she said.']
+  ];
+  rules.forEach(([re, msg]) => { let m; while ((m = re.exec(t))) out.push({ msg, snip: snip(t, m.index, m[0].length) }); });
+  return out;
+}
+const MORAL = /\b(the moral|the lesson|learned (that|a lesson)|this (story )?shows that|the theme (is|was))\b/i;
+
+/* ---------------- story map ---------------- */
+function renderMap(){
+  const ns = PLOT.map(p => words(storyText(p.st)));
+  const total = ns.reduce((a, b) => a + b, 0);
+  const st = total < GOAL.min ? 'goal ' + GOAL.min.toLocaleString() + '–' + GOAL.max.toLocaleString()
+           : total > GOAL.max ? 'a little over ' + GOAL.max.toLocaleString() + '. Trim the longest part.' : '✓ inside the 1,000–1,200 goal';
+  $('smTotal').innerHTML = 'About <b>' + total.toLocaleString() + '</b> words so far · ' + st;
+  const s = 104 / 420, base = 128;
+  let g = '<line x1="8" y1="' + base + '" x2="552" y2="' + base + '" stroke="var(--line)" stroke-width="2"/>';
+  PLOT.forEach((p, i) => {
+    const x = 18 + i * 108, n = ns[i], h = Math.min(n, 420) * s;
+    const fill = !n ? 'none' : n < p.min ? 'var(--accent)' : n > p.max ? 'var(--warn)' : 'var(--calm)';
+    g += '<rect x="' + (x - 6) + '" y="' + (base - p.max * s) + '" width="76" height="' + ((p.max - p.min) * s) + '" fill="var(--accent-soft)" stroke="var(--accent-line)" stroke-dasharray="4 3"/>';
+    if (n) g += '<rect x="' + x + '" y="' + (base - h) + '" width="64" height="' + h + '" rx="3" fill="' + fill + '"/>';
+    g += '<text x="' + (x + 32) + '" y="' + (base - h - 6) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">' + n + (n >= p.min && n <= p.max ? ' ✓' : '') + '</text>' +
+         '<text x="' + (x + 32) + '" y="' + (base + 18) + '" text-anchor="middle" font-size="12" fill="var(--soft)">' + p.t + '</text>' +
+         '<text x="' + (x + 32) + '" y="' + (base + 33) + '" text-anchor="middle" font-size="11" fill="var(--faint)">' + p.min + '–' + p.max + '</text>';
+  });
+  $('smBars').innerHTML = g;
+  const all = PLOT.map(p => storyText(p.st)).join('\n');
+  const any = (grp, k) => PLOT.some(p => TAGS[p.st][grp].includes(k));
+  const dlg = dialogueCount(all), issues = lintDialogue(all).length;
+  const lamp = (on, t, warn) => '<span class="lamp' + (warn ? ' warn' : on ? ' on' : '') + '">' + esc(t) + '</span>';
+  const senseN = SENSES.filter(x => any('s', x)).length;
+  $('smRubric').innerHTML =
+    '<div class="rgrp"><b>Plot structure</b>' + PLOT.map(p => lamp(LL.done.has(p.st), p.t)).join('') + '</div>' +
+    '<div class="rgrp"><b>Characterization</b>' + CHAR_TAGS.map(([k, t]) => lamp(any('c', k) || (k === 'dialogue' && dlg > 0), t)).join('') + '</div>' +
+    '<div class="rgrp"><b>Imagery · ' + senseN + ' of 3+ senses</b>' + SENSES.map(x => lamp(any('s', x), x)).join('') + '</div>' +
+    '<div class="rgrp"><b>Grammar moves</b>' + ['appositive','participial','absolute'].map(k => lamp(any('g', k), GRAMMAR[k].tag)).join('') + '</div>' +
+    '<div class="rgrp"><b>' + esc(formName() || 'Your form') + '</b>' + feats().map((x, i) => lamp(any('f', String(i)), x.length > 30 ? x.slice(0, 28) + '…' : x)).join('') + '</div>' +
+    '<div class="rgrp"><b>Dialogue</b>' + lamp(dlg >= 3, dlg + (dlg === 1 ? ' line' : ' lines') + ' of dialogue') +
+      (dlg ? (issues ? lamp(false, issues + ' punctuation to check', true) : lamp(true, 'punctuation looks right')) : '') + '</div>' +
+    '<div class="rgrp"><b>Theme</b>' + (MORAL.test(all) ? lamp(false, 'stated outright? see Revise', true) : lamp(words(storyText('w5')) > 30, 'shown, not told')) + '</div>';
+}
+
+/* ---------------- revise: the checker ---------------- */
+const STOP = new Set('the a an and but or so of to in on at for with from by as is was were be been are it its it\u2019s that this then than there their they them he she his her him i me my we our you your not no just what when where who how all had have has did do does into out up down over back like one could would said'.split(' '));
+const WEAK = ['very','really','just','got','suddenly','a lot','stuff','things','kind of'];
+function sentences(t){ return (t.replace(/\n+/g, ' ').match(/[^.!?]+[.!?]+["\u201D'\u2019]?|[^.!?]+$/g) || []).map(s => s.trim()).filter(s => s.length > 1); }
+const firstWord = s => (s.replace(/^["\u201C'\u2018(\s]+/, '').split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z'\u2019]/g, '');
+function goBtn(st){ return ' <button type="button" class="linkbtn" data-go="' + st + '">Go to it</button>'; }
+function checkHtml(title, items, clearMsg, extra){
+  return '<div class="check' + (items.length ? '' : ' clear') + '"><h4>' + title + '</h4>' + (extra || '') +
+    (items.length ? '<ul>' + items.slice(0, 8).map(x => '<li>' + x + '</li>').join('') + (items.length > 8 ? '<li>…and ' + (items.length - 8) + ' more like these.</li>' : '') + '</ul>'
+                  : '<p style="margin:0;color:var(--soft)">' + clearMsg + '</p>') + '</div>';
+}
+function runChecks(){
+  const D = [], V = [], C = [], W = [], T = [], L = [];
+  const lens = [], warnIdx = new Set(); let idx = 0;
+  const names = new Set([v('c1name'), v('c2name'), v('c3name')].join(' ').toLowerCase().split(/\s+/).filter(Boolean));
+  const freq = {};
+  PLOT.forEach(p => {
+    const t = storyText(p.st), tag = '<span class="snip">' + p.t + '</span> · ';
+    if (v('tx-' + p.st).indexOf('[PLAN:') > -1) L.push(tag + 'still has a <strong>[PLAN: …]</strong> line to write over.' + goBtn(p.st));
+    const n = words(t);
+    if (n < p.min) L.push(tag + n + ' words; the band is ' + p.min + '–' + p.max + '.' + goBtn(p.st));
+    lintDialogue(t).forEach(x => D.push(tag + '“' + esc(x.snip) + '” ' + x.msg + goBtn(p.st)));
+    const ss = sentences(t);
+    ss.forEach((s, i) => {
+      lens.push(words(s));
+      if (i >= 2){
+        const a = firstWord(ss[i - 2]), b = firstWord(ss[i - 1]), c = firstWord(s);
+        if (a && a === b && b === c) V.push(tag + 'three sentences in a row start with “' + esc(c) + '”: “' + esc(s.slice(0, 50)) + '…”' + goBtn(p.st));
+        const [x, y, z] = [words(ss[i - 2]), words(ss[i - 1]), words(s)];
+        if (Math.max(x, y, z) - Math.min(x, y, z) <= 2){ warnIdx.add(idx - 2); warnIdx.add(idx - 1); warnIdx.add(idx); }
+      }
+      const s0 = s.replace(/^["\u201C'\u2018(\s]+/, '');
+      if (/^[a-z]/.test(s0)) C.push(tag + 'a sentence starts with a lowercase letter: “' + esc(s0.slice(0, 40)) + '…”' + goBtn(p.st));
+      idx++;
+    });
+    if (/(^|[\s"\u201C])i([\s,.!?'\u2019]|$)/.test(t)) C.push(tag + 'a lowercase “i” on its own. It is always a capital I.' + goBtn(p.st));
+    WEAK.forEach(w => { const m = t.toLowerCase().match(new RegExp('\\b' + w + '\\b', 'g')); if (m && (m.length > 1 || w === 'got' || w === 'suddenly')) W.push(tag + '“' + w + '” × ' + m.length + '. Is there a more exact word?' + goBtn(p.st)); });
+    (t.toLowerCase().match(/[a-z\u2019']{4,}/g) || []).forEach(w => { if (!STOP.has(w) && !names.has(w)) freq[w] = (freq[w] || 0) + 1; });
+    if (MORAL.test(t)) T.push(tag + 'this looks like the theme said out loud. Can an event or an image show it instead?' + goBtn(p.st));
+  });
+  Object.entries(freq).filter(([, n]) => n >= 5).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    .forEach(([w, n]) => W.push('“' + esc(w) + '” appears ' + n + ' times across the story. Swap a few for synonyms or cut them.'));
+  const bw = 7, wid = Math.max(220, lens.length * bw);
+  const strip = lens.length ? '<svg class="vstrip" viewBox="0 0 ' + wid + ' 64" preserveAspectRatio="none" role="img" aria-label="One bar per sentence; taller bars are longer sentences.">' +
+    lens.map((n, i) => { const h = Math.max(3, Math.min(n, 40) / 40 * 60); return '<rect x="' + (i * bw) + '" y="' + (62 - h) + '" width="' + (bw - 2) + '" height="' + h + '" fill="' + (warnIdx.has(i) ? 'var(--warn)' : 'var(--accent)') + '"/>'; }).join('') + '</svg>' +
+    '<p style="margin:0 0 .3rem;font-size:.84rem;color:var(--soft)">One bar per sentence; taller means longer. <strong>Orange</strong> bars are three or more sentences in a row about the same length. Break one up, or join two.</p>' : '';
+  $('checks').innerHTML =
+    checkHtml('Every part written', L, 'All five parts are written over and inside their bands.') +
+    checkHtml('Dialogue punctuation', D, dialogueCount(PLOT.map(p => storyText(p.st)).join('\n')) ? 'No punctuation problems found in your dialogue.' : 'No dialogue found yet, and the rubric needs it.') +
+    checkHtml('Sentence variety', V, warnIdx.size ? 'No repeated sentence openings. Check the orange bars above.' : 'Good mix of openings and lengths.', strip) +
+    checkHtml('Capitalization', C, 'No capitalization problems found.') +
+    checkHtml('Word choice', W, 'No weak or overused words stood out.') +
+    checkHtml('Theme: shown, not told', T, 'Your theme isn’t stated outright. Good: the reader gets to feel it.');
+  $('checks').querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => LL.openStage(b.dataset.go)));
+}
+$('recheck').addEventListener('click', runChecks);
+function renderRev(){
+  $('revlist').innerHTML = REV_ITEMS.map(([k, t, why]) => '<label><input type="checkbox" data-r="' + k + '"' + (REV[k] ? ' checked' : '') + '><span><strong>' + t + '</strong><span class="why">' + why + '</span></span></label>').join('');
+  $('revlist').querySelectorAll('input').forEach(c => c.addEventListener('change', () => { REV[c.dataset.r] = c.checked; clearSay('r1'); saveBank(); }));
+}
+
+/* ---------------- the merged story ---------------- */
+function mlaDate(){ const d = new Date(); return d.getDate() + ' ' + d.toLocaleDateString('en-US', { month:'long' }) + ' ' + d.getFullYear(); }
+function storyParas(){ const out = []; PLOT.forEach(p => storyText(p.st).split(/\n+/).map(s => s.trim()).filter(Boolean).forEach(s => out.push(s))); return out; }
+function buildStoryHtml(){
+  const name = v('mName') || 'Your Name', teach = v('mTeacher') || 'Teacher', course = v('mCourse') || 'Honors English 10A', date = v('mDate') || mlaDate();
+  const paras = storyParas();
+  if (!paras.length) return '<p>Write your five parts first. They merge here.</p>';
+  return '<div class="hdr">' + esc(name) + '<br>' + esc(teach) + '<br>' + esc(course) + '<br>' + esc(date) + '</div>' +
+    '<div class="ttl">' + esc(v('mTitle') || 'Untitled') + '</div>' + paras.map(p => '<p>' + esc(p) + '</p>').join('');
+}
+function paperPlain(){
+  let out = '';
+  $('paperbox').childNodes.forEach(n => { if (n.nodeType === 1) out += n.innerText.trim() + '\n\n'; });
+  return out.trim() + '\n';
+}
+function countWords(){
+  const ps = [...$('paperbox').querySelectorAll('p')].map(p => p.innerText).join(' ');
+  const n = words(ps);
+  $('wcount').textContent = 'Your story: about ' + n.toLocaleString() + ' words. ' +
+    (n < GOAL.min ? 'The goal is 1,000–1,200.' : n > GOAL.max ? 'A little over 1,200. That is fine to turn in, or trim it.' : '✓ Inside the 1,000–1,200 goal.') +
+    (v('mTitle') ? '' : ' Don’t forget a title.');
+}
+function rebuild(){ $('paperbox').innerHTML = buildStoryHtml(); countWords(); }
+$('rebuild').addEventListener('click', rebuild);
+$('copyAll').addEventListener('click', async () => {
+  if (!$('paperbox').innerHTML.trim()) rebuild();
+  const html = '<div style="font-family:Georgia,serif;font-size:12pt;line-height:2;">' + $('paperbox').innerHTML.replace(/<p>/g, '<p style="text-indent:0.5in;margin:0;">') + '</div>';
+  const ok = await copyRich(html, paperPlain(), 'preview', 'previewText');
+  if (ok) fbBox('copyFb','good','✓ Copied: your whole story.','Go to the <strong>narrative</strong> assignment in Canvas, click <strong>Text Submission</strong>, paste (Ctrl+V), and Submit.');
+  else { $('preview').classList.add('show'); fbBox('copyFb','hint','Copy it by hand.','Your story is in the box below. Click in it, press <strong>Ctrl+A</strong>, then <strong>Ctrl+C</strong>.'); }
+});
+$('showPrev').addEventListener('click', () => { if (!$('paperbox').innerHTML.trim()) rebuild(); $('previewText').value = paperPlain(); $('preview').classList.toggle('show'); });
+
+/* ---------------- refresh everything that reads the plan ---------------- */
+function refreshAll(){
+  fillStems(); refreshDL(); renderArc(); renderFormTies(); renderOutline();
+  PLOT.forEach(p => { renderPins(p.st); renderTags(p.st); partCount(p.st); });
+  renderMap();
+}
+
+/* ---------------- stage engine ---------------- */
+const ACTIVITY_TITLE = 'The Story Machine — a short narrative';
+const ORDER = ['p1','p2','p3','p4','p5','p6','p7','p8','w1','w2','w3','w4','w5','r1'];
+const REWARDS = {
+  p1:{ star:'★', msg:'Form picked. Now you know what the reader expects.' },
+  p2:{ star:'★', msg:'Your main character exists.' },
+  p3:{ star:'★', msg:'Someone to talk to. That’s your dialogue.' },
+  p4:{ star:'★', msg:'A place a reader can see and hear.' },
+  p5:{ star:'★', msg:'A real problem, and a real change.' },
+  p6:{ star:'★', msg:'The whole plot, start to finish.' },
+  p7:{ star:'★', msg:'Theme and form placed. Your plan is complete.' },
+  p8:{ star:'★', msg:'Outline turned in. That’s one assignment done.' },
+  w1:{ star:'★', msg:'The story has begun.' },
+  w2:{ star:'★', msg:'The trouble is building.' },
+  w3:{ star:'★', msg:'The climax is written. The hardest part is behind you.' },
+  w4:{ star:'★', msg:'The dust is settling.' },
+  w5:{ star:'★', msg:'A full draft. Every part of the arc is on the page.' },
+  r1:{ star:'★', msg:'Revised and checked. Go turn it in.' }
+};
+const GATES = {
+  p1: () => !FORM ? ['Pick a form first.','Tap one of the cards. Any of them can get a full grade.']
+          : FORM === 'other' && !(v('of0') && v('of1') && v('of2') && v('of3')) ? ['Name your form and its three features.','Fill the four boxes under the cards, and check with your teacher.'] : null,
+  p2: () => planChecks().p2.every(x => x[0]) ? null : ['A few boxes are empty.','Every box needs a few words. Look at the example if you’re stuck, or say it out loud.'],
+  p3: () => planChecks().p3[0][0] ? null : ['One more character, please.','Character 2 needs a name, who they are, and what they want.'],
+  p4: () => { const c = planChecks().p4; return c.every(x => x[0]) ? null : !c[3][0] && c[2][0] ? ['Use two different senses.','Change one of the three to a different sense: sound, smell, touch or taste.'] : ['A few boxes are empty.','Check the list above the button.']; },
+  p5: () => !CONFLICT ? ['Pick the kind of conflict.','Tap one of the six cards.'] : hasBlank(v('cf_core')) || hasBlank(v('cf_change')) ? ['There’s still a blank.','Replace every <strong>____</strong> with your own words.'] : null,
+  p6: () => { const bad = PLOT.find(p => hasBlank(v('pl-' + p.k)) || beats(p.k).length < (p.k === 'rise' ? 2 : 1)); return bad ? [bad.t + ' needs its events.', bad.k === 'rise' ? 'Rising action needs <strong>two or more</strong> lines, and no <strong>____</strong> left.' : 'Write at least one event, and replace any <strong>____</strong>.'] : null; },
+  p7: () => { const c = planChecks().p7; return c.every(x => x[0]) ? null : !c[0][0] ? ['Finish your theme.','Replace the <strong>____</strong> with a whole idea about life.'] : !c[1][0] ? ['Where does the reader feel it?','Pick a part and say what happens there.'] : ['Place all three form features.','Each one needs a part and a few words.']; },
+  p8: () => null,
+  r1: () => REV_ITEMS.every(([k]) => REV[k]) ? null : ['Tick all eight.','Each one is a thing the rubric checks. Tick it once you’ve looked.']
+};
+PLOT.forEach(p => { GATES[p.st] = () => {
+  if (v('tx-' + p.st).indexOf('[PLAN:') > -1) return ['A [PLAN] line is still there.','Write over every <strong>[PLAN: …]</strong> line, or delete it if you changed your mind.'];
+  if (words(storyText(p.st)) < 25) return ['Keep going.','This part needs real sentences. Aim for ' + p.min + '–' + p.max + ' words.'];
+  const t = TAGS[p.st]; if (!(t.c.length || t.s.length || t.g.length || t.f.length)) return ['Tag what you used.','Tap at least one tag under the box. Tags are how your story map knows what’s there.'];
+  return null;
+}; });
+
+const LL = {
+  extra:{}, summary:{}, done:new Set(),
+  finish(id, extraEvidence){
+    const g = GATES[id] && GATES[id]();
+    if (g){ say(id, 'hint', g[0], g[1]); return; }
+    clearSay(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.markDone(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+    renderMap(); saveBank();
+  },
+  markDone(id){
+    LL.done.add(id);
+    const s = $(id); s.classList.remove('active','open'); s.classList.add('done');
+    LL.summary[id] = LL.sumFor(id); LL.refreshSummary(id);
+  },
+  sumFor(id){
+    if (id === 'p1') return formName();
+    if (id === 'p2') return v('c1name');
+    if (id === 'p3') return [v('c2name'), v('c3name')].filter(Boolean).join(', ');
+    if (id === 'p4') return [v('s_where'), v('s_mood')].filter(Boolean).join(' · ');
+    if (id === 'p5') return (CONFLICTS.find(c => c.k === CONFLICT) || {}).t || '';
+    if (id === 'p6') return PLOT.reduce((n, p) => n + beats(p.k).length, 0) + ' events planned';
+    if (id === 'p7') return 'theme and form placed';
+    if (id === 'p8') return 'outline copied';
+    if (partOf(id)) return words(storyText(id)) + ' words';
+    if (id === 'r1') return 'all eight checked';
+    return '';
+  },
+  refreshSummary(id){ const s = $('sum-' + id); if (s) s.textContent = LL.done.has(id) ? (LL.sumFor(id) || 'tap to see it again') + ' · tap to open' : ''; },
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = $('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span'); s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span'); m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+  next(){
+    const id = ORDER.find(x => !LL.done.has(x));
+    const t = $(id || 'turnin');
+    t.classList.add('active');
+    refreshAll();
+    if (id && partOf(id)) refreshWriting(id);
+    if (LL.done.has('p8') || (id && id[0] !== 'p')) $('storymap').classList.add('show');
+    if (id === 'r1') runChecks();
+    if (!id) rebuild();
+    setTimeout(() => t.scrollIntoView({ behavior:'smooth', block:'start' }), 120);
+  },
+  openStage(st){
+    const s = $(st); if (LL.done.has(st)) s.classList.add('open');
+    refreshWriting(st);
+    setTimeout(() => { s.scrollIntoView({ behavior:'smooth', block:'start' }); const ta = $('tx-' + st); if (ta) ta.focus({ preventScroll:true }); }, 80);
+  },
+  toggle(id){ const s = $(id); s.classList.toggle('open'); if (partOf(id) && s.classList.contains('open')) refreshWriting(id); if (id === 'p8') renderOutline(); }
+};
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest('#paperbox')) { countWords(); return; }
+  const st = t.closest('.stage'); if (!st) return;
+  if (st.id[0] === 'p'){ if (t.id === 'c1name' || t.id === 'c1want') fillStems(); refreshDL(); renderArc(); renderFormTies(); renderOutline(); if (t.id.indexOf('of') === 0) renderForms(); }
+  if (partOf(st.id)){ partCount(st.id); renderMap(); }
+  if (LL.done.has(st.id)) LL.refreshSummary(st.id);
+  saveBank();
+});
+document.addEventListener('change', e => { if (e.target && e.target.tagName === 'SELECT'){ refreshDL(); renderOutline(); } });
+
+/* ---------------- saving the choices ----------------
+   student.js saves every [data-q] box. Form, conflict, tags, ticked beats and
+   ticked checklist items live in JS state, so they get their own small layer.
+   Every storage call is wrapped. */
+const BANK_KEY = 'llbank:' + location.pathname;
+const BANK_MAX_AGE = 45 * 24 * 60 * 60 * 1000;
+const BSTORE = (function(){ try { const s = window.localStorage; s.setItem('__bprobe','1'); s.removeItem('__bprobe'); return s; } catch(e){ return null; } })();
+let bankTimer = null;
+function saveBank(){
+  if (!BSTORE) return;
+  clearTimeout(bankTimer);
+  bankTimer = setTimeout(() => {
+    try { BSTORE.setItem(BANK_KEY, JSON.stringify({ t:Date.now(), form:FORM, conflict:CONFLICT, trueStory:$('trueStory').checked,
+      tags:TAGS, beats:BEATS_OK, rev:REV, name:v('mName'), teacher:v('mTeacher'), course:v('mCourse'), title:v('mTitle') })); } catch(e){}
+  }, 300);
+}
+function restoreBank(){
+  if (!BSTORE) return;
+  let s = null;
+  try { s = JSON.parse(BSTORE.getItem(BANK_KEY) || 'null'); } catch(e){ return; }
+  if (!s) return;
+  if (Date.now() - (s.t || 0) > BANK_MAX_AGE){ try { BSTORE.removeItem(BANK_KEY); } catch(e){} return; }
+  if (!s.form && !s.conflict) return;
+  FORM = s.form || null; CONFLICT = s.conflict || null; $('trueStory').checked = !!s.trueStory;
+  PLOT.forEach(p => { TAGS[p.st] = Object.assign(blankTags(), (s.tags || {})[p.st] || {}); BEATS_OK[p.st] = (s.beats || {})[p.st] || []; });
+  REV = s.rev || {};
+  [['mName','name'],['mTeacher','teacher'],['mCourse','course'],['mTitle','title']].forEach(([id, k]) => { if (s[k]) $(id).value = s[k]; });
+  renderForms(); renderConflicts(); renderRev();
+  const note = document.createElement('div'); note.className = 'restored';
+  note.innerHTML = '<span>✓ Your form, conflict and tags came back from last time.</span>';
+  const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'Clear them and start fresh';
+  btn.addEventListener('click', () => { if (!confirm('Clear your form, conflict, tags and checklist?')) return; try { BSTORE.removeItem(BANK_KEY); } catch(e){} location.reload(); });
+  note.appendChild(btn);
+  const b1 = $('p1').querySelector('.stage-body'); b1.insertBefore(note, b1.firstChild);
+}
+['mName','mTeacher','mCourse','mTitle'].forEach(i => $(i).addEventListener('input', saveBank));
+
+/* ---------------- go ---------------- */
+$('mDate').value = mlaDate();
+buildPlot(); buildFormTies(); buildWriteStages();
+renderForms(); renderConflicts(); renderRev();
+restoreBank();
+refreshAll();
+</script>
+
+<script src="../assets/student.js"></script>
+</body>
+</html>

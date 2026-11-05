@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG10AH-L02 · Three Doors into Limerick</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG10AH-L02</p>
+  <h1 id="pagetitle">Honors English 10A · Lesson 2</h1>
+  <p class="sub" id="pagesub">Three Doors into Limerick.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== HONORS EXTENSION ===================== -->
+  <p class="partsep" data-partsep="honors">Honors Extension</p>
+
+  <section class="stage" data-part="honors" id="h1" data-title="Pick your door">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Pick your door</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Pick your door</h2>
+
+      <p>McCourt didn't invent Limerick. The dole, the damp rooms and the price of bread were all real. Other subjects (economics, history, public health, museum design) have their own ways of looking at those things. Today you borrow one of those ways, use it to look at the McCourts, make something with what you find, and show it.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 250" role="img" aria-label="Three doors side by side. Door A, The Price of a Pint: economics and math; you make a one-week budget and a four-panel comic. Door B, The Lost Scene: history and public health; you make a short scene McCourt left out. Door C, The Exhibit: museum design and history; you make three museum signs.">
+  <path d="M20,240 V60 Q105,6 190,60 V240 Z" fill="var(--accent)" fill-opacity=".14" stroke="var(--accent)" stroke-width="2.5"/>
+  <path d="M215,240 V60 Q300,6 385,60 V240 Z" fill="var(--calm)" fill-opacity=".14" stroke="var(--calm)" stroke-width="2.5"/>
+  <path d="M410,240 V60 Q495,6 580,60 V240 Z" fill="var(--gold)" fill-opacity=".14" stroke="var(--gold)" stroke-width="2.5"/>
+  <text x="105" y="62" text-anchor="middle" font-size="28" font-weight="700" fill="var(--ink)">A</text>
+  <text x="300" y="62" text-anchor="middle" font-size="28" font-weight="700" fill="var(--ink)">B</text>
+  <text x="495" y="62" text-anchor="middle" font-size="28" font-weight="700" fill="var(--ink)">C</text>
+  <text x="105" y="94" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">The Price of a Pint</text>
+  <text x="300" y="94" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">The Lost Scene</text>
+  <text x="495" y="94" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">The Exhibit</text>
+  <text x="105" y="116" text-anchor="middle" font-size="12" fill="var(--soft)">economics + math</text>
+  <text x="300" y="116" text-anchor="middle" font-size="12" fill="var(--soft)">history + public health</text>
+  <text x="495" y="116" text-anchor="middle" font-size="12" fill="var(--soft)">museum design + history</text>
+  <text x="105" y="152" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">You make:</text>
+  <text x="105" y="172" text-anchor="middle" font-size="12" fill="var(--ink)">a one-week family budget</text>
+  <text x="105" y="190" text-anchor="middle" font-size="12" fill="var(--ink)">+ a 4-panel comic of</text>
+  <text x="105" y="208" text-anchor="middle" font-size="12" fill="var(--ink)">the week it runs out</text>
+  <text x="300" y="152" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">You make:</text>
+  <text x="300" y="172" text-anchor="middle" font-size="12" fill="var(--ink)">a short scene McCourt</text>
+  <text x="300" y="190" text-anchor="middle" font-size="12" fill="var(--ink)">left out, written in</text>
+  <text x="300" y="208" text-anchor="middle" font-size="12" fill="var(--ink)">4 small chunks</text>
+  <text x="495" y="152" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">You make:</text>
+  <text x="495" y="172" text-anchor="middle" font-size="12" fill="var(--ink)">3 museum signs about</text>
+  <text x="495" y="190" text-anchor="middle" font-size="12" fill="var(--ink)">real places and things</text>
+  <text x="495" y="208" text-anchor="middle" font-size="12" fill="var(--ink)">from the book</text>
+</svg>
+      <figcaption>Three doors, one checklist. Every door earns the same grade when the checklist below is ticked.</figcaption>
+      </figure>
+
+<div class="note">
+<p><strong>Done looks like: this is the whole rubric.</strong> Tick every line and you have everything for a good grade. Nothing is hidden.</p>
+<table style="width:100%;border-collapse:collapse;margin-top:.5rem">
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line);width:2rem">☐</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)"><strong>Pick:</strong> I picked a door and said why.</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">☐</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)"><strong>Research:</strong> 3 facts in my receipt, each with its source, and at least 1 that I found myself.</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">☐</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)"><strong>Make:</strong> all 4 slots filled, and every fact from my receipt shows up somewhere in them.</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">☐</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)"><strong>Story:</strong> I used at least 2 narrative elements on purpose and named which ones.</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">☐</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)"><strong>Show:</strong> I shared it out loud for 2–3 minutes, using my 3 notes.</td></tr>
+  <tr><td style="padding:6px 8px">☐</td><td style="padding:6px 8px"><strong>Reflect:</strong> 2–3 sentences on what my door's subject showed me about the McCourts that reading alone didn't.</td></tr>
+</table>
+</div>
+
+      <p class="q"><strong>Q1.</strong> Which door are you taking?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Which door are you taking?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Door A — The Price of a Pint (economics + math)">Door A — The Price of a Pint (economics + math)</option>
+          <option value="Door B — The Lost Scene (history + public health)">Door B — The Lost Scene (history + public health)</option>
+          <option value="Door C — The Exhibit (museum design + history)">Door C — The Exhibit (museum design + history)</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> Why that door? One sentence is plenty.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q2. Why that door? One sentence is plenty." rows="3">I picked this door because </textarea></div>
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; I picked this door because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You can type this or say it out loud and I'll type &mdash; your call, and don't worry about spelling.</p></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One door picked, and one sentence saying why you picked it.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="honors" id="h2" data-title="Dig: the Evidence Locker">
+    <button class="donebar" onclick="LL.toggle('h2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Dig: the Evidence Locker</strong>
+      <span class="sum" id="sum-h2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Dig: the Evidence Locker</h2>
+
+      <p>Six real facts from real sources. Take the ones that fit your door. Then go find one more on your own.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:0 8px;font-size:.95rem">
+  <tr>
+    <td style="vertical-align:top;padding:10px 12px;border:2px solid var(--accent);border-radius:10px">
+      <strong>Fact 1 · the dole.</strong> Under the 1933 dole law, a man in a city like Limerick with a wife and 3 children got <strong>17s 6d a week</strong>.<br>
+      <span style="color:var(--soft);font-size:.88em">Source: <a href="https://www.irishstatutebook.ie/1933/en/act/pub/0046/sched.html" target="_blank" rel="noopener">Unemployment Assistance Act 1933, Schedule (Irish Statute Book)</a> · <em>the law itself</em> · Doors A, B, C</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top;padding:10px 12px;border:2px solid var(--accent);border-radius:10px">
+      <strong>Fact 2 · a working wage.</strong> In 1935 an Irish farm labourer earned on average <strong>21s 3d a week</strong>.<br>
+      <span style="color:var(--soft);font-size:.88em">Source: <a href="https://www.oireachtas.ie/en/debates/debate/dail/1936-11-11/31" target="_blank" rel="noopener">Dáil debate, 11 November 1936 (the Minister for Agriculture)</a> · <em>government record</em> · Door A</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top;padding:10px 12px;border:2px solid var(--accent);border-radius:10px">
+      <strong>Fact 3 · bread.</strong> A 2-lb loaf of bread cost <strong>5d</strong> in Dublin in 1936, and 5½d by 1937.<br>
+      <span style="color:var(--soft);font-size:.88em">Source: <a href="https://www.oireachtas.ie/ga/debates/debate/dail/1937-10-27/20" target="_blank" rel="noopener">Dáil debate, 27 October 1937</a> · <em>government record</em> · Doors A, C</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top;padding:10px 12px;border:2px solid var(--accent);border-radius:10px">
+      <strong>Fact 4 · a pint.</strong> "Porter cost ten pence a pint." A man remembering a pub in Castlebar, a town in the west of Ireland, that closed in the late 1940s.<br>
+      <span style="color:var(--soft);font-size:.88em">Source: <a href="https://www.con-telegraph.ie/2023/09/03/price-of-a-pint-in-mayo-now-more-than-a-weeks-wages-in-1940s-and-50s" target="_blank" rel="noopener">Connaught Telegraph, 2023</a> · <em>one person's memory</em> · Door A</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top;padding:10px 12px;border:2px solid var(--accent);border-radius:10px">
+      <strong>Fact 5 · the lanes and TB.</strong> In Limerick's lane tenements, <strong>5 to 15 people</strong> could share small, damp rooms, so there was nowhere to keep a sick person away from everyone else. Tuberculosis (TB), a lung disease, caused <strong>9.2% of all deaths</strong> in Ireland in 1930.<br>
+      <span style="color:var(--soft);font-size:.88em">Source: <a href="https://www.rte.ie/brainstorm/2023/0621/1390362-tuberculosis-limerick-lanes-ireland-health-history-stigma-exhibition" target="_blank" rel="noopener">RTÉ Brainstorm, 2023, by historians at the University of Limerick</a> · <em>historians</em> · Doors B, C</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top;padding:10px 12px;border:2px solid var(--accent);border-radius:10px">
+      <strong>Fact 6 · housing and help.</strong> In the 1930s and 40s Limerick "still had some of the worst housing in the state," and help for the poor came through an old system the historian calls "cold charity."<br>
+      <span style="color:var(--soft);font-size:.88em">Source: <a href="https://historyireland.com/?p=2276" target="_blank" rel="noopener">Éamonn Ó Flaherty, "Ashes to Ashes," History Ireland, 2000</a> · <em>historian</em> · Doors B, C</span>
+    </td>
+  </tr>
+</table>
+      <figcaption>The Evidence Locker. Each fact says what kind of source it is. That matters for the next question.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q3.</strong> Which fact would you trust <strong>least</strong> as an exact number? There's a best answer, but a good reason counts.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. Which fact would you trust least as an exact number? There&#x27;s a best answer, but a good reason counts.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Fact 1 — the dole law">Fact 1 — the dole law</option>
+          <option value="Fact 3 — the bread price">Fact 3 — the bread price</option>
+          <option value="Fact 4 — the price of a pint">Fact 4 — the price of a pint</option>
+          <option value="Fact 5 — the TB figure">Fact 5 — the TB figure</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Most researchers would pick Fact 4. It's one man's memory of a price, written down decades later, about one town. It's still useful; you just say where it came from ('one man remembered…'). Fact 1 is the strongest of all: it's the actual law.</p>
+      </details>
+
+      <p><strong>Your receipt.</strong> Two facts from the locker, then one you find yourself.</p>
+
+      <p class="q"><strong>Q4.</strong> Receipt line 1, from the locker.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q4. Receipt line 1, from the locker." rows="3">Fact: … Source: … I&#x27;ll use it for: </textarea></div>
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; Fact: … Source: … I'll use it for: ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You can type this or say it out loud and I'll type &mdash; your call, and don't worry about spelling.</p></div>
+
+      <p class="q"><strong>Q5.</strong> Receipt line 2, from the locker.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q5. Receipt line 2, from the locker." rows="3">Fact: … Source: … I&#x27;ll use it for: </textarea></div>
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; Fact: … Source: … I'll use it for: ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You can type this or say it out loud and I'll type &mdash; your call, and don't worry about spelling.</p></div>
+
+<div class="note">
+<p><strong>Finding your own fact.</strong> Try one of these searches, or your own:</p>
+<p>• <em>Limerick lanes 1930s history</em> &nbsp;• <em>price of tea Ireland 1930s</em> &nbsp;• <em>rent shillings a week Ireland 1930s</em> &nbsp;• <em>tuberculosis Ireland 1930s</em></p>
+<p>Good places to look: <a href="https://www.oireachtas.ie/en/debates/" target="_blank" rel="noopener">Irish parliament debates</a> (real records; use the search box), <a href="https://www.rte.ie/brainstorm/" target="_blank" rel="noopener">RTÉ Brainstorm</a>, <a href="https://historyireland.com/" target="_blank" rel="noopener">History Ireland</a>. Write down the site's name so someone else could find it.</p>
+</div>
+
+      <p class="q"><strong>Q6.</strong> Receipt line 3: one you found yourself.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q6. Receipt line 3: one you found yourself." rows="3">Fact: … Source (site name or link): … I&#x27;ll use it for: </textarea></div>
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; Fact: … Source (site name or link): … I'll use it for: ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You can type this or say it out loud and I'll type &mdash; your call, and don't worry about spelling.</p></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Q3 picked, and three facts in your receipt (Q4–Q6), each with where it came from. Q6 is one you found on your own.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h2')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="honors" id="h3" data-title="Make it">
+    <button class="donebar" onclick="LL.toggle('h3')">
+      <span class="tick">&#10003;</span> <strong>Part 3 &mdash; Make it</strong>
+      <span class="sum" id="sum-h3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 &mdash; Make it</h2>
+
+      <p>Open <strong>your</strong> door's guide. Fill the four slots in order, one at a time. Slot 1 has an example you can keep, change, or replace.</p>
+
+      <figure class="dia">
+<details class="check" open>
+<summary><strong>Door A · The Price of a Pint</strong></summary>
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:25%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>1. The money in</strong><br><em>(example)</em><br>The dole: 17s 6d a week. 17 × 12 = 204 pence, + 6 = <strong>210 pence</strong> for a whole family for a whole week.</td>
+    <td style="width:25%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>2. The money out</strong><br>A small table: 3–4 costs, with prices from your receipt (bread every day? a pint? your own find?). Which day does the money run out?<br><span style="font-size:.85em">Joins: <em>By Wednesday… / That leaves…</em></span></td>
+    <td style="width:25%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>3. Panels 1–2</strong><br><em>Setting + character.</em> For each panel: what we see (a drawing or one line) + a caption.<br><span style="font-size:.85em">Joins: <em>On Friday… / Dad…</em></span></td>
+    <td style="width:25%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>4. Panels 3–4</strong><br><em>Conflict + dialogue.</em> The money runs out. Dialogue McCourt-style, no quotation marks. Label each panel's element.<br><span style="font-size:.85em">Joins: <em>But… / So…</em></span></td>
+  </tr>
+</table>
+</details>
+
+<details class="check">
+<summary><strong>Door B · The Lost Scene</strong></summary>
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:25%;padding:10px;border:2px solid var(--calm);border-radius:10px;vertical-align:top"><strong>1. Setting</strong><br><em>(example)</em><br>Rain on the lane again. Six of us in one room, and the wall by the bed always wet, the kind of damp that gets into your chest and stays.</td>
+    <td style="width:25%;padding:10px;border:2px solid var(--calm);border-radius:10px;vertical-align:top"><strong>2. Character</strong><br>Who is in the scene, and what do they want right now? (Frank, Mam, a neighbour, or someone new from the lane.)<br><span style="font-size:.85em">Joins: <em>Mam wanted… / All Frankie could think about…</em></span></td>
+    <td style="width:25%;padding:10px;border:2px solid var(--calm);border-radius:10px;vertical-align:top"><strong>3. Conflict + dialogue</strong><br>What's in the way? Talk McCourt-style: <em>Mam said, There's no more bread till Friday.</em><br><span style="font-size:.85em">Joins: <em>But… / Then…</em></span></td>
+    <td style="width:25%;padding:10px;border:2px solid var(--calm);border-radius:10px;vertical-align:top"><strong>4. The ending</strong><br>One picture or line that shows what the scene <em>means</em>.<br><span style="font-size:.85em">Joins: <em>That night… / In the end…</em></span></td>
+  </tr>
+</table>
+<p style="font-size:.9em;color:var(--soft)">About 50–70 words a slot, so about 250 words in all. Keep it in the world of chapters 1–3.</p>
+</details>
+
+<details class="check">
+<summary><strong>Door C · The Exhibit</strong></summary>
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:25%;padding:10px;border:2px solid var(--gold);border-radius:10px;vertical-align:top"><strong>1. Sign 1</strong><br><em>(example)</em><br><strong>THE DOLE, 1930s.</strong> A Limerick man with a wife and three children got 17s 6d a week under the 1933 law (Irish Statute Book). <em>In the book:</em> the family's whole week depends on it. <em>It builds:</em> conflict, the McCourts vs. poverty.</td>
+    <td style="width:25%;padding:10px;border:2px solid var(--gold);border-radius:10px;vertical-align:top"><strong>2. Sign 2</strong><br>Another place or thing: the lane, the damp room, bread and tea, the pub. Same four lines: <em>name · fact + source · in the book · it builds.</em></td>
+    <td style="width:25%;padding:10px;border:2px solid var(--gold);border-radius:10px;vertical-align:top"><strong>3. Sign 3</strong><br>One more, same four lines. Try a different narrative element from signs 1 and 2.</td>
+    <td style="width:25%;padding:10px;border:2px solid var(--gold);border-radius:10px;vertical-align:top"><strong>4. The welcome wall</strong><br>Your exhibit's title, and one sentence on what's the same or different about poverty today.<br><span style="font-size:.85em">Joins: <em>Then… / Now…</em></span></td>
+  </tr>
+</table>
+</details>
+      <figcaption>One guide per door. Only open yours.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q7.</strong> Slot 1, from your door's guide.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q7. Slot 1, from your door&#x27;s guide." placeholder="Type here, or keep and change the example…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q8.</strong> Slot 2.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. Slot 2." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q9.</strong> Slot 3.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q9. Slot 3." placeholder="Type here, or describe your panels in one line each…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q10.</strong> Slot 4.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q10. Slot 4." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>All four slots filled, in order, using your door's guide. Every fact from your receipt shows up somewhere, and at least two narrative elements are named.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h3')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="honors" id="h4" data-title="Show it">
+    <button class="donebar" onclick="LL.toggle('h4')">
+      <span class="tick">&#10003;</span> <strong>Part 4 &mdash; Show it</strong>
+      <span class="sum" id="sum-h4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 4 &mdash; Show it</h2>
+
+      <p>Two to three minutes, out loud. You don't need slides; you already made the thing. Talk from three notes.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 120" role="img" aria-label="Three cards joined by arrows: 1, What I made. 2, The fact that surprised me. 3, One choice I made, and why.">
+  <rect x="10"  y="20" width="170" height="80" rx="10" fill="var(--accent)" fill-opacity=".16" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="215" y="20" width="170" height="80" rx="10" fill="var(--accent)" fill-opacity=".16" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="420" y="20" width="170" height="80" rx="10" fill="var(--accent)" fill-opacity=".16" stroke="var(--accent)" stroke-width="2"/>
+  <text x="95"  y="52" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">1</text>
+  <text x="95"  y="78" text-anchor="middle" font-size="14" fill="var(--ink)">What I made</text>
+  <text x="300" y="52" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">2</text>
+  <text x="300" y="78" text-anchor="middle" font-size="14" fill="var(--ink)">The fact that surprised me</text>
+  <text x="505" y="52" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">3</text>
+  <text x="505" y="78" text-anchor="middle" font-size="14" fill="var(--ink)">One choice, and why</text>
+  <line x1="184" y1="60" x2="208" y2="60" stroke="var(--ink)" stroke-width="2"/>
+  <polygon points="211,60 203,55 203,65" fill="var(--ink)"/>
+  <line x1="389" y1="60" x2="413" y2="60" stroke="var(--ink)" stroke-width="2"/>
+  <polygon points="416,60 408,55 408,65" fill="var(--ink)"/>
+</svg>
+      <figcaption>Three notes, in this order. Say each one out loud once before you type it.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q11.</strong> Your three notes.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q11. Your three notes." rows="3">1. I made … 2. The fact that surprised me most was … 3. One choice I made was … , because </textarea></div>
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; 1. I made … 2. The fact that surprised me most was … 3. One choice I made was … , because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You can type this or say it out loud and I'll type &mdash; your call, and don't worry about spelling.</p></div>
+
+      <p class="q"><strong>Q12.</strong> What did your door's subject (economics, history, public health or museum design) let you see about the McCourts that reading the story alone didn't?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q12. What did your door&#x27;s subject (economics, history, public health or museum design) let you see about the McCourts that reading the story alone didn&#x27;t?" rows="3">Using … , I could see that … . Reading the story alone, I only knew … . This matters because </textarea></div>
+      <div class="stems"><p class="lab">The starter is already in the box &mdash; finish it</p>
+        <p>&bull; Using … , I could see that … . Reading the story alone, I only knew … . This matters because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You can type this or say it out loud and I'll type &mdash; your call, and don't worry about spelling.</p></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three notes written, shared out loud for 2–3 minutes, and 2–3 reflection sentences.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h4')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Story words, and old Irish money &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Setting</td><td>Where and when, and what it feels like to be there: cold, damp, crowded, loud.</td></tr>
+      <tr><td class="h">Character</td><td>Who someone is, shown by what they want, do and say.</td></tr>
+      <tr><td class="h">Conflict</td><td>The problem pushing the story. Person vs. person, person vs. society (like poverty), or person vs. self.</td></tr>
+      <tr><td class="h">Dialogue</td><td>What people say. McCourt-style: no quotation marks, so the words run straight into the memory. Mam said, There's no bread till Friday.</td></tr>
+      <tr><td class="h">Old Irish money</td><td>12 pence (d) = 1 shilling (s). 20 shillings = 1 pound (£). So 17s 6d means 17 shillings and 6 pence.</td></tr>
+      <tr><td class="h">Source</td><td>Where a fact came from. Name it well enough that someone else could find it again.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>Interdisciplinary</strong> means borrowing another subject's tools (math, history, public health, museum design) to see something in the story that reading alone doesn't show you.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Honors English 10A · Lesson 2";
+const LESSON_ID = "ENG10AH-L02";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Demonstrate an understanding of interdisciplinary inquiry into complex problems. [Interdisciplinary Connections]",
+  "O2": "Demonstrate the skills necessary to do independent research and creative projects and present their work. [Research and Creative Skills]",
+  "O3": "Use narrative elements (setting, character, conflict, dialogue) on purpose to build meaning."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:5 },
+  { label:"Pick your door", mins:7, part:"honors" },
+  { label:"Dig: the Evidence Locker", mins:13, part:"honors" },
+  { label:"Make it", mins:17, part:"honors" },
+  { label:"Show it", mins:8, part:"honors" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  honors: { title: "Honors Extension", sub: "Pick a door, dig up real facts about 1930s Limerick, make something with them, and show it.", sheet: true, outcomes: ["O1", "O2", "O3"] }
+};
+
+const REWARDS = {
+  h1:{star:"★",msg:"Door picked, and you know exactly what done looks like. That's the hardest part of any project."},
+  h2:{star:"★",msg:"Three facts, three sources, and one you dug up yourself. That's real research."},
+  h3:{star:"★",msg:"You made something new out of real history. That's the creative half of the Honors outcome."},
+  h4:{star:"★",msg:"Researched, made, and shown. That's the whole Honors outcome, start to finish."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
