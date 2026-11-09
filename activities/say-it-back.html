@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<!--
+  SAY IT BACK - speaking practice (engine: speak, variant: korean-1a-review). Six short
+  dialogues, played as B and then as A. Partner lines play recorded ElevenLabs audio; the
+  student's lines are checked with the browser's built-in speech recognition (ko-KR,
+  Chrome/Edge), and each word is marked heard / partly heard / missed against the line.
+  Checks which words were said, not accent. Nothing is recorded or stored by the page.
+  Content-swappable: the JSON block id="content" (dialogues[], same[]). Set the
+  recognition language in listen() to reuse it for another language.
+  Audio: assets/say-it-back/voice/<role>-<fnv1a(text)>.mp3 (scripts/voice/say-it-back.json).
+  In a Canvas iframe the mic needs allow="microphone"; if Canvas blocks it, the page offers
+  an "open in its own tab" button.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Say It Back</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  /* earned progress — starts empty on purpose */
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  /* stages */
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  /* ONLY the heading is a block. Making every <strong> a block pushes trailing
+     punctuation onto its own line — a real bug that shipped once. */
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+  /* ---- Say It Back. Colours are tokens; every mark also carries a shape (underline, strike) and a label. ---- */
+  :root{ --no:#b0413e; --no-soft:#fbeceb; --a:#7a4fa0; --a-soft:#f1eaf7 }
+  .soft{ color:var(--soft); font-size:.88rem }
+  .ko{ font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif }
+  .done-looks{ background:var(--accent-soft); border-radius:8px; padding:.5rem .9rem; font-size:.92rem; margin:0 0 1rem }
+  .miccheck{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem 1.2rem; margin:0 0 1.5rem }
+  .miccheck h2{ margin:0 0 .3rem }
+  .rolebar{ display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:0 0 .6rem }
+  .pill{ border:1px solid var(--line); border-radius:999px; padding:.1rem .7rem; font-size:.9rem; background:var(--card) }
+  .pill.me{ border-color:var(--accent); background:var(--accent-soft) }
+  label.hide{ display:block; font-size:.9rem; margin:0 0 .8rem; cursor:pointer }
+  .chat{ display:flex; flex-direction:column; gap:.6rem; margin:0 0 1rem }
+  .msg{ max-width:85%; border:1px solid var(--line); border-radius:14px; padding:.55rem .9rem; background:var(--card); animation:slide .3s ease both }
+  .msg.them{ align-self:flex-start; border-bottom-left-radius:4px }
+  .msg.mine{ align-self:flex-end; border-color:var(--accent); border-bottom-right-radius:4px; background:var(--accent-soft) }
+  .msg.mine.done{ border-color:var(--calm); background:var(--calm-soft) }
+  .msg .who{ margin:0; font-size:.72rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--soft) }
+  .msg .line{ margin:.1rem 0; font-size:1.45rem; line-height:1.5 }
+  .msg .en{ margin:0; font-size:.85rem; color:var(--soft) }
+  .msg .line.veiled{ color:transparent; text-shadow:0 0 12px var(--soft); cursor:pointer; user-select:none }
+  .mbtns{ display:flex; gap:.5rem; align-items:center; margin:.4rem 0 0; flex-wrap:wrap }
+  .mbtns .say{ margin:0 }
+  .say{ font:inherit; font-size:.95rem; border:1px solid var(--line); background:var(--bg); border-radius:999px; padding:.1rem .55rem; cursor:pointer; margin-top:.3rem }
+  button.btn.mic{ padding:.45rem 1rem }
+  button.btn.mic.live{ background:var(--no); border-color:var(--no); animation:pulse 1s ease-in-out infinite }
+  @keyframes pulse{ 50%{ filter:brightness(1.25) } }
+  .heard{ margin:.4rem 0 0 }
+  .heard p{ margin:.15rem 0 }
+  .marked{ font-size:1.35rem }
+  .w-ok{ color:var(--calm); font-weight:700 }
+  .w-part{ color:var(--warn); font-weight:700 }
+  .w-part u, .marked u{ text-decoration-color:var(--no); text-decoration-thickness:3px; color:var(--no) }
+  .w-miss{ color:var(--no); font-weight:700; text-decoration:line-through; text-decoration-thickness:2px }
+  a.btn{ display:inline-block; text-decoration:none; font-size:.95rem; font-weight:700; border-radius:8px; padding:.6rem 1.15rem; background:var(--accent); color:#fff }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Say It Back 🎤</h1>
+  <p class="sub">Six short conversations, from hello to how often. Your partner talks, you answer out loud, and the page shows exactly which words it heard and which it missed.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>Today's plan</p>
+    <ol>
+      <li>🎙️ <strong>Mic check</strong>: 1 min</li>
+      <li>💬 <strong>Six conversations</strong>, about 2–3 min each. Play <strong>B</strong> first, then swap and play <strong>A</strong>.</li>
+    </ol>
+    <p style="margin-top:.6rem;text-transform:none;letter-spacing:0;font-weight:400;font-size:.9rem">Works in <strong>Chrome or Edge</strong>. Nothing is timed and nothing is recorded or saved: the page only keeps the words it heard. After two tries on a line you can always move on.</p>
+  </div>
+
+  <!-- ============ MIC CHECK ============ -->
+  <section class="miccheck" id="mic">
+    <h2>🎙️ Mic check</h2>
+    <p>Tap the mic and say <strong class="ko">안녕하세요</strong>.</p>
+    <div class="row" style="margin:0 0 .6rem"><button class="btn" type="button" id="micTest">🎤 Test my mic</button></div>
+    <div class="fb" id="micFb" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="stage active" id="d1" data-title="Conversation 1 - First meeting"></section>
+  <section class="stage" id="d2" data-title="Conversation 2 - What do you like?"></section>
+  <section class="stage" id="d3" data-title="Conversation 3 - What did you do yesterday?"></section>
+  <section class="stage" id="d4" data-title="Conversation 4 - Aren't you hungry?"></section>
+  <section class="stage" id="d5" data-title="Conversation 5 - How often?"></section>
+  <section class="stage" id="d6" data-title="Conversation 6 - Hello, teacher!"></section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every conversation, ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="content">
+{
+ "dialogues": [
+  { "id": "d1", "em": "👋", "title": "처음 만났어요", "en": "First meeting", "covers": "greetings · names · 혹시",
+    "roles": { "A": { "name": "민지", "voice": "s" }, "B": { "name": "조이", "voice": "n" } },
+    "lines": [
+     { "r": "A", "ko": "안녕하세요!", "en": "Hello!" },
+     { "r": "B", "ko": "안녕하세요!", "en": "Hello!" },
+     { "r": "A", "ko": "저는 민지예요. 이름이 뭐예요?", "en": "I'm Minji. What's your name?" },
+     { "r": "B", "ko": "저는 조이예요.", "en": "I'm Joy." },
+     { "r": "A", "ko": "만나서 반가워요.", "en": "Nice to meet you." },
+     { "r": "B", "ko": "저도 반가워요.", "en": "Nice to meet you too." },
+     { "r": "A", "ko": "혹시 학생이에요?", "en": "Are you a student, by any chance?" },
+     { "r": "B", "ko": "네, 학생이에요.", "en": "Yes, I'm a student." }
+    ] },
+  { "id": "d2", "em": "🍓", "title": "뭐 좋아해요?", "en": "What do you like?", "covers": "food · 좋아해요 · 별로 안 · 그럼",
+    "roles": { "A": { "name": "민지", "voice": "s" }, "B": { "name": "조이", "voice": "n" } },
+    "lines": [
+     { "r": "A", "ko": "떡볶이 좋아해요?", "en": "Do you like tteokbokki?" },
+     { "r": "B", "ko": "네, 아주 좋아해요!", "en": "Yes, I like it a lot!" },
+     { "r": "A", "ko": "김치 좋아해요?", "en": "Do you like kimchi?" },
+     { "r": "B", "ko": "아니요, 김치는 별로 안 좋아해요.", "en": "No, I don't really like kimchi." },
+     { "r": "A", "ko": "그럼 뭐 좋아해요?", "en": "Then what do you like?" },
+     { "r": "B", "ko": "김밥을 좋아해요.", "en": "I like gimbap." },
+     { "r": "A", "ko": "저도 김밥 좋아해요!", "en": "I like gimbap too!" }
+    ] },
+  { "id": "d3", "em": "🎮", "title": "어제 뭐 했어요?", "en": "What did you do yesterday?", "covers": "past tense · 을/를 · answering a negative question",
+    "roles": { "A": { "name": "민지", "voice": "s" }, "B": { "name": "조이", "voice": "n" } },
+    "lines": [
+     { "r": "A", "ko": "어제 뭐 했어요?", "en": "What did you do yesterday?" },
+     { "r": "B", "ko": "친구를 만났어요.", "en": "I met a friend." },
+     { "r": "A", "ko": "뭐 먹었어요?", "en": "What did you eat?" },
+     { "r": "B", "ko": "라면을 먹었어요. 그리고 게임을 했어요.", "en": "We ate ramyeon. And we played games." },
+     { "r": "A", "ko": "재밌었어요?", "en": "Was it fun?" },
+     { "r": "B", "ko": "네, 진짜 재밌었어요!", "en": "Yes, it was really fun!" },
+     { "r": "A", "ko": "공부는 안 했어요?", "en": "You didn't study?" },
+     { "r": "B", "ko": "네, 안 했어요.", "en": "Right, I didn't." }
+    ] },
+  { "id": "d4", "em": "🍜", "title": "배 안 고파요?", "en": "Aren't you hungry?", "covers": "negatives · 아직 · 못 · the 네/아니요 trap",
+    "roles": { "A": { "name": "민지", "voice": "s" }, "B": { "name": "조이", "voice": "n" } },
+    "lines": [
+     { "r": "A", "ko": "배 안 고파요?", "en": "Aren't you hungry?" },
+     { "r": "B", "ko": "아니요, 배고파요. 아직 안 먹었어요.", "en": "No, I'm hungry. I haven't eaten yet." },
+     { "r": "A", "ko": "떡볶이 먹어요?", "en": "Want tteokbokki?" },
+     { "r": "B", "ko": "아니요, 떡볶이는 못 먹어요. 너무 매워요.", "en": "No, I can't eat tteokbokki. It's too spicy." },
+     { "r": "A", "ko": "그럼 비빔밥 먹어요!", "en": "Then let's eat bibimbap!" },
+     { "r": "B", "ko": "좋아요!", "en": "Sounds good!" }
+    ] },
+  { "id": "d5", "em": "🗓️", "title": "얼마나 자주?", "en": "How often?", "covers": "today's words · 매일 · 전혀 안 · 항상 · 가끔 · 거의 안",
+    "roles": { "A": { "name": "민지", "voice": "s" }, "B": { "name": "조이", "voice": "n" } },
+    "lines": [
+     { "r": "A", "ko": "얼마나 자주 운동해요?", "en": "How often do you work out?" },
+     { "r": "B", "ko": "매일 운동해요.", "en": "I work out every day." },
+     { "r": "A", "ko": "와, 진짜요? 저는 운동을 전혀 안 해요.", "en": "Wow, really? I don't work out at all." },
+     { "r": "B", "ko": "그럼 게임은 자주 해요?", "en": "Then do you play games often?" },
+     { "r": "A", "ko": "네, 항상 해요!", "en": "Yes, all the time!" },
+     { "r": "B", "ko": "저는 가끔 해요.", "en": "I play sometimes." },
+     { "r": "A", "ko": "커피는 자주 마셔요?", "en": "Do you drink coffee often?" },
+     { "r": "B", "ko": "아니요, 거의 안 마셔요.", "en": "No, I hardly ever drink it." }
+    ] },
+  { "id": "d6", "em": "🍎", "title": "선생님, 안녕하세요!", "en": "Hello, teacher!", "covers": "polite talk · 이미 · 아직 · 드세요 · thanks",
+    "roles": { "A": { "name": "학생", "voice": "n" }, "B": { "name": "선생님", "voice": "d" } },
+    "lines": [
+     { "r": "A", "ko": "선생님, 안녕하세요!", "en": "Hello, teacher!" },
+     { "r": "B", "ko": "안녕하세요. 밥 먹었어요?", "en": "Hello. Have you eaten? (a common greeting)" },
+     { "r": "A", "ko": "네, 이미 먹었어요. 선생님은요?", "en": "Yes, I already ate. And you?" },
+     { "r": "B", "ko": "저는 아직 안 먹었어요. 너무 바빠요.", "en": "I haven't eaten yet. I'm so busy." },
+     { "r": "A", "ko": "그럼 이거 드세요!", "en": "Then please have this!" },
+     { "r": "B", "ko": "와, 고마워요!", "en": "Wow, thank you!" },
+     { "r": "A", "ko": "아니에요.", "en": "Not at all. (you're welcome)" }
+    ] }
+ ],
+ "same": [["아니오", "아니요"], ["재미있었", "재밌었"], ["재미있", "재밌"]]
+}
+</script>
+<script>
+const ACTIVITY_TITLE = 'Say It Back - Korean 1A speaking practice';
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* Fisher-Yates. Shuffle item order ONCE on load, and shuffle each item's
+   options separately inside the build loop. Authoring content in a tidy order
+   is fine; shipping it in that order lets a student score full marks by reading
+   down the list. Do not reshuffle on "start over" — rebuild from the arrays
+   that were already shuffled. */
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const LL = {
+  extra: {},      /* stageId -> non-text evidence, captured once when solved */
+  summary: {},    /* stageId -> custom done-bar text, e.g. "solved in 2 tries" */
+  done: new Set(),
+
+  /* Marks a stage complete. Deliberately does NOT snapshot the written
+     answers — those are read live at copy time, so a student who reopens a
+     part and adds to it still gets credit for what they wrote. */
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  /* Live read — never cached. */
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+/* Typing in a reopened stage updates its done-bar immediately, so the student
+   can see a blank turn into a saved answer without closing anything. */
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+function say(kind, head, body){
+  const fb = document.getElementById('fb');
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+/* ---------------- evidence assembly ---------------- */
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+
+  /* Three fallbacks. Clipboard access from a cross-origin iframe is the
+     flakiest part of this system and a student must never be stranded. */
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
+function sayIn(id, kind, head, body){
+  const fb = document.getElementById(id);
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+function clearFb(id){ const fb = document.getElementById(id); fb.className = 'fb'; fb.innerHTML = ''; }
+/* =====================================================================
+   SAY IT BACK — the `speak` engine. CONTENT lives in the JSON block id="content":
+     dialogues[]  id, em, title (Korean), en, covers, roles {A,B: {name, voice}}, lines [{r, ko, en}]
+     same[]       [heard, target] spellings the recognizer uses that mean the same thing
+   The student plays B, then A. Partner lines play recorded audio; her lines are checked
+   with the browser's own speech recognition (ko-KR, Chrome/Edge). Nothing is recorded or
+   sent anywhere by this page: the browser's recognizer returns text, and only the text is kept.
+   The check is a syllable LCS between what was heard and the line, so spacing differences
+   never count against her; each word is marked heard / partly heard / missed.
+   It checks WHICH WORDS she said, not accent.
+   ===================================================================== */
+const C = JSON.parse(document.getElementById('content').textContent);
+/* ORDER and REWARDS are literal so scripts/check.py can read them; keep them in step with dialogues[]. */
+const ORDER = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6'];
+const REWARDS = {
+  d1: { star:'👋', msg:'First meeting: done both ways.' },
+  d2: { star:'🍓', msg:'What do you like?: done both ways.' },
+  d3: { star:'🎮', msg:'What did you do yesterday?: done both ways.' },
+  d4: { star:'🍜', msg:'Aren\'t you hungry?: done both ways.' },
+  d5: { star:'🗓️', msg:'How often?: done both ways.' },
+  d6: { star:'🍎', msg:'All six. Go turn it in.' }
+};
+
+/* ---------- speech recognition ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const inFrame = (() => { try { return window.self !== window.top; } catch(e){ return true; } })();
+function listen(onInterim){
+  return new Promise((resolve, reject) => {
+    if (!SR) return reject({ error:'unsupported' });
+    const r = new SR(); r.lang = 'ko-KR'; r.interimResults = true; r.maxAlternatives = 5; r.continuous = false;
+    let finals = null, settled = false;
+    r.onresult = e => {
+      const res = e.results[e.results.length - 1];
+      if (res.isFinal) finals = [...res].map(a => a.transcript);
+      else if (onInterim) onInterim(res[0].transcript);
+    };
+    r.onerror = e => { if (!settled){ settled = true; reject(e); } };
+    r.onend = () => { if (!settled){ settled = true; finals ? resolve(finals) : reject({ error:'no-speech' }); } };
+    try { r.start(); } catch(e){ settled = true; reject({ error:'start' }); }
+    listen.stop = () => { try { r.stop(); } catch(e){} };
+  });
+}
+function micTrouble(err){
+  const e = err && err.error;
+  const tab = '<div class="row" style="margin:.7rem 0 0"><a class="btn" href="' + esc(location.href) + '" target="_blank" rel="noopener">Open this page in its own tab ↗</a></div>';
+  if (e === 'unsupported') return ['This browser can\'t listen yet.', 'Open the page in <strong>Chrome</strong> or <strong>Edge</strong>.' + (inFrame ? tab : '')];
+  if (e === 'not-allowed' || e === 'service-not-allowed' || e === 'start')
+    return ['The mic is blocked.', inFrame ? 'Canvas may be blocking the microphone here. Open the page in its own tab, allow the mic, and carry on there.' + tab : 'Click the 🔒 or 🎤 icon in the address bar, allow the microphone, then try again.'];
+  if (e === 'audio-capture') return ['No microphone found.', 'Check that a mic is plugged in and selected, then try again.'];
+  if (e === 'network') return ['Speech service unreachable.', 'Chrome sends the sound to its speech service to turn it into text. Check the internet connection and try again.'];
+  return ['I didn\'t hear anything.', 'Tap the mic, wait for the red dot, then talk. Get a little closer to the mic if you need to.'];
+}
+
+/* ---------- the check ---------- */
+const syl = s => [...s].filter(ch => /[가-힣A-Za-z0-9]/.test(ch));
+function norm(s){ let t = s; C.same.forEach(([a, b]) => { t = t.split(a).join(b); }); return t; }
+/* LCS over syllables; returns the set of target positions that were heard. */
+function matchSet(target, heard){
+  const a = syl(target), b = syl(norm(heard));
+  const n = a.length, m = b.length, L = Array.from({ length:n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const hit = new Set(); let i = 0, j = 0;
+  while (i < n && j < m){ if (a[i] === b[j]){ hit.add(i); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++; }
+  return { hit, total:n, got:hit.size };
+}
+function best(target, alts){
+  return alts.map(h => ({ h, ...matchSet(target, h) })).sort((x, y) => y.got - x.got)[0];
+}
+/* Marks each word of the line: ok / part / miss, with the missed syllables flagged. */
+function markup(target, hit){
+  let k = 0;
+  return target.split(/(\s+)/).map(tok => {
+    if (/^\s+$/.test(tok)) return tok;
+    let inner = '', n = 0, got = 0;
+    for (const ch of tok){
+      if (/[가-힣A-Za-z0-9]/.test(ch)){ const h = hit.has(k++); n++; if (h) got++; inner += h ? esc(ch) : '<u>' + esc(ch) + '</u>'; }
+      else inner += esc(ch);
+    }
+    const cls = !n || got === n ? 'w-ok' : got === 0 ? 'w-miss' : 'w-part';
+    return '<span class="' + cls + '">' + inner + '</span>';
+  }).join('');
+}
+
+/* ---------- audio (recorded clips, browser voice as fallback) ---------- */
+const VOICE = '../assets/say-it-back/voice/';
+function fnv(s){ let h = 0x811c9dc5; for (const ch of s){ h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }
+function tts(text){
+  try{ if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; u.rate = .85;
+    const v = speechSynthesis.getVoices().find(x => /^ko/i.test(x.lang)); if (v) u.voice = v;
+    speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){}
+}
+try{ if ('speechSynthesis' in window) speechSynthesis.getVoices(); }catch(e){}
+let current = null;
+function speak(text, role){
+  return new Promise(res => {
+    try{
+      if (current){ current.pause(); current = null; }
+      const a = new Audio(VOICE + role + '-' + fnv(text) + '.mp3'); current = a;
+      a.onended = () => res(); a.onerror = () => { tts(text); setTimeout(res, 400 + 160 * syl(text).length); };
+      a.play().catch(() => { tts(text); setTimeout(res, 400 + 160 * syl(text).length); });
+    }catch(e){ tts(text); res(); }
+  });
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b){ e.stopPropagation(); speak(b.dataset.say, b.dataset.role); } });
+
+/* ---------- mic check ---------- */
+document.getElementById('micTest').addEventListener('click', async ev => {
+  const btn = ev.currentTarget; btn.disabled = true; btn.textContent = '🔴 Listening…';
+  try{
+    const alts = await listen(t => sayIn('micFb', 'hint', 'Hearing…', esc(t)));
+    const b = best('안녕하세요', alts);
+    sayIn('micFb', 'good', '✓ The mic works.', 'I heard: <strong>' + esc(b.h) + '</strong>' + (b.got < b.total ? '<br>Close enough for a test. Try the first conversation.' : ''));
+  }catch(err){ const [h, m] = micTrouble(err); sayIn('micFb', 'hint', h, m); }
+  btn.disabled = false; btn.textContent = '🎤 Test my mic';
+});
+
+/* ---------- the conversations ---------- */
+C.dialogues.forEach((d, k) => { document.getElementById(d.id).innerHTML =
+    '<button class="donebar" onclick="LL.toggle(\'' + d.id + '\')"><span class="tick">✓</span> <strong>' + d.em + ' ' + esc(d.title) + '</strong> <span class="soft">' + esc(d.en) + '</span><span class="sum" id="sum-' + d.id + '"></span></button>' +
+    '<div class="stage-body"><h2>' + d.em + ' Conversation ' + (k + 1) + ' of ' + C.dialogues.length + ': ' + esc(d.title) + ' <span class="soft">' + esc(d.en) + '</span></h2>' +
+    '<p class="soft" style="margin:-.4rem 0 .8rem">Uses: ' + esc(d.covers) + '</p>' +
+    '<p class="done-looks"><strong>Done looks like:</strong> every line said as <strong>B</strong>, then swap and say every line as <strong>A</strong>.</p>' +
+    '<div class="rolebar" id="rb-' + d.id + '"></div>' +
+    '<label class="hide"><input type="checkbox" class="hideMine"> 👀 Hide my lines until I tap them <span class="soft">(harder)</span></label>' +
+    '<div class="chat" id="chat-' + d.id + '"></div>' +
+    '<div class="fb" id="fb-' + d.id + '" role="status" aria-live="polite"></div>' +
+    '<div class="row" id="go-' + d.id + '"></div></div>'; });
+
+const LOG = {};    /* dialogue id -> role -> [line results] */
+C.dialogues.forEach(d => runDialogue(d));
+
+function runDialogue(d){
+  const chat = document.getElementById('chat-' + d.id), rb = document.getElementById('rb-' + d.id), go = document.getElementById('go-' + d.id);
+  const stage = document.getElementById(d.id), hideBox = stage.querySelector('.hideMine');
+  LOG[d.id] = { B:[], A:[] };
+  let me = 'B', i = 0, tries = 0, bestGot = null, started = false;
+
+  function roleBar(){
+    const other = me === 'A' ? 'B' : 'A';
+    rb.innerHTML = '<span class="pill me">You: <strong>' + me + '</strong> · ' + esc(d.roles[me].name) + '</span>' +
+      '<span class="pill">Partner: ' + other + ' · ' + esc(d.roles[other].name) + '</span>' +
+      '<span class="soft">' + (me === 'B' ? 'Round 1 of 2' : 'Round 2 of 2 · swapped') + '</span>';
+  }
+  function bubble(line, mine, k){
+    const who = d.roles[line.r].name;
+    return '<div class="msg ' + (mine ? 'mine' : 'them') + '" id="' + d.id + '-l' + k + '">' +
+      '<p class="who">' + line.r + ' · ' + esc(who) + '</p>' +
+      '<p class="line ko' + (mine && hideBox.checked ? ' veiled' : '') + '">' + esc(line.ko) + '</p>' +
+      '<p class="en">' + esc(line.en) + '</p>' +
+      (mine ? '<div class="mbtns"><button class="say" type="button" data-say="' + esc(line.ko) + '" data-role="' + d.roles[line.r].voice + '" aria-label="Hear it first">🔊 hear it</button>' +
+              '<button class="btn mic" type="button" data-mic="' + k + '">🎤 Say it</button></div><div class="heard"></div>'
+            : '<button class="say" type="button" data-say="' + esc(line.ko) + '" data-role="' + d.roles[line.r].voice + '" aria-label="Hear it again">🔊</button>') +
+      '</div>';
+  }
+  async function step(){
+    clearFb('fb-' + d.id); go.innerHTML = '';
+    if (i >= d.lines.length) return roundDone();
+    const line = d.lines[i], mine = line.r === me;
+    chat.insertAdjacentHTML('beforeend', bubble(line, mine, i));
+    const el = document.getElementById(d.id + '-l' + i);
+    el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    if (!mine){ await speak(line.ko, d.roles[line.r].voice); i++; setTimeout(step, 350); }
+    else { tries = 0; bestGot = null; }
+  }
+  chat.addEventListener('click', async e => {
+    const v = e.target.closest('.veiled'); if (v){ v.classList.remove('veiled'); return; }
+    const b = e.target.closest('[data-mic]'); if (!b || b.disabled || +b.dataset.mic !== i) return;
+    const line = d.lines[i], el = document.getElementById(d.id + '-l' + i), out = el.querySelector('.heard');
+    b.disabled = true; b.textContent = '🔴 Listening…'; b.classList.add('live');
+    try{
+      const alts = await listen(t => { out.innerHTML = '<span class="soft">Hearing: ' + esc(t) + '</span>'; });
+      const r = best(line.ko, alts); tries++;
+      if (!bestGot || r.got > bestGot.got) bestGot = r;
+      const pct = r.got / r.total;
+      out.innerHTML = '<p class="marked">' + markup(line.ko, r.hit) + '</p><p class="soft">I heard: ' + esc(r.h || '…') + '</p>';
+      el.querySelector('.line').classList.remove('veiled');
+      if (pct === 1){ return pass('✓ Every word.', ''); }
+      if (pct >= .8) sayIn('fb-' + d.id, 'hint', 'Almost.', 'The <u>underlined</u> part is what I didn\'t hear. Tap 🔊 to hear it, then try again, or move on.');
+      else sayIn('fb-' + d.id, 'hint', 'Some words went missing.', 'Words in <span class="w-miss">red</span> I didn\'t hear at all; <u>underlined</u> bits are partly missing. Tap 🔊 hear it, then try again.');
+      if (tries >= 2 || pct >= .8) go.innerHTML = '<button class="btn ghost" type="button">Move on →</button>';
+      go.firstChild && (go.firstChild.onclick = () => pass('Moved on.', ''));
+    }catch(err){
+      const [h, m] = micTrouble(err); sayIn('fb-' + d.id, 'hint', h, m);
+    }
+    b.disabled = false; b.textContent = '🎤 Say it again'; b.classList.remove('live');
+  });
+  function pass(head, body){
+    const line = d.lines[i], el = document.getElementById(d.id + '-l' + i);
+    const r = bestGot || { got:0, total:syl(line.ko).length, h:'' };
+    LOG[d.id][me].push(line.ko + '  →  heard "' + (r.h || '') + '"  (' + (r.got === r.total ? 'every word' : r.got + ' of ' + r.total + ' syllables') + ', ' + tries + (tries === 1 ? ' try' : ' tries') + ')');
+    el.classList.add('done'); el.querySelector('[data-mic]').remove();
+    sayIn('fb-' + d.id, 'good', head, body); i++; setTimeout(step, 500);
+  }
+  function roundDone(){
+    const clean = LOG[d.id][me].filter(l => l.includes('every word')).length, n = LOG[d.id][me].length;
+    if (me === 'B'){
+      sayIn('fb-' + d.id, 'good', '✓ Round 1 done: ' + clean + ' of ' + n + ' lines, every word.', 'Now swap. You play <strong>A</strong>, and your partner says the lines you just said.');
+      go.innerHTML = '<button class="btn" type="button">Swap roles →</button>';
+      go.firstChild.onclick = () => { me = 'A'; i = 0; chat.innerHTML = ''; roleBar(); step(); };
+      return;
+    }
+    const b = LOG[d.id].B, a = LOG[d.id].A, cb = b.filter(l => l.includes('every word')).length;
+    LL.extra[d.id] = 'As B: ' + cb + ' of ' + b.length + ' lines with every word heard.\n' + b.join('\n') +
+                     '\n\nAs A: ' + clean + ' of ' + n + ' lines with every word heard.\n' + a.join('\n');
+    LL.summary[d.id] = 'B ' + cb + '/' + b.length + ' · A ' + clean + '/' + n + ' every word';
+    sayIn('fb-' + d.id, 'good', '🎉 Both roles done.', 'B: ' + cb + ' of ' + b.length + ' · A: ' + clean + ' of ' + n + ' lines with every word heard.');
+    go.innerHTML = '<button class="btn go" type="button">Next conversation →</button>';
+    go.firstChild.onclick = () => LL.finish(d.id);
+  }
+  roleBar();
+  /* A stage starts talking only once it is on screen and the student asks for it. */
+  go.innerHTML = '<button class="btn big" type="button">▶ Start</button>';
+  go.firstChild.onclick = () => { if (!started){ started = true; step(); } };
+}
+</script>
+<script type="application/json" id="qsummary">
+[
+ {
+  "title": "Conversation 1 - First meeting",
+  "questions": [
+   "Say every line out loud as B (조이); the page marks each word heard / partly heard / missed: 안녕하세요! / 저는 조이예요. / 저도 반가워요. / 네, 학생이에요.",
+   "Say every line out loud as A (민지); the page marks each word heard / partly heard / missed: 안녕하세요! / 저는 민지예요. 이름이 뭐예요? / 만나서 반가워요. / 혹시 학생이에요?"
+  ]
+ },
+ {
+  "title": "Conversation 2 - What do you like?",
+  "questions": [
+   "Say every line out loud as B (조이); the page marks each word heard / partly heard / missed: 네, 아주 좋아해요! / 아니요, 김치는 별로 안 좋아해요. / 김밥을 좋아해요.",
+   "Say every line out loud as A (민지); the page marks each word heard / partly heard / missed: 떡볶이 좋아해요? / 김치 좋아해요? / 그럼 뭐 좋아해요? / 저도 김밥 좋아해요!"
+  ]
+ },
+ {
+  "title": "Conversation 3 - What did you do yesterday?",
+  "questions": [
+   "Say every line out loud as B (조이); the page marks each word heard / partly heard / missed: 친구를 만났어요. / 라면을 먹었어요. 그리고 게임을 했어요. / 네, 진짜 재밌었어요! / 네, 안 했어요.",
+   "Say every line out loud as A (민지); the page marks each word heard / partly heard / missed: 어제 뭐 했어요? / 뭐 먹었어요? / 재밌었어요? / 공부는 안 했어요?"
+  ]
+ },
+ {
+  "title": "Conversation 4 - Aren't you hungry?",
+  "questions": [
+   "Say every line out loud as B (조이); the page marks each word heard / partly heard / missed: 아니요, 배고파요. 아직 안 먹었어요. / 아니요, 떡볶이는 못 먹어요. 너무 매워요. / 좋아요!",
+   "Say every line out loud as A (민지); the page marks each word heard / partly heard / missed: 배 안 고파요? / 떡볶이 먹어요? / 그럼 비빔밥 먹어요!"
+  ]
+ },
+ {
+  "title": "Conversation 5 - How often?",
+  "questions": [
+   "Say every line out loud as B (조이); the page marks each word heard / partly heard / missed: 매일 운동해요. / 그럼 게임은 자주 해요? / 저는 가끔 해요. / 아니요, 거의 안 마셔요.",
+   "Say every line out loud as A (민지); the page marks each word heard / partly heard / missed: 얼마나 자주 운동해요? / 와, 진짜요? 저는 운동을 전혀 안 해요. / 네, 항상 해요! / 커피는 자주 마셔요?"
+  ]
+ },
+ {
+  "title": "Conversation 6 - Hello, teacher!",
+  "questions": [
+   "Say every line out loud as B (선생님); the page marks each word heard / partly heard / missed: 안녕하세요. 밥 먹었어요? / 저는 아직 안 먹었어요. 너무 바빠요. / 와, 고마워요!",
+   "Say every line out loud as A (학생); the page marks each word heard / partly heard / missed: 선생님, 안녕하세요! / 네, 이미 먹었어요. 선생님은요? / 그럼 이거 드세요! / 아니에요."
+  ]
+ }
+]
+</script>
+<script src="../assets/student.js"></script>
+</body>
+</html>

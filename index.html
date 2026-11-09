@@ -252,6 +252,36 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'Korean 1A',
+    file: 'activities/say-it-back.html',
+    engine: 'speak', variant: 'korean-1a-review', version: 1, updated: '2026-11-09',
+    title: 'Say It Back',
+    tag: 'listen, speak, check',
+    desc: 'Speaking practice. Six short dialogues from greetings onward (first meeting, food likes, yesterday in the past tense, 배 안 고파요? and the 네/아니요 trap, how often, polite talk with a teacher). The partner line plays recorded audio; the student taps the mic and says her line, and the page marks every word heard, partly heard (missing syllables underlined) or missed, with what it heard underneath. Play B, then swap and play A. Optional "hide my lines" for a harder round.',
+    skills: 'Korean speaking · greetings and introductions · 좋아해요 / 별로 안 · past tense · answering negative questions · 못, 아직 · frequency words · 드세요, 고마워요 · listening',
+    note: 'New engine: nothing on the hub did speaking. Uses the browser\u2019s built-in speech recognition (ko-KR, Chrome/Edge); the page records nothing and keeps only the recognized text. The check is a syllable LCS, so spacing never counts against her; it checks which words were said, not accent. After two tries (or 80%+) a Move on button appears so no line is a wall. Content-swappable: the JSON block id="content" (dialogues with roles, voices and lines; same[] for recognizer spellings like 아니오 \u2192 아니요). Change lang in listen() to reuse for another language. Audio: recorded ElevenLabs (scripts/voice/say-it-back.json), browser voice as fallback. In Canvas the iframe needs allow="microphone" (the hub embed now carries it); if Canvas strips it, the page shows an "open in its own tab" button.',
+    height: 1900,
+    parts: [
+      { file: 'activities/say-it-back.html', label: '📝🎤 Independent Mastery: Say It Back', height: 1900 }
+    ]
+  },
+  {
+    type: 'activity',
+    course: 'Korean 1A',
+    file: 'activities/how-often.html',
+    engine: 'particles', variant: 'frequency', version: 3, updated: '2026-11-09',
+    title: 'How Often?',
+    tag: 'match, answer, flip, build',
+    desc: 'Frequency words. Part 1 warm-up: 12 Order Up! food words from emoji, then 6 negative questions from a food diary answered the Korean way. Part 2: nine new words on picture flip cards with audio (항상, 매일, 보통, 자주, 가끔, 거의, 한 번도, 절대, 이미), a frequency ladder showing which words need 안, the 아직 / 이미 / 벌써 strip, and a picture check. Part 3: 12 sentences built from a week strip (filled days, no numerals), with traps for a missing 안, the wrong rung, word order, 한 번도 vs 절대 and 아직 vs 이미. Part 4: three real questions with tap-in word chips plus a choice.',
+    skills: 'Korean frequency adverbs 항상 매일 보통 자주 가끔 · negative-only 별로 거의 전혀 한 번도 절대 + 안 · 이미 / 벌써 / 아직 · 얼마나 자주 · answering negative questions · food vocabulary review',
+    note: 'Rejigger of The Interrogation (particles engine), version 3 like its parent: LL engine, turn-in, flip cards, picture check, the one-step machine and the 네/아니요 answer engine are reused unchanged. New: emoji picture check, the ladder SVG, the week strip (vis: "week:N" or "em:…"), and word chips that drop into whichever answer box was last focused. Content-swappable: the JSON block id="content" (food, case, words, machine, yn, chips). Art: assets/how-often/img (gpt-image-2.5-sunburst, Ghibli-inspired, same girl as The Interrogation). Audio: scripts/voice/how-often.json. About 27 minutes.',
+    height: 1800,
+    parts: [
+      { file: 'activities/how-often.html', label: '⭐🗓️ Guided Practice: How Often?', height: 1800 }
+    ]
+  },
+  {
+    type: 'activity',
+    course: 'Korean 1A',
     file: 'activities/the-interrogation.html',
     engine: 'particles', variant: 'negatives', version: 3, updated: '2026-11-04',
     title: 'The Interrogation',
@@ -855,6 +885,24 @@ const ITEMS = [
   {
     type: 'resource',
     course: 'Korean 1A',
+    file: 'resources/korean-journal-how-often.html',
+    title: 'Journal Week: How Often',
+    tag: 'paper homework',
+    desc: 'Five days of the paper Korean Journal aimed at frequency words. Each day has five words to copy and read aloud (with audio to check), three recorded dictation lines to write from sound with a hidden self-check, and a line-of-your-own prompt about her real week. Day 1 always/every day/usually/often/sometimes, Day 2 the words that need 안, Day 3 already and not yet, Day 4 two how-often questions for Sean, Day 5 her own page.',
+    skills: 'Korean frequency adverbs · 별로 거의 전혀 한 번도 절대 + 안 · 이미 벌써 아직 · 얼마나 자주 · handwriting · dictation · spaced review',
+    note: 'Rejigger of Journal Week: Saying No; only the days JSON, the reference card and titles changed. Paper on purpose. Content-swappable: the JSON block id="days". Audio in the shared assets/korean-journal/voice (scripts/voice/korean-journal.json). Day tab remembered per browser under its own key. Embeds: the whole week, or one day per Canvas item with ?part=day1 … day5.',
+    height: 2050,
+    parts: [
+      { key:'day1', label:'📝🗓️ Homework: Day 1, every day and sometimes', height: 1780 },
+      { key:'day2', label:'📝🙅 Homework: Day 2, the words that need 안', height: 1780 },
+      { key:'day3', label:'📝⏳ Homework: Day 3, already and not yet', height: 1780 },
+      { key:'day4', label:'📝❓ Homework: Day 4, asking how often', height: 1800 },
+      { key:'day5', label:'📝📓 Homework: Day 5, your own page', height: 1700 }
+    ]
+  },
+  {
+    type: 'resource',
+    course: 'Korean 1A',
     file: 'resources/korean-journal-saying-no.html',
     title: 'Journal Week: Saying No',
     tag: 'paper homework',
@@ -926,7 +974,7 @@ const embed = (it, part) => {
   return '<iframe src="' + url + '"\n' +
          '        width="100%" height="' + ((part && part.height) || it.height) + '"\n' +
          '        style="border:1px solid #e2ddd4;border-radius:8px;"\n' +
-         '        allow="clipboard-write"\n' +
+         '        allow="clipboard-write; microphone"\n' +
          '        title="' + title + '"></iframe>';
 };
 
