@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<!--
+  READ THE RIDER — engine: chain · variant: dialogue-character
+
+  Rejiggered from THE TELL (activities/the-tell.html). Same chain engine, with
+  two deliberate changes for this variant:
+
+    1. DECK keeps story order (no shuffle). The lines are one character across
+       one week, and development is only visible in order. Option order inside
+       every card still shuffles, so nothing can be read off the layout.
+    2. `why` is per stage ({s1, s2, s3}) so solving Part 1 does not print the
+       answers to Parts 2 and 3. card() falls back to a plain string `why`.
+
+  TEXT-SWAPPABLE. Everything text-specific lives in four constants:
+      MOVES    the four VOICES (how she talks)
+      THEMES   here: CHARACTER TRAITS, one per moment (plus a decoy)
+      LINES    original dialogue, in story order — voice, real motive
+               (stored in `effect`), trait, per-stage why
+      DECOYS   motives that belong to none of the lines (near-misses)
+
+  Original text (no copyright). Built for an 8th-grade student, outcome:
+  analyze the use of dialogue in communicating character, voice, motivation,
+  and development. Horse-barn setting is the accent, not the subject.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read the Rider</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+  .fb ul{ margin:.5rem 0 0; padding-left:1.2rem } .fb li{ margin-bottom:.35rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox select{ font:inherit; font-size:.95rem; padding:.45rem .5rem; border:1px solid var(--line);
+        border-radius:6px; background:var(--card); color:var(--ink) }
+  details.stems summary{ list-style:revert }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  /* ---- the line cards, shared by all three tapping stages ---- */
+  .item{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+        border-radius:10px; padding:.9rem 1.1rem; margin:0 0 1rem }
+  .item.right{ border-left-color:var(--calm); background:var(--calm-soft) }
+  .item.wrong{ border-left-color:var(--warn); background:var(--warn-soft) }
+  .item .quote{ font-size:1rem; line-height:1.65; margin:0 0 .3rem }
+  .item .src{ font-size:.8rem; color:var(--soft); margin:0 0 .7rem }
+  .item .num{ font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+        color:var(--soft); margin:0 0 .35rem }
+  .opts{ display:flex; gap:.4rem; flex-wrap:wrap }
+  .opts button{ font:inherit; font-size:.88rem; cursor:pointer; text-align:left;
+        border:1px solid var(--line); background:#fff; color:var(--ink);
+        border-radius:999px; padding:.35rem .85rem; display:inline-flex; align-items:center; gap:.4rem }
+  .opts button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+  .opts button[aria-pressed="true"]{ background:var(--accent); color:#fff; border-color:var(--accent) }
+  .opts button .ic{ font-size:1rem; line-height:1 }
+  .item select{ font:inherit; font-size:.92rem; width:100%; padding:.5rem .6rem;
+        border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink) }
+  .item select:focus{ border-color:var(--accent); outline:none }
+  .item .why{ font-size:.92rem; margin:.7rem 0 0; padding-top:.6rem;
+        border-top:1px dashed var(--line); color:var(--ink); display:none }
+  .item.shown .why{ display:block }
+
+  .legend{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.9rem 1.15rem; margin:0 0 1.25rem }
+  .legend .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+  .legend dl{ margin:0 }
+  .legend dt{ font-weight:700; font-size:.95rem; margin-top:.55rem }
+  .legend dt:first-child{ margin-top:0 }
+  .legend dd{ margin:0; font-size:.92rem; color:var(--soft) }
+
+  figure{ margin:0 0 1.25rem }
+  figcaption{ font-size:.8rem; color:var(--soft); margin-top:.35rem }
+  svg{ max-width:100%; height:auto; display:block }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  .bridge{ background:var(--accent-soft); border:1px solid #cfe0e8; border-radius:10px;
+        padding:.95rem 1.2rem; margin:1.25rem 0 0; font-size:.96rem }
+  .bridge .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin:0 0 .35rem }
+  .bridge p{ margin:0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Read the Rider</h1>
+  <p class="sub">Wren has ridden horses since she was six. Biscuit is a rescue horse who doesn’t trust anybody yet. Here are five things Wren says over one week at the barn, <strong>in order</strong>. She never once tells you who she is. Her dialogue does.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Finish one part, then press the green button when you're ready for the next.</li>
+      <li>Retry as many times as you like. Nothing is timed and nothing is scored.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ============ STAGE 1 — spot the move ============ -->
+  <section class="stage active" id="s1" data-title="Hear her voice">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1 — Hear her voice</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 — Hear her voice</h2>
+
+      <figure>
+        <svg viewBox="0 0 700 120" role="img" aria-labelledby="chainttl chaindesc">
+          <title id="chainttl">The chain this activity walks through</title>
+          <desc id="chaindesc">Four boxes joined by arrows: a line Wren says, the voice she says it in, what she really wants, and who she is at that moment.</desc>
+          <g font-family="Verdana,sans-serif" font-size="13" text-anchor="middle">
+            <rect x="4" y="34" width="140" height="52" rx="9" fill="var(--card)" stroke="var(--line)"/>
+            <text x="74" y="57" fill="var(--ink)" font-weight="bold">A line</text>
+            <text x="74" y="74" fill="var(--soft)" font-size="11">what she says</text>
+
+            <rect x="186" y="34" width="140" height="52" rx="9" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="256" y="57" fill="var(--ink)" font-weight="bold">Her voice</text>
+            <text x="256" y="74" fill="var(--soft)" font-size="11">part 1</text>
+
+            <rect x="368" y="34" width="140" height="52" rx="9" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="438" y="57" fill="var(--ink)" font-weight="bold">What she wants</text>
+            <text x="438" y="74" fill="var(--soft)" font-size="11">part 2</text>
+
+            <rect x="550" y="34" width="146" height="52" rx="9" fill="var(--calm-soft)" stroke="var(--calm)"/>
+            <text x="623" y="57" fill="var(--ink)" font-weight="bold">Who she is now</text>
+            <text x="623" y="74" fill="var(--soft)" font-size="11">part 3</text>
+
+            <g stroke="var(--soft)" stroke-width="2" fill="none" marker-end="url(#ar)">
+              <path d="M148 60 H180"/><path d="M330 60 H362"/><path d="M512 60 H544"/>
+            </g>
+          </g>
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="var(--soft)"/>
+            </marker>
+          </defs>
+        </svg>
+        <figcaption>The whole activity in one picture. Same five lines, three times over: how she sounds, what she wants, who she is right then. Part 4 asks how she changed.</figcaption>
+      </figure>
+
+      <p><strong>Dialogue</strong> is what characters say out loud. <strong>Voice</strong> is <em>how</em> they say it: the words they pick, how long the sentences run, the punctuation. Read each line out loud, then tap the voice you hear. You can change your mind before you press Check.</p>
+
+      <p style="color:var(--soft);font-size:.92rem;"><strong>Done looks like:</strong> all five lines tapped, then Check.</p>
+
+      <div class="legend">
+        <p class="lab">The four voices</p>
+        <dl id="movelegend"></dl>
+      </div>
+
+      <div id="build1"></div>
+
+      <div class="fb" id="fb" role="status" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" id="check1">Check</button>
+        <button class="btn ghost" id="reset1">Start over</button>
+      </div>
+      <div class="row" id="s1next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s1')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — what does it do to you ============ -->
+  <section class="stage" id="s2" data-title="What she wants">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2 — What she wants</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — What she wants</h2>
+      <p>A character’s <strong>motivation</strong> is what they want. Wren never says “I want…” in any of these lines. Her words give it away anyway: who she’s talking to, and what she’s trying to get out of them.</p>
+      <p>Pick what she wants in each line. Three of the choices belong to none of the lines. They’re close, so read carefully.</p>
+      <p style="color:var(--soft);font-size:.92rem;"><strong>Done looks like:</strong> five picks, then Check.</p>
+
+      <div id="build2"></div>
+
+      <div class="fb" id="fb2" role="status" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" id="check2">Check</button>
+        <button class="btn ghost" id="reset2">Start over</button>
+      </div>
+      <div class="row" id="s2next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s2')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 — aim it ============ -->
+  <section class="stage" id="s3" data-title="Who she is right now">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3 — Who she is right now</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 — Who she is right now</h2>
+      <p>A <strong>character trait</strong> is what kind of person someone is. Answer for <strong>this line, this moment</strong> only. Watch what happens to your answers as you go down the page: when a character’s traits change over a story, that’s <strong>character development</strong>.</p>
+      <p style="color:var(--soft);font-size:.92rem;">One trait fits none of the lines. One line is genuinely arguable. If you can back it, you’re right.</p>
+
+      <div id="build3"></div>
+
+      <div class="fb" id="fb3" role="status" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" id="check3">Check</button>
+        <button class="btn ghost" id="reset3">Start over</button>
+      </div>
+      <div class="row" id="s3next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s3')">Last part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 4 — your turn ============ -->
+  <section class="stage" id="s4" data-title="Your turn">
+    <button class="donebar" onclick="LL.toggle('s4')">
+      <span class="tick">✓</span> <strong>Part 4 — Your turn</strong>
+      <span class="sum" id="sum-s4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 4 — Your turn</h2>
+      <p>Put the five lines side by side and Wren is a different person at the end than at the start. Your job: find where she turns, prove the change, then write her new voice yourself.</p>
+
+      <figure>
+        <svg viewBox="0 0 700 150" role="img" aria-labelledby="devttl devdesc">
+          <title id="devttl">Wren’s week, scene by scene</title>
+          <desc id="devdesc">Five numbered circles on a line from Scene 1 to Scene 5. Scene 1 is labelled “Relax, Mr. Dale” and Scene 5 is labelled “Easy, Biscuit.” A question mark marks the turning point somewhere between them.</desc>
+          <g font-family="Verdana,sans-serif" text-anchor="middle">
+            <path d="M70 70 H630" stroke="var(--soft)" stroke-opacity=".45" stroke-width="3"/>
+            <circle cx="70"  cy="70" r="20" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="2"/>
+            <circle cx="210" cy="70" r="20" fill="var(--card)" stroke="var(--soft)" stroke-width="2"/>
+            <circle cx="350" cy="70" r="20" fill="var(--card)" stroke="var(--soft)" stroke-width="2"/>
+            <circle cx="490" cy="70" r="20" fill="var(--card)" stroke="var(--soft)" stroke-width="2"/>
+            <circle cx="630" cy="70" r="20" fill="var(--calm-soft)" stroke="var(--calm)" stroke-width="2"/>
+            <g font-size="15" font-weight="bold" fill="var(--ink)">
+              <text x="70" y="75">1</text><text x="210" y="75">2</text><text x="350" y="75">3</text><text x="490" y="75">4</text><text x="630" y="75">5</text>
+            </g>
+            <text x="420" y="24" font-size="24" font-weight="bold" fill="var(--accent)">?</text>
+            <text x="420" y="40" font-size="11" fill="var(--soft)">the turn is somewhere here</text>
+            <g font-size="12" fill="var(--ink)">
+              <text x="70"  y="112">START</text><text x="70"  y="130" fill="var(--soft)">“Relax, Mr. Dale…”</text>
+              <text x="630" y="112">END</text><text x="630" y="130" fill="var(--soft)">“Easy, Biscuit…”</text>
+            </g>
+          </g>
+        </svg>
+        <figcaption>Development is the distance between the start and the end, and the moment it turns.</figcaption>
+      </figure>
+
+      <p style="color:var(--soft);font-size:.92rem;"><strong>Done looks like:</strong> one pick, two sentences, one line of dialogue. Spelling doesn’t count here.</p>
+
+      <p class="q"><strong>Q1.</strong> Which line is the turning point, where her voice first sounds different?</p>
+      <div class="abox"><p class="lab">My pick</p>
+        <select data-q="Q1. The turning point, where her voice first sounds different:" style="width:100%">
+          <option value="">— choose —</option>
+          <option>Scene 1: “Relax, Mr. Dale. I’ve been riding since I was six…”</option>
+          <option>Scene 2: “Ground work is for beginners…”</option>
+          <option>Scene 3: “I’m fine. I’m FINE…”</option>
+          <option>Scene 4: “Mr. Dale? How did you get him to stand still…”</option>
+          <option>Scene 5: “Easy, Biscuit. Easy…”</option>
+        </select></div>
+      <details class="stems"><summary class="lab" style="cursor:pointer">Check yourself (after you pick)</summary>
+        <p>Two good answers. <strong>Scene 3</strong> is what <em>causes</em> the change: the fall. <strong>Scene 4</strong> is the first line where her <em>voice</em> changes: questions instead of orders. If you picked one, can you say why the other is also a fair answer?</p></details>
+
+      <p class="q"><strong>Q2.</strong> How did Wren change? Use one line from the start and one from the end as your proof.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q2. How did Wren change? One line from the start and one from the end as proof." placeholder="Type here…" rows="4"></textarea></div>
+
+      <p class="q"><strong>Q3.</strong> A month later, a younger kid at the barn wants to skip ground work and just ride. Write the one line Wren says to them. Make her <strong>voice</strong> show who she is now.</p>
+      <div class="abox"><p class="lab">Wren’s line</p>
+        <textarea data-q="Q3. A month later, a younger kid wants to skip ground work. Wren's line:" placeholder="Type here…" rows="2"></textarea></div>
+      <p style="color:var(--soft);font-size:.9rem;margin-top:-.25rem;">Want a harder version? Write it so that she <em>never</em> says “I’ve changed” and you can still tell.</p>
+
+      <div class="stems"><p class="lab">Starters, only if you want one</p>
+        <p>• At the start, Wren sounds ____ when she says “____.” By the end she sounds ____ when she says “____,” which shows she has become ____.<br>
+           • The biggest clue is the word ____, because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">Use one, or ignore both and write it your way.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s4')">Done with this part →</button></div>
+
+      <div class="bridge">
+        <p class="lab">Next</p>
+        <p>Use the same three questions on any story you read: <strong>How do they talk? What do they want? Who are they right now?</strong> Ask them at the start and the end, and the difference is the character’s development.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Part 1 — Hear her voice",
+    "questions": [
+      "For each of five lines Wren says over one week at the barn (in story order): which voice is she using — Cocky, Rattled, Unsure, or Calm and gentle?"
+    ] },
+  { "title": "Part 2 — What she wants",
+    "questions": [
+      "For each line: what does Wren want? Choose from eight motives; three are near-miss decoys that fit none of the lines."
+    ] },
+  { "title": "Part 3 — Who she is right now",
+    "questions": [
+      "For each line: which character trait fits her at that moment — Overconfident, Impatient, Proud, Willing to learn, Patient, or Lazy (decoy)? The Scene 2 line accepts Impatient or Overconfident."
+    ] },
+  { "title": "Part 4 — Your turn",
+    "questions": [
+      "Q1. Which line is the turning point, where her voice first sounds different? (Scene 3 or 4 both defensible.)",
+      "Q2. How did Wren change? Use one line from the start and one from the end as your proof.",
+      "Q3. A month later, a younger kid wants to skip ground work. Write the one line Wren says, with a voice that shows who she is now."
+    ] }
+]
+</script>
+
+<script>
+/* ==================================================================
+   CONTENT — the only text-specific part of this file. Swap these four
+   constants to point the activity at a different set of texts.
+   ================================================================== */
+
+const MOVES = {
+  cocky:   { name: 'Cocky', icon: '▲',
+             gloss: 'Big claims about herself. Tells other people what to do. No questions.' },
+  rattled: { name: 'Rattled', icon: '≋',
+             gloss: 'Repeats, dashes, sentences that break off. Her words fall apart while she says she’s okay.' },
+  unsure:  { name: 'Unsure', icon: '?',
+             gloss: 'Questions, pauses, “like” or “um.” Asking instead of telling.' },
+  calm:    { name: 'Calm and gentle', icon: '~',
+             gloss: 'Short, soft, slow words. Nothing to prove.' }
+};
+
+/* Here THEMES holds character traits. `lazy` fits no line on purpose. */
+const THEMES = {
+  overconfident: 'Overconfident — sure of herself before she’s earned it',
+  impatient:     'Impatient — wants it done right now',
+  proud:         'Proud — hates looking weak',
+  learn:         'Willing to learn — okay with not knowing yet',
+  patient:       'Patient — lets things take as long as they take',
+  lazy:          'Lazy — doesn’t want to do any work'
+};
+
+/* Original dialogue, in STORY ORDER (the deck is not shuffled — see header).
+   move = voice, effect = what she wants, theme = trait, alt = also defensible.
+   why is per stage so Part 1's explanation doesn't answer Parts 2 and 3. */
+const LINES = [
+  {
+    id: 'six',
+    quote: 'Relax, Mr. Dale. I’ve been riding since I was six. One grumpy horse isn’t going to be a problem.',
+    src: 'Scene 1 · first day at the barn, meeting Biscuit',
+    move: 'cocky',
+    effect: 'She wants the trainer to see she’s an expert who doesn’t need help.',
+    theme: 'overconfident', alt: [],
+    why: {
+      s1: 'She tells the adult to relax and backs it up with her own record: “since I was six.” Big claims, zero questions. That’s cocky.',
+      s2: 'She isn’t asking anything about Biscuit. She’s talking about herself, to the trainer. She wants to be seen as the one who already knows.',
+      s3: '“Isn’t going to be a problem,” and she hasn’t even touched him yet. Sure of herself before she’s earned it.'
+    }
+  },
+  {
+    id: 'beginners',
+    quote: 'Ground work is for beginners. Just give me the saddle. I’ll have him going by lunch.',
+    src: 'Scene 2 · Mr. Dale says to start on the ground',
+    move: 'cocky',
+    effect: 'She wants to skip the slow part and get straight to riding.',
+    theme: 'impatient', alt: ['overconfident'],
+    why: {
+      s1: '“For beginners” puts her above the lesson, and “I’ll have him going by lunch” is a promise nobody asked for. Still cocky.',
+      s2: 'Ground work is slow. “Just give me the saddle” and “by lunch” point the same way: she wants the fun part, now.',
+      s3: 'The arguable one. “By lunch” is a deadline she gave a scared horse, which is impatient. Overconfident is also right if you point at “for beginners.”'
+    }
+  },
+  {
+    id: 'fine',
+    quote: 'I’m fine. I’m FINE. Just — don’t tell my mom, okay? I just need a minute.',
+    src: 'Scene 3 · Biscuit spooks and she hits the dirt',
+    move: 'rattled',
+    effect: 'She wants to hide that she got scared, so nobody thinks less of her.',
+    theme: 'proud', alt: [],
+    why: {
+      s1: '“Fine” twice, the second time in capitals, and a dash that cuts her off. Someone who really was fine would say it once.',
+      s2: '“Don’t tell my mom.” She’s worried about who finds out, not about the fall. She wants to protect how she looks.',
+      s3: 'She just fell, and her first thought is that nobody can know. Looking weak scares her more than the fall did.'
+    }
+  },
+  {
+    id: 'show',
+    quote: 'Mr. Dale? How did you get him to stand still like that? … Could you show me? Like, from the beginning?',
+    src: 'Scene 4 · watching Mr. Dale with Biscuit',
+    move: 'unsure',
+    effect: 'She wants to actually learn it, even though asking admits she didn’t know.',
+    theme: 'learn', alt: [],
+    why: {
+      s1: 'Three questions in a row, a pause (…), and “like” while she works up to asking. She’s asking now, not telling.',
+      s2: '“From the beginning” means the ground work she called “for beginners” in Scene 2. She wants to learn it, even though that means she was wrong.',
+      s3: 'The girl who told the trainer to relax is asking him to teach her. Okay with not knowing yet. First line where she sounds like someone new.'
+    }
+  },
+  {
+    id: 'easy',
+    quote: 'Easy, Biscuit. Easy. We’re not riding today. We’ll just stand here as long as you want.',
+    src: 'Scene 5 · a week later, alone in the paddock',
+    move: 'calm',
+    effect: 'She wants Biscuit to trust her, on his time instead of hers.',
+    theme: 'patient', alt: [],
+    why: {
+      s1: 'Short, soft, slow. She repeats “easy,” but compare Scene 3: there the repeat was panic, here it’s soothing. Same trick, different voice.',
+      s2: '“As long as you want” hands the clock to the horse. Remember “by lunch”? Now she wants his trust more than she wants the ride.',
+      s3: '“We’re not riding today,” from the girl who wanted the saddle by lunch. Put this next to Scene 2 and you can see the whole change.'
+    }
+  }
+];
+
+/* Near-misses: each sits right next to one real line. */
+const DECOYS = [
+  'She wants Mr. Dale to do all the work for her.',
+  'She wants to quit and go home.',
+  'She wants to prove Biscuit is a bad horse.'
+];
+
+/* ==================================================================
+   ENGINE — nothing text-specific below this line.
+   ================================================================== */
+
+const ACTIVITY_TITLE = 'Read the Rider — What dialogue shows about character, voice, motivation and development';
+const ORDER = ['s1','s2','s3','s4'];
+const REWARDS = {
+  s1: { star:'★', msg:'You can hear a voice.' },
+  s2: { star:'★', msg:'You read what she wanted.' },
+  s3: { star:'★', msg:'You tracked who she is.' },
+  s4: { star:'★', msg:'All done. Go turn it in.' }
+};
+
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/* Item order: shuffled ONCE on load, shared by all three tapping stages so the
+   student isn't re-reading a reshuffled deck three times. Option order is
+   shuffled separately per item inside each build loop. */
+const DECK = LINES.slice();   /* story order on purpose: development needs it */
+
+/* answers[stage][lineId] = chosen key */
+const answers = { s1:{}, s2:{}, s3:{} };
+
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* ---------- legend ---------- */
+(function(){
+  const dl = document.getElementById('movelegend');
+  Object.values(MOVES).forEach(m => {
+    dl.insertAdjacentHTML('beforeend',
+      '<dt><span aria-hidden="true">' + esc(m.icon) + '</span> ' + esc(m.name) + '</dt>' +
+      '<dd>' + esc(m.gloss) + '</dd>');
+  });
+})();
+
+/* ---------- card shell, shared ---------- */
+function card(stage, line, i, controlHtml){
+  return '<div class="item" id="' + stage + '-' + line.id + '">' +
+    '<p class="num">Line ' + (i + 1) + '</p>' +
+    '<p class="quote">“' + esc(line.quote) + '”</p>' +
+    '<p class="src">' + esc(line.src) + '</p>' +
+    controlHtml +
+    '<p class="why">' + esc(typeof line.why === 'string' ? line.why : line.why[stage]) + '</p>' +
+  '</div>';
+}
+
+/* ---------- stage 1: tap the move ---------- */
+function build1(){
+  const host = document.getElementById('build1');
+  host.innerHTML = DECK.map((line, i) => {
+    const opts = shuffle(Object.keys(MOVES)).map(k =>
+      '<button type="button" aria-pressed="false" data-stage="s1" data-line="' + line.id + '" data-val="' + k + '">' +
+      '<span class="ic" aria-hidden="true">' + esc(MOVES[k].icon) + '</span>' + esc(MOVES[k].name) + '</button>').join('');
+    return card('s1', line, i, '<div class="opts">' + opts + '</div>');
+  }).join('');
+}
+
+/* ---------- stage 2: choose the effect ---------- */
+function build2(){
+  const host = document.getElementById('build2');
+  const pool = shuffle(LINES.map(l => ({ v: l.id, t: l.effect }))
+              .concat(DECOYS.map((d, n) => ({ v: 'decoy' + n, t: d }))));
+  host.innerHTML = DECK.map((line, i) => {
+    const opts = pool.map(o =>
+      '<option value="' + o.v + '">' + esc(o.t) + '</option>').join('');
+    return card('s2', line, i,
+      '<label style="font-size:.85rem;color:var(--soft);display:block;margin-bottom:.3rem;" for="sel-' + line.id + '">What does she want?</label>' +
+      '<select id="sel-' + line.id + '" data-stage="s2" data-line="' + line.id + '">' +
+      '<option value="">— choose —</option>' + opts + '</select>');
+  }).join('');
+}
+
+/* ---------- stage 3: tap the theme ---------- */
+function build3(){
+  const host = document.getElementById('build3');
+  host.innerHTML = DECK.map((line, i) => {
+    const opts = shuffle(Object.keys(THEMES)).map(k =>
+      '<button type="button" aria-pressed="false" data-stage="s3" data-line="' + line.id + '" data-val="' + k + '">' +
+      esc(THEMES[k]) + '</button>').join('');
+    return card('s3', line, i, '<div class="opts">' + opts + '</div>');
+  }).join('');
+}
+
+/* ---------- one delegated handler for every tap and select ---------- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-stage]');
+  if (!b) return;
+  const { stage, line, val } = b.dataset;
+  answers[stage][line] = val;
+  b.closest('.opts').querySelectorAll('button')
+    .forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+});
+document.addEventListener('change', e => {
+  const s = e.target.closest('select[data-stage]');
+  if (!s) return;
+  answers[s.dataset.stage][s.dataset.line] = s.value;
+});
+
+/* ---------- checking ---------- */
+function say(boxId, kind, head, body){
+  const fb = document.getElementById(boxId);
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+const tries = { s1:0, s2:0, s3:0 };
+
+function correctFor(stage, line){
+  if (stage === 's1') return [line.move];
+  if (stage === 's2') return [line.id];
+  return [line.theme].concat(line.alt || []);
+}
+
+function check(stage, fbId, nextId, onSolved, hintFor){
+  tries[stage]++;
+  const unanswered = DECK.filter(l => !answers[stage][l.id]);
+  if (unanswered.length){
+    say(fbId, 'hint', 'Not quite finished.',
+      unanswered.length + ' line' + (unanswered.length > 1 ? 's still need an answer.' : ' still needs an answer.') +
+      ' Nothing is scored here — a guess you can argue about is more useful than a blank.');
+    return;
+  }
+  let wrong = [];
+  DECK.forEach(l => {
+    const el = document.getElementById(stage + '-' + l.id);
+    const ok = correctFor(stage, l).includes(answers[stage][l.id]);
+    el.classList.remove('right','wrong');
+    el.classList.add(ok ? 'right' : 'wrong');
+    if (!ok) wrong.push(l);
+  });
+  if (wrong.length){
+    say(fbId, 'hint', wrong.length + ' to look at again.',
+      '<ul>' + wrong.map(l => '<li>“' + esc(l.quote.slice(0, 58)) + '…” — ' + esc(hintFor(l)) + '</li>').join('') + '</ul>');
+    return;
+  }
+  DECK.forEach(l => document.getElementById(stage + '-' + l.id).classList.add('shown'));
+  document.getElementById('check' + stage.slice(1)).disabled = true;
+  say(fbId, 'good', 'All five.',
+    'The reasoning for each one is now open under the line — that part is worth more than getting it right was.');
+  document.getElementById(nextId).style.display = 'flex';
+  onSolved();
+}
+
+function evidence(stage, render){
+  return 'Solved in ' + tries[stage] + (tries[stage] === 1 ? ' try.\n' : ' tries.\n') +
+    DECK.map(l => '  “' + l.quote.slice(0, 46) + '…”  →  ' + render(l)).join('\n');
+}
+
+document.getElementById('check1').addEventListener('click', () =>
+  check('s1', 'fb', 's1next',
+    () => { LL.summary.s1 = 'solved in ' + tries.s1 + (tries.s1 === 1 ? ' try' : ' tries');
+            LL.extra.s1 = evidence('s1', l => MOVES[answers.s1[l.id]].name); },
+    l => 'read it out loud and look at the clues: big claims, broken-off words, questions, or slow soft words?'));
+
+document.getElementById('check2').addEventListener('click', () =>
+  check('s2', 'fb2', 's2next',
+    () => { LL.summary.s2 = 'solved in ' + tries.s2 + (tries.s2 === 1 ? ' try' : ' tries');
+            LL.extra.s2 = evidence('s2',
+              l => { const v = answers.s2[l.id];
+                     const m = LINES.find(x => x.id === v);
+                     return m ? m.effect.slice(0, 60) + '…' : 'one of the reasons that fit none of the lines'; }); },
+    l => 'who is she talking to, and what is she trying to get out of them or out of this moment?'));
+
+document.getElementById('check3').addEventListener('click', () =>
+  check('s3', 'fb3', 's3next',
+    () => { LL.summary.s3 = 'solved in ' + tries.s3 + (tries.s3 === 1 ? ' try' : ' tries');
+            LL.extra.s3 = evidence('s3', l => THEMES[answers.s3[l.id]]); },
+    l => 'only this line, only this moment. Who is she right now, not who she becomes later?'));
+
+/* ---------- start over: rebuild from the already-shuffled deck ---------- */
+function resetStage(stage, builder, fbId, nextId, checkId){
+  answers[stage] = {};
+  builder();
+  document.getElementById(fbId).className = 'fb';
+  document.getElementById(nextId).style.display = 'none';
+  document.getElementById(checkId).disabled = false;
+}
+document.getElementById('reset1').addEventListener('click', () => resetStage('s1', build1, 'fb',  's1next', 'check1'));
+document.getElementById('reset2').addEventListener('click', () => resetStage('s2', build2, 'fb2', 's2next', 'check2'));
+document.getElementById('reset3').addEventListener('click', () => resetStage('s3', build3, 'fb3', 's3next', 'check3'));
+
+/* ---------- stage engine (shared pattern — see templates/activity-shell.html) ---------- */
+const LL = {
+  extra: {}, summary: {}, done: new Set(),
+
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+/* ---------- evidence assembly ---------- */
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
+build1(); build2(); build3();
+</script>
+<script src="../assets/student.js"></script>
+</body>
+</html>
