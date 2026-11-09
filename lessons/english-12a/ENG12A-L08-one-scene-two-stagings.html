@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG12A-L08 · One Scene, Two Stagings</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG12A-L08</p>
+  <h1 id="pagetitle">English 12A · Lesson 8</h1>
+  <p class="sub" id="pagesub">One Scene, Two Stagings.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="What actors add">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; What actors add</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; What actors add</h2>
+
+      <p>A script only gives you the words. Everything else, the actors and the director decide. That's called the <strong>staging</strong>.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 220" role="img" aria-label="A script line in the centre, Yet here's a spot, with four arrows pointing out to four boxes: Voice, how it is said; Body, how she moves; Light and set, where and how dark; Sound, music or silence. A caption says the same words can mean different things.">
+  <rect x="190" y="88" width="220" height="44" rx="10" fill="var(--accent)" fill-opacity=".2" stroke="var(--accent)" stroke-width="2"/>
+  <text x="300" y="116" text-anchor="middle" font-size="16" font-weight="700" font-style="italic" fill="var(--ink)">"Yet here's a spot."</text>
+  <rect x="15"  y="15"  width="150" height="56" rx="10" fill="none" stroke="var(--soft)" stroke-opacity=".7" stroke-width="2"/>
+  <text x="90"  y="39"  text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">🎙️ Voice</text>
+  <text x="90"  y="58"  text-anchor="middle" font-size="12" fill="var(--soft)">how it's said</text>
+  <rect x="435" y="15"  width="150" height="56" rx="10" fill="none" stroke="var(--soft)" stroke-opacity=".7" stroke-width="2"/>
+  <text x="510" y="39"  text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">🧍 Body</text>
+  <text x="510" y="58"  text-anchor="middle" font-size="12" fill="var(--soft)">how she moves</text>
+  <rect x="15"  y="149" width="150" height="56" rx="10" fill="none" stroke="var(--soft)" stroke-opacity=".7" stroke-width="2"/>
+  <text x="90"  y="173" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">🕯️ Light and set</text>
+  <text x="90"  y="192" text-anchor="middle" font-size="12" fill="var(--soft)">where, and how dark</text>
+  <rect x="435" y="149" width="150" height="56" rx="10" fill="none" stroke="var(--soft)" stroke-opacity=".7" stroke-width="2"/>
+  <text x="510" y="173" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">🔊 Sound</text>
+  <text x="510" y="192" text-anchor="middle" font-size="12" fill="var(--soft)">music or silence</text>
+  <line x1="190" y1="98"  x2="160" y2="68"  stroke="var(--ink)" stroke-width="2.5"/>
+  <line x1="410" y1="98"  x2="440" y2="68"  stroke="var(--ink)" stroke-width="2.5"/>
+  <line x1="190" y1="122" x2="160" y2="152" stroke="var(--ink)" stroke-width="2.5"/>
+  <line x1="410" y1="122" x2="440" y2="152" stroke="var(--ink)" stroke-width="2.5"/>
+</svg>
+      <figcaption>Same four words every time. Change any one box and the line means something different.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q1.</strong> Lady Macbeth says "Yet here's a spot" in a <strong>flat, empty voice</strong>, like she's said it a thousand times. What does that make you think?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Lady Macbeth says &quot;Yet here&#x27;s a spot&quot; in a flat, empty voice, like she&#x27;s said it a thousand times. What does that make you think?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="she&#x27;s bored of the scene">she&#x27;s bored of the scene</option>
+          <option value="she&#x27;s been stuck in this guilt for a long time">she&#x27;s been stuck in this guilt for a long time</option>
+          <option value="she&#x27;s pretending to be asleep">she&#x27;s pretending to be asleep</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> The director makes the scene <strong>almost completely dark</strong>, lit by one candle she carries. What does that add?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. The director makes the scene almost completely dark, lit by one candle she carries. What does that add?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="she&#x27;s alone with her guilt, and it&#x27;s closing in">she&#x27;s alone with her guilt, and it&#x27;s closing in</option>
+          <option value="it&#x27;s simply night-time, nothing more">it&#x27;s simply night-time, nothing more</option>
+          <option value="it saves money on lighting">it saves money on lighting</option>
+        </select></div>
+
+      <p class="q"><strong>Q3.</strong> Pick one performance element. How could changing it change what an audience thinks of a character?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; If an actor changed the … , the audience would think … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. Pick one performance element. How could changing it change what an audience thinks of a character?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and one sentence about what the voice changes.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="The sleepwalking scene">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The sleepwalking scene</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The sleepwalking scene</h2>
+
+      <p><strong>What happens in Acts III and IV</strong> (Moments 1–6 were last lesson):</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 175" role="img" aria-label="A timeline continuing from last lesson, moments seven to twelve. Seven: Banquo is murdered. Eight: Banquo's ghost at the feast. Nine: the witches' new warnings. Ten: Macduff's family is killed. Eleven, highlighted as today: Lady Macbeth sleepwalks. Twelve: Macbeth falls.">
+  <text x="200" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">ACTS III–IV</text>
+  <line x1="35" y1="34" x2="365" y2="34" stroke="var(--soft)" stroke-opacity=".7" stroke-width="2"/>
+  <text x="500" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">ACT V</text>
+  <line x1="435" y1="34" x2="565" y2="34" stroke="var(--soft)" stroke-opacity=".7" stroke-width="2"/>
+  <line x1="50" y1="70" x2="550" y2="70" stroke="var(--soft)" stroke-opacity=".6" stroke-width="4"/>
+  <circle cx="50"  cy="70" r="16" fill="var(--accent)" fill-opacity=".3" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="150" cy="70" r="16" fill="var(--accent)" fill-opacity=".3" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="250" cy="70" r="16" fill="var(--accent)" fill-opacity=".3" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="350" cy="70" r="16" fill="var(--accent)" fill-opacity=".3" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="450" cy="70" r="21" fill="var(--accent)" fill-opacity=".6" stroke="var(--ink)" stroke-width="3"/>
+  <circle cx="550" cy="70" r="16" fill="var(--accent)" fill-opacity=".3" stroke="var(--accent)" stroke-width="2"/>
+  <text x="50"  y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">7</text>
+  <text x="150" y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">8</text>
+  <text x="250" y="76" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">9</text>
+  <text x="350" y="76" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">10</text>
+  <text x="450" y="76" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">11</text>
+  <text x="550" y="76" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">12</text>
+  <text x="50"  y="110" text-anchor="middle" font-size="12" fill="var(--ink)">Banquo</text>
+  <text x="50"  y="126" text-anchor="middle" font-size="12" fill="var(--ink)">murdered</text>
+  <text x="150" y="110" text-anchor="middle" font-size="12" fill="var(--ink)">Ghost at</text>
+  <text x="150" y="126" text-anchor="middle" font-size="12" fill="var(--ink)">the feast</text>
+  <text x="250" y="110" text-anchor="middle" font-size="12" fill="var(--ink)">New</text>
+  <text x="250" y="126" text-anchor="middle" font-size="12" fill="var(--ink)">warnings</text>
+  <text x="350" y="110" text-anchor="middle" font-size="12" fill="var(--ink)">Macduff's</text>
+  <text x="350" y="126" text-anchor="middle" font-size="12" fill="var(--ink)">family killed</text>
+  <text x="450" y="114" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">TODAY:</text>
+  <text x="450" y="130" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">sleepwalking</text>
+  <text x="550" y="110" text-anchor="middle" font-size="12" fill="var(--ink)">Macbeth</text>
+  <text x="550" y="126" text-anchor="middle" font-size="12" fill="var(--ink)">falls</text>
+  <text x="300" y="165" text-anchor="middle" font-size="12" fill="var(--soft)">Moment 11 is the scene you read and watch today.</text>
+</svg>
+      <figcaption>Acts III to V in six moments.</figcaption>
+      </figure>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:6px">
+  <tr>
+    <td style="width:50%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>7.</strong> Now king, Macbeth fears Banquo, because the witches said Banquo's sons would be kings. He has Banquo murdered. Banquo's son escapes.<br><br><strong>8.</strong> At a royal feast, Banquo's ghost sits in Macbeth's chair. Only Macbeth can see it. Lady Macbeth covers for him in front of everyone.<br><br><strong>9.</strong> The witches warn him about Macduff, a Scottish lord, but promise no man "of woman born" can hurt him, and he's safe until a forest, Birnam Wood, marches on his castle.</td>
+    <td style="width:50%;padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>10.</strong> Macduff has fled to England. Macbeth has Macduff's wife and children killed.<br><br><strong>11. Today's scene.</strong> Macbeth is away at war. Lady Macbeth has started walking in her sleep.<br><br><strong>12.</strong> Lady Macbeth dies. Soldiers carry branches from Birnam Wood to hide their numbers, so the forest "moves". Macduff, born early by surgery and so not "of woman born" in the usual way, kills Macbeth.</td>
+  </tr>
+</table>
+      <figcaption>What each moment is. Moment 12 is how the play ends.</figcaption>
+      </figure>
+
+      <p><strong>Act V, scene 1.</strong> Night, in Macbeth's castle. A doctor and a gentlewoman (a lady's servant) are waiting up to watch Lady Macbeth. <em>Lightly trimmed: the doctor's first few lines are cut.</em></p>
+
+      <p class="q"><strong>Q4.</strong> How do you want to read it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. How do you want to read it?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="I&#x27;ll read Lady Macbeth, you read the others">I&#x27;ll read Lady Macbeth, you read the others</option>
+          <option value="You read it all, I&#x27;ll follow">You read it all, I&#x27;ll follow</option>
+          <option value="I&#x27;ll read it all myself">I&#x27;ll read it all myself</option>
+        </select></div>
+
+      <p><strong>Gentlewoman:</strong> Lo you, here she comes! This is her very guise; and, upon my life, fast asleep. Observe her; stand close.</p>
+
+      <p><strong>Doctor:</strong> How came she by that light?</p>
+
+      <p><strong>Gentlewoman:</strong> Why, it stood by her: she has light by her continually; 'tis her command.</p>
+
+      <p><strong>Doctor:</strong> You see, her eyes are open.</p>
+
+      <p><strong>Gentlewoman:</strong> Ay, but their sense is shut.</p>
+
+      <p><strong>Doctor:</strong> What is it she does now? Look, how she rubs her hands.</p>
+
+      <p><strong>Gentlewoman:</strong> It is an accustomed action with her, to seem thus washing her hands: I have known her continue in this a quarter of an hour.</p>
+
+      <p><strong>Lady Macbeth:</strong> Yet here's a spot.</p>
+
+      <p><strong>Doctor:</strong> Hark! she speaks.</p>
+
+      <p><strong>Lady Macbeth:</strong> Out, damned spot! out, I say! One: two: why, then, 'tis time to do't. Hell is murky! Fie, my lord, fie! a soldier, and afeard? What need we fear who knows it, when none can call our power to account? Yet who would have thought the old man to have had so much blood in him.</p>
+
+      <p><strong>Doctor:</strong> Do you mark that?</p>
+
+      <p><strong>Lady Macbeth:</strong> The thane of Fife had a wife: where is she now? What, will these hands ne'er be clean? No more o' that, my lord, no more o' that: you mar all with this starting.</p>
+
+      <p><strong>Doctor:</strong> Go to, go to; you have known what you should not.</p>
+
+      <p><strong>Lady Macbeth:</strong> Here's the smell of the blood still: all the perfumes of Arabia will not sweeten this little hand. Oh, oh, oh!</p>
+
+      <p><strong>Doctor:</strong> What a sigh is there! The heart is sorely charged.</p>
+
+      <p><strong>Lady Macbeth:</strong> Wash your hands, put on your nightgown; look not so pale. I tell you yet again, Banquo's buried; he cannot come out on's grave.</p>
+
+      <p><strong>Lady Macbeth:</strong> To bed, to bed! there's knocking at the gate: come, come, come, come, give me your hand. What's done cannot be undone. To bed, to bed, to bed!</p>
+
+      <p><strong>Doctor:</strong> Unnatural deeds do breed unnatural troubles: infected minds to their deaf pillows will discharge their secrets. More needs she the divine than the physician.</p>
+
+      <p><em>(afeard = afraid · the thane of Fife = Macduff · you mar all with this starting = you ruin everything by flinching · the divine = a priest · the physician = a doctor)</em></p>
+
+      <p class="q"><strong>Q5.</strong> "Who would have thought the <strong>old man</strong> to have had so much blood in him." Which night is she reliving?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. &quot;Who would have thought the old man to have had so much blood in him.&quot; Which night is she reliving?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="the night Banquo&#x27;s ghost came to the feast">the night Banquo&#x27;s ghost came to the feast</option>
+          <option value="the night they murdered Duncan">the night they murdered Duncan</option>
+          <option value="the night the witches appeared">the night the witches appeared</option>
+        </select></div>
+
+      <p class="q"><strong>Q6.</strong> Last lesson, right after the murder, she said: <em>"A little water clears us of this deed."</em> What has changed?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. Last lesson, right after the murder, she said: &quot;A little water clears us of this deed.&quot; What has changed?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="nothing, she still feels fine">nothing, she still feels fine</option>
+          <option value="she has stopped caring about the crown">she has stopped caring about the crown</option>
+          <option value="the blood she said would wash off is the thing she can&#x27;t stop washing">the blood she said would wash off is the thing she can&#x27;t stop washing</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> Two sentences: pick one line from the scene and say what it shows about her now.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; When she says \"…\", it shows that she … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q7. Two sentences: pick one line from the scene and say what it shows about her now." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked and two sentences connecting her words to what she did.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Two stagings, one claim">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Two stagings, one claim</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Two stagings, one claim</h2>
+
+      <p>Your teacher will play <strong>two filmed versions</strong> of the scene you just read. Watch how each one does it.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse">
+  <tr>
+    <th style="padding:10px;border:1px solid var(--soft);text-align:left"></th>
+    <th style="padding:10px;border:1px solid var(--soft);text-align:left">🎬 Version A</th>
+    <th style="padding:10px;border:1px solid var(--soft);text-align:left">🎬 Version B</th>
+  </tr>
+  <tr>
+    <td style="padding:10px;border:1px solid var(--soft)"><strong>🎙️ Voice</strong></td>
+    <td style="padding:10px;border:1px solid var(--soft)">?</td>
+    <td style="padding:10px;border:1px solid var(--soft)">?</td>
+  </tr>
+  <tr>
+    <td style="padding:10px;border:1px solid var(--soft)"><strong>🧍 Body</strong></td>
+    <td style="padding:10px;border:1px solid var(--soft)">?</td>
+    <td style="padding:10px;border:1px solid var(--soft)">?</td>
+  </tr>
+  <tr>
+    <td style="padding:10px;border:1px solid var(--soft)"><strong>🕯️ Light and set</strong></td>
+    <td style="padding:10px;border:1px solid var(--soft)">?</td>
+    <td style="padding:10px;border:1px solid var(--soft)">?</td>
+  </tr>
+</table>
+      <figcaption>Keep this in mind while you watch. Say what you notice out loud; you don't have to fill it in.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q8.</strong> Which version made Lady Macbeth seem more <strong>broken</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q8. Which version made Lady Macbeth seem more broken?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Version A">Version A</option>
+          <option value="Version B">Version B</option>
+          <option value="about the same">about the same</option>
+        </select></div>
+
+      <p class="q"><strong>Q9.</strong> Which performance element did the most to make that happen?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. Which performance element did the most to make that happen?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="voice">voice</option>
+          <option value="body">body</option>
+          <option value="light and set">light and set</option>
+          <option value="sound">sound</option>
+        </select></div>
+
+      <p class="q"><strong>Q10.</strong> Which version stuck closer to what the Doctor and Gentlewoman describe in the script (the candle, eyes open, rubbing her hands)?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q10. Which version stuck closer to what the Doctor and Gentlewoman describe in the script (the candle, eyes open, rubbing her hands)?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Version A">Version A</option>
+          <option value="Version B">Version B</option>
+          <option value="both did">both did</option>
+        </select></div>
+
+      <p>Now make an argument. Pick <strong>one</strong> of these claims, or write your own.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:separate;border-spacing:8px">
+  <tr>
+    <td style="width:50%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>Claim A</strong><br>Lady Macbeth was never as strong as she pretended. The sleepwalking scene shows what was underneath all along.</td>
+    <td style="width:50%;padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top"><strong>Claim B</strong><br>Guilt you bury doesn't go away. It comes back in a form you can't control.</td>
+  </tr>
+</table>
+      <figcaption>Two claims a reader could argue. Neither one is the "right" answer.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q11.</strong> Which claim are you backing up?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q11. Which claim are you backing up?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Claim A">Claim A</option>
+          <option value="Claim B">Claim B</option>
+          <option value="my own claim (write it at the start of Q12)">my own claim (write it at the start of Q12)</option>
+        </select></div>
+
+      <p class="q"><strong>Q12.</strong> Two sentences: back up your claim with one <strong>quote from the scene</strong> and one <strong>detail from a staging</strong>.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; In the scene she says \"…\", which supports the claim because … . In Version … , the actor … , which makes it even clearer that ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q12. Two sentences: back up your claim with one quote from the scene and one detail from a staging." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p><strong>This one's meant to be hard.</strong> Back in Act III, Lady Macbeth told her husband to stop worrying about what they'd done: <em>"Things without all remedy / Should be without regard: what's done is done."</em> Now, asleep, she says: <em>"What's done cannot be undone."</em></p>
+
+      <p class="q"><strong>Q13.</strong> Almost the same words. What has changed in what they mean, and what does that show about her?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; In Act III, \"what's done is done\" means … , but in Act V, \"what's done cannot be undone\" means … , which shows ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q13. Almost the same words. What has changed in what they mean, and what does that show about her?" placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>In Act III it's a comfort: it's over, so forget it and move on. In Act V the same idea has turned into a trap: it's over, so she can never fix it or escape it. The words barely change; her relationship to the crime has completely flipped. If you saw the flip from 'let it go' to 'I can't let it go', you've got it.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>The grid's three dropdowns picked, one claim chosen, two sentences with a quote and a staging detail, and the hard one answered (typed or said).</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Performance words and claim words &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Performance elements</td><td>Everything the script doesn't control: voice, body, light, set, sound, costume.</td></tr>
+      <tr><td class="h">Voice</td><td>Loud or soft, fast or slow, flat or shaking, where the pauses go.</td></tr>
+      <tr><td class="h">Body</td><td>How the actor moves, stands, uses their hands and face.</td></tr>
+      <tr><td class="h">Light and set</td><td>Where the scene happens and how bright or dark it is.</td></tr>
+      <tr><td class="h">Sound</td><td>Music, silence, noises in the background.</td></tr>
+      <tr><td class="h">Staging</td><td>One director's version of a scene: all of those choices together.</td></tr>
+      <tr><td class="h">Claim</td><td>A sentence that argues something about the play, which someone could disagree with.</td></tr>
+      <tr><td class="h">Textual evidence</td><td>A quote from the play that backs the claim up, plus what it shows.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>Claim → quote → so it shows.</strong> Every argument today has those three links.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud instead of typing it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "English 12A · Lesson 8";
+const LESSON_ID = "ENG12A-L08";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "3-5": "Discuss the impact of performance elements on the interpretation of dramatic texts.",
+  "3-6": "Use textual evidence to support the main idea of a literary criticism or analysis of dramatic texts."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:4 },
+  { label:"What actors add", mins:7, part:"intro" },
+  { label:"The sleepwalking scene", mins:17, part:"guided" },
+  { label:"Two stagings, one claim", mins:18, part:"mastery" },
+  { label:"Done for today", mins:4 }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "The words are the same every time. What the actors and director do with them changes what you understand.", sheet: true, outcomes: ["3-5"] },
+  guided: { title: "Guided Practice", sub: "Catch up on Acts III and IV, then read Lady Macbeth's sleepwalking scene.", sheet: true, outcomes: ["3-5", "3-6"] },
+  mastery: { title: "Independent Mastery", sub: "Watch two versions of the same scene, then back up a claim about it with the text.", sheet: true, outcomes: ["3-5", "3-6"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You know what to watch for. Now watch for it."},
+  g1:{star:"★",msg:"You've caught up on four acts and read the scene everyone remembers."},
+  m1:{star:"★",msg:"Two stagings, one claim, backed by the text. That's literary criticism."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>

@@ -114,6 +114,14 @@
         font-family:Consolas,monospace; word-break:break-all }
   .card .foot{ margin-top:auto; display:flex; gap:.4rem; flex-wrap:wrap }
   .card .note{ font-size:.78rem; color:var(--soft); font-style:italic; margin:0 0 .6rem }
+  .card .when{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem;
+        margin:0 0 .65rem; font-size:.95rem; font-weight:700; color:var(--ink) }
+  .card .when .code{ font-family:Consolas,monospace; font-size:.9rem; color:var(--les);
+        background:var(--les-soft); border:1px solid var(--les-line); border-radius:6px; padding:.08rem .45rem }
+  .card details.notes{ margin:0 0 .75rem; font-size:.8rem; color:var(--soft) }
+  .card details.notes summary{ cursor:pointer; font-weight:700; color:var(--accent); width:max-content }
+  .card details.notes p{ margin:.4rem 0 0; line-height:1.45 }
+  .card details.notes .path{ margin:.4rem 0 0 }
 
   button.b,a.b{ font:inherit; font-size:.82rem; font-weight:700; cursor:pointer; text-decoration:none;
         border-radius:7px; padding:.4rem .75rem; border:1px solid var(--accent);
@@ -440,6 +448,7 @@ const ITEMS = [
     id:   'ENG12A-L01',
     course: 'English 12A',
     file: 'lessons/english-12a/ENG12A-L01-four-moves-one-purpose.html',
+    updated: '2026-09-01',
     title: 'Four Moves, One Purpose',
     tag: 'lesson 1',
     desc: 'What a nonfiction text is \u201cabout\u201d against what it is \u201caimed at\u201d \u2014 taught on Hurston and Douglass, with the neutral-twin swap as the test that finds the loaded word in any sentence. Front half of a block that ends in Kincaid.',
@@ -456,6 +465,7 @@ const ITEMS = [
     id:   'ENG8-L01',
     course: 'English 8',
     file: 'lessons/english-8/ENG8-L01-says-vs-sounds.html',
+    updated: '2026-10-21',
     title: 'Says vs. Sounds',
     tag: 'lesson 1',
     desc: 'Character motivation through tone and theme, on Poe\u2019s \u201cThe Tell-Tale Heart.\u201d What a narrator says his reason is, what his tone gives away, and what the story says about people in general. Mastery: pick one unseen passage \u2014 the opening of \u201cThe Cask of Amontillado\u201d or of \u201cThe Gift of the Magi\u201d \u2014 and explain tone \u2192 motive \u2192 theme.',
@@ -473,6 +483,7 @@ const ITEMS = [
     id:   'ENG12A-L02',
     course: 'English 12A',
     file: 'lessons/english-12a/ENG12A-L02-word-detective.html',
+    updated: '2026-10-20',
     title: 'Word Detective',
     tag: 'lesson 2',
     desc: 'Short in-class mastery check after reading The Pillow Book: pick the word doing the most work, explain why it is a list and not a story (or what makes a part hard), unpack one non-literal line, then write her own three-item list and compare her word choices to Sei Sh\u014dnagon\u2019s.',
@@ -488,6 +499,7 @@ const ITEMS = [
     id:   'ENG12A-L03',
     course: 'English 12A',
     file: 'lessons/english-12a/ENG12A-L03-the-man-behind-the-gun.html',
+    updated: '2026-10-22',
     title: 'The Man Behind the Gun',
     tag: 'lesson 3',
     desc: 'Shooting an Elephant, read in class (about 12 minutes). The clue \u2192 purpose \u2192 theme chain taught on a toy example, then irony, confession and imagery found in the essay, then a verdict on how much Orwell\u2019s purpose shapes the theme, backed by the essay and a short background card.',
@@ -505,6 +517,7 @@ const ITEMS = [
     id:   'ENG12A-L04',
     course: 'English 12A',
     file: 'lessons/english-12a/ENG12A-L04-unit-2-check-words-and-purpose.html',
+    updated: '2026-10-22',
     title: 'Unit 2 Check: Words and Purpose',
     tag: 'unit assessment',
     desc: 'Unit 2 assessment in six short parts, one per outcome group: diction and syntax, language complexity, figurative language, comparing two writers, purpose and theme, and evidence from two sources. Uses only The Pillow Book and Shooting an Elephant, so there is no new reading.',
@@ -520,6 +533,7 @@ const ITEMS = [
     id:   'ENG12A-L05',
     course: 'English 12A',
     file: 'lessons/english-12a/ENG12A-L05-short-and-sharp-long-and-sly.html',
+    updated: '2026-10-26',
     title: '🎚️ Short and Sharp, Long and Sly',
     tag: 'lesson',
     desc: 'Three Unit 2 outcomes in one session: language complexity as a dial (Simple to Complex), figurative language in The Pillow Book, then a comparison with 1984 (chapters 1\u20134, already read). The stretch item: Sei Sh\u014dnagon\u2019s lists against the Party\u2019s three slogans \u2014 same tool, opposite job.',
@@ -537,6 +551,7 @@ const ITEMS = [
     id:   'ENG10AH-L01',
     course: 'Honors English 10A',
     file: 'lessons/english-10a-honors/ENG10AH-L01-what-the-story-is-building.html',
+    updated: '2026-10-29',
     title: '🧱 What the Story Is Building',
     tag: 'lesson',
     desc: 'Angela\u2019s Ashes, chapters 1\u20133. Characters, conflict, dialogue and plot as the bricks that build theme; McCourt\u2019s dialogue without quotation marks; roots, affixes and context clues on words from the book. Ends with a four-slot paragraph on Malachy\u2019s payday.',
@@ -553,6 +568,7 @@ const ITEMS = [
     id:   'ENG10AH-L02',
     course: 'Honors English 10A',
     file: 'lessons/english-10a-honors/ENG10AH-L02-three-doors-into-limerick.html',
+    updated: '2026-11-05',
     title: '🚪 Three Doors into Limerick',
     tag: 'lesson',
     desc: 'Honors Extension closing the narrative-elements unit. Pick one of three doors (economics + math budget and comic, a history/public-health lost scene, or a three-sign museum exhibit), research real 1930s Limerick facts from an Evidence Locker plus one self-found source, make the piece in four slots, and present it in 2\u20133 minutes.',
@@ -568,6 +584,7 @@ const ITEMS = [
     id:   'ENG12A-L06',
     course: 'English 12A',
     file: 'lessons/english-12a/ENG12A-L06-the-warning-behind-the-story.html',
+    updated: '2026-10-28',
     title: '🚨 The Warning Behind the Story',
     tag: 'lesson',
     desc: 'Author\u2019s purpose shapes theme, then research on purpose from three sources: 1984 (chapters 1\u20134), facts from Orwell\u2019s life, and his own words from Why I Write. Ends with a prediction about Shooting an Elephant and a 12-minute in-class reading to test it.',
@@ -585,6 +602,7 @@ const ITEMS = [
     id:   'ENG12A-L07',
     course: 'English 12A',
     file: 'lessons/english-12a/ENG12A-L07-inside-macbeths-head.html',
+    updated: '2026-11-02',
     title: '🗡️ Inside Macbeth\u2019s Head',
     tag: 'lesson',
     desc: 'Unit 3 opener on Macbeth Acts I\u2013II. Who hears what (aside, soliloquy, monologue) plus dramatic irony; Macbeth\u2019s road from a scary thought to murder in four moments; context clues and roots on Shakespeare\u2019s hard words. Mastery is cold: the dagger soliloquy and the blood-and-water lines, ending on \u201cincarnadine\u201d.',
@@ -599,9 +617,46 @@ const ITEMS = [
   },
   {
     type: 'lesson',
+    id:   'ENG12A-L08',
+    course: 'English 12A',
+    file: 'lessons/english-12a/ENG12A-L08-one-scene-two-stagings.html',
+    updated: '2026-11-09',
+    title: '🎬 One Scene, Two Stagings',
+    tag: 'lesson',
+    desc: 'Macbeth Acts III\u2013V: performance elements (voice, body, light and set, sound) on one line said three ways; Acts III\u2013IV in six moments; the sleepwalking scene read in class; then two filmed versions of it, a choice of critical claim, and a quote plus a staging detail to back it. Stretch: \u201cwhat\u2019s done is done\u201d against \u201cwhat\u2019s done cannot be undone\u201d.',
+    skills: 'Performance elements \u00b7 staging \u00b7 interpretation \u00b7 literary criticism \u00b7 claim and textual evidence \u00b7 Macbeth',
+    note: 'Consolidation lesson (course L18 + L19). V.i is on the page, lightly trimmed (the doctor\u2019s opening lines). The teacher picks and cues two filmed versions; the page names none, so it never breaks when a video link does. No homework.',
+    height: 1500,
+    parts: [
+      { key: 'intro', label: '⭐🎙️ Introduce the Concept: What actors add' },
+      { key: 'guided', label: '⭐🕯️ Guided Practice: The sleepwalking scene' },
+      { key: 'mastery', label: '📝🎬 Independent Mastery: Two stagings, one claim' }
+    ]
+  },
+  {
+    type: 'lesson',
+    id:   'ENG12A-L09',
+    course: 'English 12A',
+    file: 'lessons/english-12a/ENG12A-L09-macbeth-now.html',
+    updated: '2026-11-09',
+    title: '📱 Macbeth Now',
+    tag: 'lesson + unit assessment',
+    desc: 'Contemporary relevance, then the Unit 3 assessment. Three invented modern stories matched to moments in Macbeth and a theme argued as still current; a theme-first plan (theme, scene, modern setting, characters); then a 12\u201320 line modern script with an aside or soliloquy and a purpose statement. Stretch: twist a real Macbeth line into today\u2019s words.',
+    skills: 'Contemporary relevance \u00b7 theme \u00b7 social issues \u00b7 creative writing \u00b7 script form \u00b7 aside and soliloquy \u00b7 purpose statement \u00b7 Macbeth',
+    note: 'Consolidation lesson (course L16 + L20) whose third part is the Unit 3 assessment. Sized to start the script in the last 22 minutes and finish next session; student.js saves the work. Model script uses a different scene so it can\u2019t be copied. Canvas rubric in the teacher note.',
+    height: 1600,
+    parts: [
+      { key: 'intro', label: '⭐🔁 Introduce the Concept: Is Macbeth still happening?' },
+      { key: 'guided', label: '⭐🗺️ Guided Practice: Plan your modern scene' },
+      { key: 'assessment', label: '📕✍️ Unit 3 Assessment: Your Macbeth, now' }
+    ]
+  },
+  {
+    type: 'lesson',
     id:   'GOTH12-L01',
     course: 'Gothic Literature',
     file: 'lessons/gothic-literature/GOTH12-L01-the-dead-ride-fast.html',
+    updated: '2026-10-27',
     title: '🐎 The Dead Ride Fast',
     tag: 'lesson',
     desc: 'Where Gothic poetry came from and where it went: B\u00fcrger\u2019s \u201cLenore\u201d and Coleridge\u2019s \u201cRime of the Ancient Mariner\u201d as the roots, Browning\u2019s \u201cPorphyria\u2019s Lover\u201d and Rossetti\u2019s \u201cGoblin Market\u201d as the Victorian branch. One claim carries it: the monster moves from outside to inside. Hooked on the Lenore line Stoker quotes in Dracula.',
@@ -668,6 +723,7 @@ const ITEMS = [
     id:   'ENG11A-L02',
     course: 'English 11A',
     file: 'lessons/english-11a/ENG11A-L02-two-sides-three-witnesses.html',
+    updated: '2026-09-01',
     title: 'Two Sides, Three Witnesses',
     tag: 'lesson 2',
     desc: 'Every source got what it knows in one of three ways \u2014 and a sentence is only a thesis if somebody can argue back at it. Taught on the 1938 War of the Worlds panic, practised on school start times, then proved cold on facial recognition cameras. Ends by picking a thesis and going to find the two sources that fight over it.',
@@ -698,6 +754,7 @@ const ITEMS = [
     id:   'ENG11A-L01',
     course: 'English 11A',
     file: 'lessons/english-11a/ENG11A-L01-impact-of-rhetoric.html',
+    updated: '2026-09-01',
     title: 'The Impact of Rhetoric',
     tag: 'lesson 1',
     desc: 'Ethos, pathos and logos as three cockpit controls, then the harder half \u2014 a three-step chain for saying what a move does to the reader and why it sits where it sits.',
@@ -775,6 +832,7 @@ const ITEMS = [
     id:   'KOR1A-L01',
     course: 'Korean 1A',
     file: 'lessons/korean-1a/KOR1A-L01-first-ten-letters.html',
+    updated: '2026-09-01',
     title: 'The First Ten Letters',
     tag: 'lesson 1',
     desc: 'Mouth-shape reasoning and the vowel rule, five unseen words to read, and homework that sends them hunting for a letter in a K-drama.',
@@ -792,6 +850,7 @@ const ITEMS = [
     id:   'KOR1A-L03',
     course: 'Korean 1A',
     file: 'lessons/korean-1a/KOR1A-L03-one-letter-three-ways.html',
+    updated: '2026-09-02',
     title: 'One Letter, Three Ways',
     tag: 'lesson 3',
     desc: 'Every Korean consonant is really three consonants \u2014 plain, one stroke added, or written twice \u2014 and the only difference is what the air does, which a strip of paper settles in five seconds. Nine letters taught as one idea, the four joined vowels as two vowels sliding together, then the Korean Journal opened and its first entry written in class.',
@@ -822,6 +881,7 @@ const ITEMS = [
     id:   'KOR1A-L02',
     course: 'Korean 1A',
     file: 'lessons/korean-1a/KOR1A-L02-five-more-letters.html',
+    updated: '2026-09-01',
     title: 'Five More Letters',
     tag: 'lesson 2',
     desc: 'A spelling warm-up on the first ten letters, the rule that a vowel can never sit in a block alone, then ㄷ ㄹ ㅂ ㅈ ㅎ taught as letters she already has with one more stroke on them — and eight unseen words to read and write.',
@@ -886,6 +946,7 @@ const ITEMS = [
     type: 'resource',
     course: 'Korean 1A',
     file: 'resources/korean-journal-how-often.html',
+    updated: '2026-11-09',
     title: 'Journal Week: How Often',
     tag: 'paper homework',
     desc: 'Five days of the paper Korean Journal aimed at frequency words. Each day has five words to copy and read aloud (with audio to check), three recorded dictation lines to write from sound with a hidden self-check, and a line-of-your-own prompt about her real week. Day 1 always/every day/usually/often/sometimes, Day 2 the words that need 안, Day 3 already and not yet, Day 4 two how-often questions for Sean, Day 5 her own page.',
@@ -904,6 +965,7 @@ const ITEMS = [
     type: 'resource',
     course: 'Korean 1A',
     file: 'resources/korean-journal-saying-no.html',
+    updated: '2026-11-04',
     title: 'Journal Week: Saying No',
     tag: 'paper homework',
     desc: 'Five days of the paper Korean Journal aimed at negatives. Each day has five words to copy and read aloud (with audio to check), three recorded dictation lines to write from sound with a hidden self-check, and a line-of-your-own prompt with a starter: something not done yet (아직 … 안 …었어요), how you feel the short and long way, can\u2019t vs don\u2019t, a negative question for Sean answered both ways, and a three-line entry with at least two negatives. Ends with a one-card summary of the week and the Sunday photo upload.',
@@ -922,6 +984,7 @@ const ITEMS = [
     type: 'resource',
     course: 'Korean 1A',
     file: 'resources/korean-journal.html',
+    updated: '2026-09-02',
     title: 'The Korean Journal',
     tag: 'paper homework',
     desc: 'A ten-minute daily page done by hand: copy five words, read five aloud, write three from sound alone, then one line of your own. A dot marks anything that came slowly, three dots put a word at the front of tomorrow, and a week with no dots retires it. Four word banks, a phrase bank of complete batchim-free sentences for the line of your own, and one bank still locked so the map always runs ahead of you.',
@@ -933,6 +996,7 @@ const ITEMS = [
     type: 'resource',
     course: 'English',
     file: 'resources/american-history-timeline.html',
+    updated: '2026-08-20',
     title: 'A Timeline of American History',
     tag: 'explore & discuss',
     desc: 'Twenty-four events, each opening a card with two contrasting primary-source perspectives and a discussion question.',
@@ -1025,23 +1089,35 @@ function renderSubs(){
   ).join('');
 }
 
+/* '2026-11-09' -> 'Nov 9, 2026'. Built from parts, never Date('YYYY-MM-DD'),
+   which parses as UTC midnight and shows the day before in US time zones. */
+function niceDate(s){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+  if (!m) return s;
+  return new Date(+m[1], +m[2] - 1, +m[3])
+    .toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+
 function card(it, i){
   const parts = it.parts || null;
   return `
   <div class="card ${it.type}">
     <div class="chips">
-      ${it.id ? `<span class="chip id">${it.id}</span>` : ''}
       <span class="chip tag">${esc(it.tag)}</span>
       <span class="chip">${esc(it.course)}</span>
       ${it.engine ? `<button class="chip eng" onclick="filterEngine('${esc(it.engine)}')" title="${esc(ENGINES[it.engine] || it.engine)} — click to see every variant">${esc(it.engine)} · ${esc(it.variant || '')}</button>` : ''}
       ${it.version ? `<span class="chip ver">v${it.version}</span>` : ''}
     </div>
     <h3>${esc(it.title)}</h3>
+    <p class="when">${it.id ? `<span class="code">${esc(it.id)}</span>` : ''}<span class="date">${it.updated ? 'Last edited ' + esc(niceDate(it.updated)) : 'No edit date'}</span></p>
     <p class="desc">${esc(it.desc)}</p>
     <p class="skills">${esc(it.skills)}</p>
-    ${it.note ? `<p class="note">${esc(it.note)}</p>` : ''}
-    <p class="path">${esc(it.file)}</p>
-    ${it.updated ? `<p class="stamp">last edited ${esc(it.updated)}${it.engine ? ` · ${esc(ENGINES[it.engine] || it.engine)}` : ''}</p>` : ''}
+    <details class="notes">
+      <summary>Creation notes</summary>
+      ${it.note ? `<p>${esc(it.note)}</p>` : ''}
+      ${it.engine ? `<p><b>Engine:</b> ${esc(ENGINES[it.engine] || it.engine)}</p>` : ''}
+      <p class="path">${esc(it.file)}</p>
+    </details>
     <div class="foot">
       <a class="b ghost" href="${it.file}" target="_blank" rel="noopener">Open</a>
       <button class="b" onclick="togglePanel(${i})">Embed${parts ? ' ▾' : ''}</button>
