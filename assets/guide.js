@@ -72,7 +72,9 @@
     '.gd-flag{position:absolute;top:-1.05rem;right:1rem;z-index:5;display:none;align-items:center;gap:.4rem;background:' + A + ';color:' + OA +
       ';border-radius:999px;padding:.3rem .85rem;font-weight:700;font-size:.9rem;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap}',
     '.gd-lead.gd-on>.gd-flag{display:flex}',
-    '.gd-arrow{display:inline-block;font-size:1.05rem;animation:gd-bob .9s ease-in-out infinite}',
+    /* the arrow bounces only while the box is arriving (same 2.8s), then rests */
+    '.gd-arrow{display:inline-block;font-size:1.05rem}',
+    '.gd-lead.gd-arrive .gd-arrow{animation:gd-bob .7s ease-in-out 4}',
     '@keyframes gd-bob{0%,100%{transform:translateY(-2px)}50%{transform:translateY(4px)}}',
     '.gd-flag.gd-shake{animation:gd-shake .5s ease 2}',
     '@keyframes gd-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}',
