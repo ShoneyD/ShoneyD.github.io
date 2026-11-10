@@ -45,6 +45,8 @@
 
   --gold:#f2c75c;        /* earned stars                               */
   --hl:#4a3d12;          /* highlighted words inside running text      */
+  --alert:#ff6b6b;       /* read-this-first: directions not to skip    */
+  --on-alert:#1a0d0d;
 
   /* Type. Atkinson Hyperlegible is the dyslexia-friendly face and is loaded
      from Google Fonts by every page; the two system Korean faces sit next in
@@ -62,7 +64,7 @@
   --accent:#2f6f8f; --accent-soft:#e8f1f6; --accent-line:var(--accent-line);
   --calm:#2e7d5b; --calm-soft:#e6f3ec; --calm-line:var(--calm-line);
   --warn:#a8641b; --warn-soft:#fbf0e2; --warn-line:var(--warn-line);
-  --gold:#c68a1a; --hl:#fdf1b8;
+  --gold:#c68a1a; --hl:#fdf1b8; --alert:#c62828; --on-alert:#ffffff;
 }
 
 *{box-sizing:border-box}
