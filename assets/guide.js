@@ -118,13 +118,15 @@
     '@keyframes gd-miss{0%,100%{fill:var(--field,#232830)}50%{fill:' + W + ';stroke:' + W + '}}',
     '.gd-pc{opacity:0;transform-box:fill-box;transform-origin:center}',
     '.gd-pc.gd-in{opacity:1}',
-    '.gd-pc.gd-pop{animation:gd-pop .45s cubic-bezier(.2,1.4,.4,1) both}',
-    '@keyframes gd-pop{from{opacity:0;transform:scale(1.25)}to{opacity:1;transform:scale(1)}}',
-    '.gd-pc.gd-final{animation:gd-final .9s cubic-bezier(.3,1.3,.5,1) both}',
-    '@keyframes gd-final{0%{opacity:0;transform:translate(40px,-55px) rotate(14deg) scale(1.15)}70%{opacity:1;transform:translate(0,0) rotate(0) scale(1.07)}100%{opacity:1;transform:none}}',
+    '.gd-pc.gd-pop{animation:gd-pop .8s ease-out both}',
+    '@keyframes gd-pop{from{opacity:.4;transform:scale(1.08)}to{opacity:1;transform:scale(1)}}',
+    '.gd-pc.gd-final{animation:gd-final 1.6s cubic-bezier(.4,0,.2,1) both}',
+    '@keyframes gd-final{0%{opacity:0;transform:translate(30px,-40px) rotate(6deg)}80%{opacity:1;transform:translate(0,0) rotate(0) scale(1.03)}100%{opacity:1;transform:none}}',
+    '.gd-pc.gd-click{animation:gd-click .7s ease-out both}',
+    '@keyframes gd-click{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}',
     '.gd-edge{fill:none;stroke:rgba(255,255,255,.4);stroke-width:.8}',
     '.gd-fly{position:absolute;z-index:70;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}',
-    '.gd-frame.gd-win{animation:gd-win 1.2s ease-in-out 2;border-color:' + G + '}',
+    '.gd-frame.gd-win{animation:gd-win 1.8s ease-in-out 2;border-color:' + G + '}',
     '@keyframes gd-win{0%,100%{box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 0 0 0 ' + G + '}50%{box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 0 22px 6px ' + G + '}}',
     '.gd-cap{font-size:.8rem;font-weight:700;color:var(--soft,#c5cdd8)}',
     '.gd-confirm{flex-basis:100%;display:none;border:2px solid ' + W + ';background:var(--warn-soft,#38290f);border-radius:12px;padding:.75rem 1rem}',
@@ -141,7 +143,7 @@
     '.gd-ack:focus-visible,.gd-pill:focus-visible,.gd-howto:focus-visible,.gd-confirm button:focus-visible{outline:3px solid var(--ink,#f3f5f8);outline-offset:2px}',
     '.gd-sentinel{position:absolute;top:0;left:0;width:1px;pointer-events:none;visibility:hidden}',
     '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on.gd-arrive,.gd-lead.gd-on.gd-arrive::before,.gd-arrow,.gd-flag.gd-shake,' +
-      '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-cur.gd-off>.gd-hand,.gd-hand-i,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,' +
+      '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-cur.gd-off>.gd-hand,.gd-hand-i,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,.gd-pc.gd-click,' +
       '.gd-frame.gd-win,.gd-flash{animation:none}}'
   ].join('');
   var tag = document.createElement('style');
@@ -441,7 +443,7 @@
         flying = true;
         if (miss === 0 && !P.won) {                      /* the last piece: held for the finale */
           P.last = i;
-          flyPiece(stage, i, function () { if (P.seen) finale(stage); });
+          flyPiece(stage, i, function (far) { if (P.seen) finale(stage, !far); });
           return;
         }
         flyPiece(stage, i, function () {
@@ -462,7 +464,7 @@
      so the student still sees it leave. */
   function flyPiece(stage, i, then) {
     var P = PUZ[stage.id], pc = P.pcs[i], box = P.fields[i].closest('.abox') || P.fields[i];
-    if (REDUCE || !document.body.animate || !P.slots[i].getBBox) { then(); return; }
+    if (REDUCE || !document.body.animate || !P.slots[i].getBBox) { then(true); return; }
     var id = 'gdp-' + stage.id, d = P.slots[i].getAttribute('d'), bb = P.slots[i].getBBox();
     var pad = 8, vw = bb.width + pad * 2, vh = bb.height + pad * 2, W0 = 78, H0 = Math.round(W0 * vh / vw);
     var fly = document.createElement('div');
@@ -480,24 +482,29 @@
     var endScale = far ? .8 : Math.max(.3, (sr.width * vw / Math.max(bb.width, 1)) / W0);
     if (far) { tx = tx * .25; ty = 280; }
     pc._gdFly = true;
+    /* unhurried: rise gently out of the box, pause, then glide to the slot */
     pc._gdFlyAnim = fly.animate([
-      { transform: 'translate(0,10px) scale(.4) rotate(-25deg)', opacity: 0 },
-      { transform: 'translate(0,-34px) scale(1.15) rotate(8deg)', opacity: 1, offset: .25 },
-      { transform: 'translate(0,-34px) scale(1) rotate(0deg)', opacity: 1, offset: .4 },
-      { transform: 'translate(' + tx + 'px,' + ty + 'px) scale(' + endScale + ') rotate(0deg)', opacity: far ? 0 : 1 }
-    ], { duration: far ? 1200 : 1100, easing: 'cubic-bezier(.45,0,.3,1)' });
-    pc._gdFlyAnim.onfinish = function () { fly.remove(); pc._gdFly = false; then(); };
+      { transform: 'translate(0,6px) scale(.7)', opacity: 0, easing: 'ease-out' },
+      { transform: 'translate(0,-26px) scale(1)', opacity: 1, offset: .22 },
+      { transform: 'translate(0,-26px) scale(1)', opacity: 1, offset: .38, easing: 'cubic-bezier(.4,0,.2,1)' },
+      { transform: 'translate(' + tx + 'px,' + ty + 'px) scale(' + endScale + ')', opacity: far ? 0 : 1 }
+    ], { duration: far ? 2000 : 2200 });
+    pc._gdFlyAnim.onfinish = function () { fly.remove(); pc._gdFly = false; then(far); };
   }
 
-  function finale(stage) {
+  /* The picture stays incomplete until the last piece is actually in. If it
+     flew all the way into its slot it just clicks home; if it faded on the
+     way (puzzle far below), it glides in when the puzzle comes into view. */
+  function finale(stage, landed) {
     var P = PUZ[stage.id]; if (!P || P.won) return;
-    P.won = true;
     var i = P.last >= 0 ? P.last : P.pcs.length - 1;
-    P.pcs.forEach(function (pc, k) { if (k !== i) pc.classList.add('gd-in'); });
     var pc = P.pcs[i];
+    if (pc._gdFly) return;                               /* still in the air: its landing calls back */
+    P.won = true;
+    P.pcs.forEach(function (p, k) { if (k !== i) p.classList.add('gd-in'); });
     pc.classList.add('gd-in');
-    restart(pc, 'gd-final');
-    setTimeout(function () { restart(P.frame, 'gd-win'); }, REDUCE ? 0 : 700);
+    restart(pc, landed ? 'gd-click' : 'gd-final');
+    setTimeout(function () { restart(P.frame, 'gd-win'); }, REDUCE ? 0 : (landed ? 350 : 1300));
   }
 
   function glowMissing(P) {
@@ -642,9 +649,7 @@
     for (k = i + 1; k < arr.length; k++) if (pending(arr[k])) { n = k; break; }
     if (n < 0) for (k = 0; k < i; k++) if (arr[k].kind === 'q' && !filled(arr[k].el)) { n = k; break; }   /* a skipped one */
     if (n < 0) n = arr.length;                               /* everything answered */
-    var next = arr[n];
-    var far = next && (n < i || next.kind === 'lead');
-    setCurrent(stage, n, far ? 'scroll' : 'nearest');
+    setCurrent(stage, n, 'scroll');
   }
 
   /* ------------------------------------------------------------- events */
