@@ -494,7 +494,7 @@
         flying = true;
         if (miss === 0 && !P.won) {                      /* the last piece: held for the finale */
           P.last = i;
-          flyPiece(stage, i, function (far) { if (P.seen) finale(stage, !far); });
+          flyPiece(stage, i, function (far) { if (P.seen || P.queued) finale(stage, !far); });
           return;
         }
         flyPiece(stage, i, function () {
@@ -556,6 +556,15 @@
     pc.classList.add('gd-in');
     restart(pc, landed ? 'gd-click' : 'gd-final');
     setTimeout(function () { restart(P.frame, 'gd-win'); }, REDUCE ? 0 : (landed ? 350 : 1300));
+    /* Next was pressed while the last piece was still on its way: now that
+       the picture is whole and glowing, open the next part. */
+    if (P.queued) setTimeout(function () { goOn(stage); }, REDUCE ? 0 : (landed ? 1500 : 2400));
+  }
+
+  function goOn(stage) {
+    var P = PUZ[stage.id]; if (!P) return;
+    P.queued = false; P.bypass = true;
+    try { LL.finish(stage.id); } finally { P.bypass = false; }
   }
 
   function glowMissing(P) {
@@ -575,7 +584,17 @@
     var stage = go.closest('.stage'), P = stage && PUZ[stage.id];
     if (!P || P.bypass) return;
     var n = missing(P);
-    if (!n) return;
+    if (!n) {
+      /* Everything answered, but the last piece may still be flying (she left
+         the last box and went straight for Next). Let the picture finish first. */
+      var last = P.last >= 0 ? P.pcs[P.last] : null;
+      if (P.won && !(last && last._gdFly)) return;
+      e.stopPropagation(); e.preventDefault();
+      if (P.queued) return;
+      P.queued = true;
+      if (!(last && last._gdFly)) finale(stage, false);
+      return;
+    }
     e.stopPropagation(); e.preventDefault();
     glowMissing(P);
     P.conf.querySelector('p').textContent = 'Are you sure? There ' + (n === 1 ? 'is' : 'are') + ' still ' + word(n) +
