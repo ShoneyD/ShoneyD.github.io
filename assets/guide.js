@@ -59,6 +59,7 @@
     /* steps: constant padding, so moving the highlight never shifts the layout */
     '.gd-lead,.gd-q{position:relative;border-radius:14px;margin:.35rem -.8rem;scroll-margin-top:5rem;padding:1rem .8rem .55rem;transition:box-shadow .25s ease}',
     '.gd-lead{margin-top:1.1rem}',
+    '.stage{scroll-margin-top:2.8rem}',
     '.gd-lead.gd-on{box-shadow:0 0 0 3px ' + A + '}',
     '.gd-lead.gd-on.gd-arrive{animation:gd-pulse 1.4s ease-in-out 2}',
     '@keyframes gd-pulse{0%,100%{box-shadow:0 0 0 3px ' + A + '}50%{box-shadow:0 0 0 7px ' + A + '}}',
@@ -98,12 +99,13 @@
       ';border-radius:999px;padding:.15rem .75rem;font-weight:700;font-size:.82rem}',
     '.gd-q.gd-cur>.gd-tag{display:block}',
     '.gd-hand{position:absolute;left:-3.4rem;top:.85rem;font-size:2rem;line-height:1;display:none;pointer-events:none}',
-    /* the finger always pokes gently toward the question; the whole hand also bobs when off-centre */
-    '.gd-hand-i{display:inline-block;animation:gd-poke 1.4s ease-in-out infinite}',
-    '@keyframes gd-poke{0%,100%{transform:translateX(-3px)}50%{transform:translateX(4px)}}',
+    /* the hand bounces three times when it arrives, when she jumps back to it,
+       or when she scrolls back past it; otherwise it rests */
+    '.gd-hand-i{display:inline-block}',
+    '.gd-q.gd-wave .gd-hand-i{animation:gd-poke .8s ease-in-out 3}',
+    '@keyframes gd-poke{0%,100%{transform:translate(-3px,0)}50%{transform:translate(4px,-3px)}}',
     '.gd-q.gd-cur>.gd-hand{display:block}',
-    '.gd-q.gd-cur.gd-off>.gd-hand{animation:gd-hbob 1.8s ease-in-out infinite}',
-    '@keyframes gd-hbob{0%,100%{transform:translateY(-3px)}50%{transform:translateY(4px)}}',
+
     '@media (max-width:54rem){.gd-q{padding-left:3.3rem}.gd-hand{left:.2rem;font-size:1.7rem}}',
     '.gd-q.gd-cur p.q strong{background:' + HL + ';border-radius:4px;padding:0 .12em;animation:gd-glint .6s ease-in-out 2}',
     /* Next row + puzzle */
@@ -143,7 +145,7 @@
     '.gd-ack:focus-visible,.gd-pill:focus-visible,.gd-howto:focus-visible,.gd-confirm button:focus-visible{outline:3px solid var(--ink,#f3f5f8);outline-offset:2px}',
     '.gd-sentinel{position:absolute;top:0;left:0;width:1px;pointer-events:none;visibility:hidden}',
     '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on.gd-arrive,.gd-lead.gd-on.gd-arrive::before,.gd-arrow,.gd-flag.gd-shake,' +
-      '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-cur.gd-off>.gd-hand,.gd-hand-i,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,.gd-pc.gd-click,' +
+      '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-wave .gd-hand-i,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,.gd-pc.gd-click,' +
       '.gd-frame.gd-win,.gd-flash{animation:none}}'
   ].join('');
   var tag = document.createElement('style');
@@ -154,9 +156,42 @@
   function field(q)   { return q.querySelector('textarea[data-q], input[data-q], select[data-q]'); }
   function filledEl(f){ return !!(f && String(f.value).trim()); }
   function filled(q)  { return filledEl(field(q)); }
-  function scrollTo(el, block) {
-    try { el.scrollIntoView({ behavior: REDUCE ? 'auto' : 'smooth', block: block || 'center' }); }
+  var anchor = null, glideId = 0;
+  function nativeScroll(el, block, how) {
+    try { el.scrollIntoView({ behavior: how, block: block || 'center' }); }
     catch (e) { el.scrollIntoView(); }
+  }
+  function scrollTo(el, block) {
+    /* The glide needs to know where the middle of the screen is. That is only
+       certain when the page fills the screen (Canvas header and footer both out
+       of view); otherwise let the browser do its own smooth scroll. */
+    var docH = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    var fills = band && (window.self === window.top || (band.top > 2 && band.bottom < docH - 2));
+    if (REDUCE || !fills) { nativeScroll(el, block, REDUCE ? 'auto' : 'smooth'); return; }
+    var r = el.getBoundingClientRect();
+    var top = r.top + window.scrollY, bottom = r.bottom + window.scrollY;
+    var bh = band.bottom - band.top, from = (band.top + band.bottom) / 2;
+    var to = block === 'start' ? top - 80 + bh / 2
+           : block === 'nearest' ? (top < band.top + 60 ? top - 80 + bh / 2 : bottom > band.bottom - 60 ? bottom + 60 - bh / 2 : from)
+           : (top + bottom) / 2;
+    if (Math.abs(to - from) < 4) return;
+    if (!anchor) {
+      anchor = document.createElement('div');
+      anchor.setAttribute('aria-hidden', 'true');
+      anchor.style.cssText = 'position:absolute;left:0;width:1px;height:1px;pointer-events:none;visibility:hidden';
+      document.body.appendChild(anchor);
+    }
+    var dur = Math.min(1700, 950 + Math.abs(to - from) * .6), t0 = null, id = ++glideId;
+    var ease = function (t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+    function step(ts) {
+      if (id !== glideId) return;                        /* a newer scroll took over */
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / dur);
+      anchor.style.top = Math.round(from + (to - from) * ease(k)) + 'px';
+      anchor.scrollIntoView({ behavior: 'instant', block: 'center' });
+      if (k < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
   }
   function docRect(el) {
     var r = el.getBoundingClientRect();
@@ -290,6 +325,19 @@
       hill1: '#21523f', hill2: '#163a2d', lake: ['#24406c', '#0f2240'], tree: '#0d261c', bird: '#a8b8d8', night: true }
   ];
 
+  /* A lesson can supply its own pictures (`puzzle:` in the lesson source →
+     const PUZZLE = [{src, alt}, ...]), e.g. Korean dishes for a food unit or a
+     Gothic ruin for Gothic literature. Parts take them in turn. Without it,
+     the painted landscapes below are used. */
+  var PICS = (typeof PUZZLE !== 'undefined' && PUZZLE && PUZZLE.length) ? PUZZLE.map(function (p) {
+    return typeof p === 'string' ? { src: p, alt: '' } : p;
+  }) : null;
+
+  function photo(id, pic) {
+    return '<defs><g id="' + id + '-scene"><rect width="300" height="200" fill="var(--field,#232830)"/>' +
+      '<image href="' + pic.src.replace(/"/g, '&quot;') + '" width="300" height="200" preserveAspectRatio="xMidYMid slice"/></g></defs>';
+  }
+
   function scene(id, pal) {
     var Wd = 300, H = 200, s = [];
     s.push('<linearGradient id="' + id + '-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + pal.sky[0] + '"/><stop offset="1" stop-color="' + pal.sky[1] + '"/></linearGradient>');
@@ -392,10 +440,12 @@
     var row = body && body.querySelector(':scope > .row');
     var fields = Array.prototype.slice.call(stage.querySelectorAll('[data-q]'));
     if (!row || !fields.length || PUZ[stage.id]) return;
-    var id = 'gdp-' + stage.id, pal = PALETTES[stageIndex++ % PALETTES.length];
+    var idx = stageIndex++;
+    var id = 'gdp-' + stage.id, pal = PALETTES[idx % PALETTES.length], pic = PICS ? PICS[idx % PICS.length] : null;
     var paths = pieces(fields.length);
-    var svg = '<svg viewBox="-12 -12 324 224" role="img" aria-label="A landscape puzzle with ' + word(fields.length) +
-      ' pieces, one for each question in this part.">' + scene(id, pal) +
+    var what = pic && pic.alt ? pic.alt.replace(/[<>"&]/g, '') : 'A landscape';
+    var svg = '<svg viewBox="-12 -12 324 224" role="img" aria-label="' + what + ', as a puzzle with ' + word(fields.length) +
+      ' pieces, one for each question in this part.">' + (pic ? photo(id, pic) : scene(id, pal)) +
       paths.map(function (d, i) { return '<clipPath id="' + id + '-c' + i + '"><path d="' + d + '"/></clipPath>'; }).join('') +
       paths.map(function (d) { return '<path class="gd-slot" d="' + d + '"/>'; }).join('') +
       paths.map(function (d, i) {
@@ -589,6 +639,13 @@
     hand.style.top = Math.round(top + (lh - hand.offsetHeight) / 2) + 'px';
   }
 
+  function wave(q) {
+    if (!q || !q.classList.contains('gd-q')) return;
+    clearTimeout(q._gdW);
+    restart(q, 'gd-wave');
+    q._gdW = setTimeout(function () { q.classList.remove('gd-wave'); }, 2500);
+  }
+
   function setCurrent(stage, i, how) {
     var arr = STEPS[stage.id]; if (!arr) return;
     var prev = cur;
@@ -603,7 +660,7 @@
     }
     cur = arr[i];
     cur.el.classList.add(cur.kind === 'lead' ? 'gd-on' : 'gd-cur');
-    if (cur.kind === 'q') aimHand(cur.el);
+    if (cur.kind === 'q') { aimHand(cur.el); if (prev !== cur) wave(cur.el); }
     if (cur.kind === 'lead' && prev !== cur) arrive(cur.el);
     if (cur.kind === 'q') {
       var g = governingLead(arr, i);                   /* unread directions above keep their flag */
@@ -770,8 +827,9 @@
     scrollTo(cur.el, cur.kind === 'lead' ? 'start' : 'center');
     if (cur.kind === 'lead') setTimeout(function () { arrive(cur.el); }, REDUCE ? 0 : 450);
     if (cur.kind === 'q') {
-      var f = field(cur.el);
-      if (f) setTimeout(function () { try { f.focus({ preventScroll: true }); } catch (x) {} }, REDUCE ? 0 : 450);
+      var f = field(cur.el), q = cur.el;
+      setTimeout(function () { wave(q); }, REDUCE ? 0 : 900);
+      if (f) setTimeout(function () { try { f.focus({ preventScroll: true }); } catch (x) {} }, REDUCE ? 0 : 900);
     }
   });
 
@@ -824,13 +882,12 @@
   function placePill() {
     if (!cur || !band || !curStage || !curStage.classList.contains('active')) { pill.classList.remove('show'); return; }
     var r = docRect(cur.el);
-    /* the hand bobs whenever its question isn't sitting near the middle */
-    if (cur.kind === 'q') {
-      var mid = (r.top + r.bottom) / 2, bm = (band.top + band.bottom) / 2;
-      cur.el.classList.toggle('gd-off', Math.abs(mid - bm) > (band.bottom - band.top) * .22);
-    }
     var margin = 40;
     var visible = r.bottom > band.top + margin && r.top < band.bottom - margin;
+    if (cur.kind === 'q') {
+      if (visible && cur._gdGone) wave(cur.el);
+      cur._gdGone = !visible;
+    }
     if (visible) { pill.classList.remove('show'); return; }
     var below = r.top >= band.bottom - margin;
     var what = cur.kind === 'lead' ? 'the directions' : (cur.kind === 'end' ? 'the Next button' : 'current question');
