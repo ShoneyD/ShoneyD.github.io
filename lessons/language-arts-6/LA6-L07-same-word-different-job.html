@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LA6-L07 · Same Word, Different Job</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">LA6-L07</p>
+  <h1 id="pagetitle">Language Arts 6 · Lesson 7</h1>
+  <p class="sub" id="pagesub">Same Word, Different Job.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="One word, three jobs">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; One word, three jobs</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; One word, three jobs</h2>
+
+      <p>A verb is the word that tells what the subject <strong>does</strong> or <strong>is</strong>. But here's the twist: the <strong>same word</strong> can do three different jobs. You can't label a verb by memory — you have to check what it's doing <em>in this sentence</em>.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 700 170" width="100%" style="max-width:44rem;display:block;margin:1rem auto" role="img" aria-label="Three boxes. Action: the subject does something, example Rosa tastes the soup, with an arrow from Rosa to soup. Linking: an equals sign joins the subject to a description, example the soup tastes salty, meaning soup equals salty. Helping: a small verb hooked onto a main verb, example Rosa is tasting the soup, where is hooks onto tasting.">
+  <g font-family="Verdana,sans-serif" text-anchor="middle">
+    <rect x="6" y="10" width="216" height="150" rx="12" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="114" y="38" font-size="16" font-weight="bold" fill="var(--ink)">ACTION</text>
+    <text x="114" y="58" font-size="12" fill="var(--soft)">the subject DOES it</text>
+    <text x="60" y="104" font-size="14" fill="var(--ink)">Rosa</text>
+    <path d="M86 99 H140" stroke="var(--accent)" stroke-width="3" fill="none"/>
+    <path d="M140 92 L152 99 L140 106 z" fill="var(--accent)"/>
+    <text x="180" y="104" font-size="14" fill="var(--ink)">soup</text>
+    <text x="114" y="142" font-size="12" fill="var(--soft)">Rosa tastes the soup.</text>
+
+    <rect x="242" y="10" width="216" height="150" rx="12" fill="var(--card)" stroke="var(--calm)" stroke-width="2"/>
+    <text x="350" y="38" font-size="16" font-weight="bold" fill="var(--ink)">LINKING</text>
+    <text x="350" y="58" font-size="12" fill="var(--soft)">subject = description</text>
+    <text x="350" y="108" font-size="22" font-weight="bold" fill="var(--ink)">soup = salty</text>
+    <text x="350" y="142" font-size="12" fill="var(--soft)">The soup tastes salty.</text>
+
+    <rect x="478" y="10" width="216" height="150" rx="12" fill="var(--card)" stroke="var(--warn)" stroke-width="2"/>
+    <text x="586" y="38" font-size="16" font-weight="bold" fill="var(--ink)">HELPING</text>
+    <text x="586" y="58" font-size="12" fill="var(--soft)">leans on a main verb</text>
+    <rect x="510" y="84" width="40" height="30" rx="6" fill="var(--accent-soft)" stroke="var(--warn)"/>
+    <text x="530" y="104" font-size="14" fill="var(--ink)">is</text>
+    <text x="561" y="104" font-size="16" font-weight="bold" fill="var(--soft)">+</text>
+    <rect x="574" y="84" width="92" height="30" rx="6" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <text x="620" y="104" font-size="14" fill="var(--ink)">tasting</text>
+    <text x="586" y="142" font-size="12" fill="var(--soft)">Rosa is tasting the soup.</text>
+  </g>
+</svg>
+      <figcaption>One verb, three jobs. The box it goes in depends on the sentence, not the word.</figcaption>
+      </figure>
+
+      <p><strong>Two tests do all the work:</strong></p>
+
+      <ul>
+        <li><strong>The = test.</strong> Swap the verb for <strong>=</strong>. Still makes sense? → <strong>linking</strong>. <em>The soup tastes salty</em> → soup = salty ✓</li>
+        <li><strong>The alone test.</strong> Could this verb be the whole verb by itself? If it leans on another verb right after it → <strong>helping</strong>.</li>
+      </ul>
+
+      <p>If neither test fits, the subject is <em>doing</em> it → <strong>action</strong>.</p>
+
+      <p class="q"><strong>Q1.</strong> "The soup tastes salty." What job is <strong>tastes</strong> doing?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. &quot;The soup tastes salty.&quot; What job is tastes doing?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="helping">helping</option>
+          <option value="action">action</option>
+          <option value="linking">linking</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> "Rosa tastes the soup." What job is <strong>tastes</strong> doing now?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. &quot;Rosa tastes the soup.&quot; What job is tastes doing now?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="action">action</option>
+          <option value="linking">linking</option>
+          <option value="helping">helping</option>
+        </select></div>
+
+      <p class="q"><strong>Q3.</strong> "Rosa is tasting the soup." What job is <strong>is</strong> doing?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. &quot;Rosa is tasting the soup.&quot; What job is is doing?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="action">action</option>
+          <option value="helping">helping</option>
+          <option value="linking">linking</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> Pick Q1 or Q2. Which test did you run, and what happened when you ran it?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; In Q…, I used the … test. When I tried it, ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q4. Pick Q1 or Q2. Which test did you run, and what happened when you ran it?" placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Q1: soup = salty makes sense, so it's linking. Q2: Rosa = the soup makes no sense — Rosa isn't soup! She's <em>doing</em> the tasting, so it's action.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked and one sentence naming the test you used and what it showed.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="The whole verb phrase">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; The whole verb phrase</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; The whole verb phrase</h2>
+
+      <p>Helping verbs and the main verb travel together like a train: the helpers are the cars, the main verb is the engine. Find a verb phrase = find <strong>every</strong> car <strong>and</strong> the engine.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 700 120" width="100%" style="max-width:40rem;display:block;margin:1rem auto" role="img" aria-label="A train of three cars labelled has, been, and studying. The first two cars are labelled helpers; the last, larger one is labelled main verb. Under the gap between the cars, the word not is drawn outside the train, labelled not part of the phrase.">
+  <g font-family="Verdana,sans-serif" text-anchor="middle">
+    <rect x="60" y="20" width="130" height="50" rx="8" fill="var(--accent-soft)" stroke="var(--warn)" stroke-width="2"/>
+    <text x="125" y="51" font-size="18" fill="var(--ink)">has</text>
+    <rect x="220" y="20" width="130" height="50" rx="8" fill="var(--accent-soft)" stroke="var(--warn)" stroke-width="2"/>
+    <text x="285" y="51" font-size="18" fill="var(--ink)">been</text>
+    <rect x="380" y="12" width="180" height="58" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+    <text x="470" y="49" font-size="20" font-weight="bold" fill="var(--ink)">studying</text>
+    <g stroke="var(--soft)" stroke-width="3"><path d="M190 45 H220"/><path d="M350 45 H380"/></g>
+    <g fill="var(--soft)"><circle cx="95" cy="80" r="8"/><circle cx="155" cy="80" r="8"/><circle cx="255" cy="80" r="8"/><circle cx="315" cy="80" r="8"/><circle cx="420" cy="80" r="8"/><circle cx="520" cy="80" r="8"/></g>
+    <text x="205" y="110" font-size="12" fill="var(--soft)">helpers</text>
+    <text x="470" y="110" font-size="12" fill="var(--soft)">main verb</text>
+    <text x="630" y="44" font-size="16" fill="var(--soft)" font-style="italic">not</text>
+    <text x="630" y="64" font-size="11" fill="var(--soft)">not a car</text>
+  </g>
+</svg>
+      <figcaption><em>She has not been studying.</em> The verb phrase is <strong>has been studying</strong> — <em>not</em> rides along but isn't part of the train.</figcaption>
+      </figure>
+
+      <p>Two traps:</p>
+
+      <ul>
+        <li>Words like <strong>not, never, already, just</strong> can sit <em>between</em> the cars. They're not verbs.</li>
+        <li>In a <strong>question</strong>, the subject jumps into the middle: <strong>Did</strong> the coach <strong>see</strong> it?</li>
+      </ul>
+
+      <p class="q"><strong>Q5.</strong> "Sami has not finished his arrows yet." Type the whole verb phrase.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q5. &quot;Sami has not finished his arrows yet.&quot; Type the whole verb phrase." placeholder="Every helper + the main verb…"></div>
+
+      <p class="q"><strong>Q6.</strong> "Did the coach see that shot?" Type the whole verb phrase.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q6. &quot;Did the coach see that shot?&quot; Type the whole verb phrase." placeholder="Two words, and they&#x27;re split up…"></div>
+
+      <p class="q"><strong>Q7.</strong> "Maya has a new bow." What job is <strong>has</strong> doing here?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. &quot;Maya has a new bow.&quot; What job is has doing here?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="action">action</option>
+          <option value="helping">helping</option>
+          <option value="linking">linking</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Action. Run the alone test: there's no verb after <em>has</em> for it to lean on — <em>has</em> is the whole verb. Maya owns the bow.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two complete verb phrases typed, with every helper included and nothing extra.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="Mixed range">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Mixed range</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Mixed range</h2>
+
+      <p>No more one-type-at-a-time. These are all mixed, and some words show up doing different jobs. Run the tests every time.</p>
+
+      <p class="q"><strong>Q8.</strong> "The arrows looked crooked after the storm." <strong>looked</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q8. &quot;The arrows looked crooked after the storm.&quot; looked is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="action">action</option>
+          <option value="linking">linking</option>
+          <option value="helping">helping</option>
+        </select></div>
+
+      <p class="q"><strong>Q9.</strong> "Layla looked through the sight." <strong>looked</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. &quot;Layla looked through the sight.&quot; looked is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="linking">linking</option>
+          <option value="helping">helping</option>
+          <option value="action">action</option>
+        </select></div>
+
+      <p class="q"><strong>Q10.</strong> "The judges are checking every score." <strong>are</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q10. &quot;The judges are checking every score.&quot; are is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="helping">helping</option>
+          <option value="action">action</option>
+          <option value="linking">linking</option>
+        </select></div>
+
+      <p class="q"><strong>Q11.</strong> "The wind became stronger in the second round." <strong>became</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q11. &quot;The wind became stronger in the second round.&quot; became is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="linking">linking</option>
+          <option value="action">action</option>
+          <option value="helping">helping</option>
+        </select></div>
+
+      <p class="q"><strong>Q12.</strong> "The archer felt the string with two fingers." <strong>felt</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q12. &quot;The archer felt the string with two fingers.&quot; felt is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="linking">linking</option>
+          <option value="action">action</option>
+          <option value="helping">helping</option>
+        </select></div>
+
+      <p class="q"><strong>Q13.</strong> Which of Q8–Q12 was the hardest? Prove your answer with a test.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Q… was the hardest because … The … test proves it: ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q13. Which of Q8–Q12 was the hardest? Prove your answer with a test." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Five dropdowns picked and one sentence that names the test you used on the hardest one.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="guided" id="g2" data-title="Where does it end?">
+    <button class="donebar" onclick="LL.toggle('g2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Where does it end?</strong>
+      <span class="sum" id="sum-g2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Where does it end?</h2>
+
+      <p>Every complete thought has its own <strong>subject + verb</strong>. When a new subject + verb starts, the old sentence has to end — or be joined with <strong>, and / , but / , so</strong>. A comma alone is not strong enough. That's a <strong>run-on</strong>.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 700 150" width="100%" style="max-width:42rem;display:block;margin:1rem auto" role="img" aria-label="Two rows. Top row, marked with a cross: two train cars labelled We reached the field, and it was crowded, joined only by a comma, drawn as a broken link — a run-on. Bottom row, marked with a tick: the same two cars joined by a solid coupler labelled comma and — fixed.">
+  <g font-family="Verdana,sans-serif" text-anchor="middle">
+    <text x="24" y="52" font-size="26" fill="var(--warn)">✗</text>
+    <rect x="50" y="20" width="250" height="46" rx="8" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="175" y="49" font-size="14" fill="var(--ink)">We reached the field</text>
+    <text x="330" y="52" font-size="22" font-weight="bold" fill="var(--warn)">,</text>
+    <path d="M308 43 H318 M342 43 H352" stroke="var(--warn)" stroke-width="3" stroke-dasharray="4 4"/>
+    <rect x="360" y="20" width="230" height="46" rx="8" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="475" y="49" font-size="14" fill="var(--ink)">it was crowded</text>
+    <text x="645" y="49" font-size="12" fill="var(--warn)">run-on</text>
+
+    <text x="24" y="122" font-size="26" fill="var(--calm)">✓</text>
+    <rect x="50" y="90" width="250" height="46" rx="8" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="175" y="119" font-size="14" fill="var(--ink)">We reached the field</text>
+    <rect x="306" y="102" width="48" height="22" rx="5" fill="var(--calm-soft)" stroke="var(--calm)" stroke-width="2"/>
+    <text x="330" y="118" font-size="13" font-weight="bold" fill="var(--ink)">, and</text>
+    <rect x="360" y="90" width="230" height="46" rx="8" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="475" y="119" font-size="14" fill="var(--ink)">it was crowded</text>
+    <text x="645" y="119" font-size="12" fill="var(--calm)">fixed</text>
+  </g>
+</svg>
+      <figcaption>A comma is a broken coupler. A period, or a comma <strong>plus</strong> <em>and / but / so</em>, holds.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q14.</strong> "We reached the field at noon, it was already crowded." Fix it <strong>two different ways</strong>.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Fix 1: …  Fix 2: ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q14. &quot;We reached the field at noon, it was already crowded.&quot; Fix it two different ways." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p>Now the pronouns that end in <em>-self</em>. Use the <strong>delete test</strong>: take the <em>-self</em> word out. Sentence breaks → <strong>reflexive</strong>. Sentence still works → <strong>intensive</strong> (it's just there for emphasis).</p>
+
+      <p class="q"><strong>Q15.</strong> "The team packed the van themselves." <strong>themselves</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q15. &quot;The team packed the van themselves.&quot; themselves is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="reflexive">reflexive</option>
+          <option value="demonstrative">demonstrative</option>
+          <option value="intensive">intensive</option>
+        </select></div>
+
+      <p class="q"><strong>Q16.</strong> "Coach gave the medals to Rosa and myself." One word is wrong. Fix the sentence and say why <em>myself</em> doesn't work.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; It should be … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q16. &quot;Coach gave the medals to Rosa and myself.&quot; One word is wrong. Fix the sentence and say why myself doesn&#x27;t work." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One run-on fixed two different ways, and two pronoun questions answered.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="The reporter&#x27;s rush job">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The reporter's rush job</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The reporter's rush job</h2>
+
+      <p>A sports reporter filed this story in a hurry. It has run-ons, flat verbs, and one pronoun mistake. You're the editor.</p>
+
+      <figure class="dia">
+<div style="border:2px solid var(--line);border-radius:12px;padding:1rem 1.25rem;margin:1rem 0;background:var(--card);font-family:Georgia,serif;line-height:1.8">
+<p style="margin:0 0 .4rem;font-family:Verdana,sans-serif;font-size:.8rem;letter-spacing:.08em;color:var(--soft)">RIVERSIDE SPORTS · JUNIOR DIVISION</p>
+<p style="margin:0 0 .8rem;font-size:1.25rem;font-weight:bold">Youngest Archer Takes the Gold</p>
+<p style="margin:0"><b>(1)</b> The Riverside Archery Open was on Saturday morning. <b>(2)</b> The wind was strong, it was pushing every arrow to the left. <b>(3)</b> Twelve archers had already signed up by eight o'clock. <b>(4)</b> Lena Haddad was the youngest archer she was only eleven. <b>(5)</b> Her first three arrows were not very good, she did not give up. <b>(6)</b> Lena adjusted the sight herself. <b>(7)</b> After that, her arrows were in the gold. <b>(8)</b> Her coach and myself could not believe it. <b>(9)</b> By the final round, the crowd was loud, everyone was standing. <b>(10)</b> Lena seemed calm. <b>(11)</b> She won the junior trophy. <b>(12)</b> Those were the best twenty minutes of the whole day.</p>
+</div>
+      <figcaption>The rush job. Sentence numbers are in bold so you can point at them.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q17.</strong> Type <strong>every</strong> verb phrase in sentences 1, 2 and 3. Get every helper — and nothing that isn't a verb.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q17. Type every verb phrase in sentences 1, 2 and 3. Get every helper — and nothing that isn&#x27;t a verb." placeholder="(1) …  (2) …  (3) …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q18.</strong> Label the verb in sentence 6 and the verb in sentence 10. Name the test that proves each one.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q18. Label the verb in sentence 6 and the verb in sentence 10. Name the test that proves each one." placeholder="(6) … because …  (10) … because …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q19.</strong> Four sentences are run-ons. Find them and fix all four. Use at least two different fixes.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q19. Four sentences are run-ons. Find them and fix all four. Use at least two different fixes." placeholder="(_) …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q20.</strong> Sentence 8 has a pronoun mistake. Rewrite it correctly.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q20. Sentence 8 has a pronoun mistake. Rewrite it correctly." placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q21.</strong> In sentence 6, <strong>herself</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q21. In sentence 6, herself is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="demonstrative">demonstrative</option>
+          <option value="intensive">intensive</option>
+          <option value="reflexive">reflexive</option>
+        </select></div>
+
+      <p class="q"><strong>Q22.</strong> Pick <strong>two</strong> of sentences 1, 7 and 9. Replace the <em>was / were</em> with an action verb that makes the reader see it. Then say which of your two hits harder, and why.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Upgrade 1: …  Upgrade 2: …  The second one hits harder because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q22. Pick two of sentences 1, 7 and 9. Replace the was / were with an action verb that makes the reader see it. Then say which of your two hits harder, and why." placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Check yourself: is the new verb something the subject <em>does</em>? Can you picture it? Did you keep the sentence free of run-ons?</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Five answers: every verb phrase in sentences 1–3, two labels with their tests, four run-ons fixed (at least two different ways), the pronoun fixed, and two verbs upgraded with a reason.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="Your Match Report">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Your Match Report</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Your Match Report</h2>
+
+      <p>Write a <strong>Match Report</strong>: a news story or a diary entry about a game, match, race, or competition. It can be one you played, one you watched, or one you invent. <strong>You choose</strong> news report or diary, and real or made up.</p>
+
+      <p><strong>Length:</strong> 150–200 words, two paragraphs, plus a headline.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.95rem">
+<tr><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">🏅 Achievement</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">How to unlock it</th></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🎯 Bullseye Verbs</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">3 action verbs that make the reader <b>see</b> it — put them in CAPITALS</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🚂 Long Train</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 verb phrase with <b>two</b> helping verbs (<i>had been running</i>)</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🎭 Double Agent</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 sense verb (<i>look, feel, sound, taste, smell</i>) used as a <b>linking</b> verb</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🪞 Mirror</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 reflexive pronoun (passes the delete test by breaking)</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">📢 Spotlight</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 intensive pronoun (passes the delete test by still working)</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">👉 Pointer</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 demonstrative pronoun standing alone (<i>Those were…</i>, <i>That was…</i>)</td></tr>
+<tr><td style="padding:.5rem">🧱 Clean Edges</td><td style="padding:.5rem">Zero run-ons. Read it out loud; every time a new subject + verb starts, there's a period or <b>, and / , but / , so</b></td></tr>
+</table>
+      <figcaption>Unlock at least five. All seven earns the full badge.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q23.</strong> Your Match Report — headline first, then two paragraphs.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q23. Your Match Report — headline first, then two paragraphs." placeholder="HEADLINE: …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q24.</strong> Pick one verb you changed while writing. What was it before, what is it now, and what does the new one do for the reader?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; I changed … to … The new verb ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q24. Pick one verb you changed while writing. What was it before, what is it now, and what does the new one do for the reader?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>150–200 words in two paragraphs, a headline, at least 5 of the 7 achievements unlocked (all 7 for the full badge), and two sentences about one verb you upgraded.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Verb jobs, the two tests, and the pronoun check &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Action verb</td><td>The subject <strong>does</strong> something — even something you can't see (<em>think, want, has</em>).</td></tr>
+      <tr><td class="h">Linking verb — the <strong>=</strong> test</td><td>Swap the verb for <strong>=</strong>. If the sentence still makes sense, it's linking: <em>The soup tastes salty</em> → soup = salty. ✓</td></tr>
+      <tr><td class="h">Helping verb — the <strong>alone</strong> test</td><td>It can't be the whole verb by itself; it leans on a main verb: <em>has</em> <strong>been</strong> <em>studying</em>. Helpers: am, is, are, was, were, be, been · has, have, had · do, does, did · can, could, will, would, shall, should, may, might, must.</td></tr>
+      <tr><td class="h">Verb phrase</td><td>Every helper <strong>plus</strong> the main verb. Words like <em>not</em>, <em>never</em>, <em>already</em> can sit in the middle — they are not part of it.</td></tr>
+      <tr><td class="h">Run-on</td><td>Two complete thoughts (subject + verb, subject + verb) glued with nothing, or only a comma. Fix: a period, or <strong>, and / , but / , so</strong>.</td></tr>
+      <tr><td class="h">Reflexive vs. intensive — the <strong>delete</strong> test</td><td>Delete the <em>-self</em> word. Sentence breaks → <strong>reflexive</strong> (<em>Ana hurt herself</em>). Sentence still works → <strong>intensive</strong>, it's just emphasis (<em>Ana herself built it</em>).</td></tr>
+      <tr><td class="h">Demonstrative</td><td><strong>this, that, these, those</strong> — pointing. <em>Those are mine</em> (pronoun) vs. <em>those arrows</em> (pointing at a noun).</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>The question that does the work:</strong> what is the word <em>doing</em> in this sentence? Not what it usually does.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud instead of typing it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Language Arts 6 · Lesson 7";
+const LESSON_ID = "LA6-L07";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Differentiate between action, helping, and linking verbs.",
+  "O2": "Find a complete verb phrase — every helping verb plus the main verb, even when something splits them.",
+  "O3": "Tell reflexive, intensive, and demonstrative pronouns apart, and fix a misused \"myself\".",
+  "O4": "Find where one sentence should end and fix a run-on two different ways."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:5 },
+  { label:"One word, three jobs", mins:12, part:"intro" },
+  { label:"Mixed range", mins:15, part:"guided" },
+  { label:"The reporter's rush job", mins:13, part:"mastery" },
+  { label:"Start your Match Report together", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "The same verb can do three different jobs. Two tests tell you which.", sheet: true, outcomes: ["O1", "O2"] },
+  guided: { title: "Guided Practice", sub: "Every kind of question mixed together, plus where sentences end.", sheet: true, outcomes: ["O1", "O2", "O3", "O4"] },
+  mastery: { title: "Independent Mastery", sub: "A sports reporter wrote this in a hurry. You're the editor.", sheet: false, outcomes: ["O1", "O2", "O3", "O4"] },
+  homework: { title: "Homework", sub: "Your Match Report — due Thursday.", sheet: true, outcomes: ["O1", "O2", "O3", "O4"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"Same word, different job — and you caught it. That's the whole skill."},
+  i2:{star:"★",msg:"You grabbed every car of the train, not just the engine."},
+  g1:{star:"★",msg:"Every job, all mixed up, and you sorted them anyway."},
+  g2:{star:"★",msg:"You can see where one sentence ends and the next begins. Most adults can't."},
+  m1:{star:"★",msg:"You edited a real news story with no labels and no help. That's an editor's job."},
+  h1:{star:"★",msg:"A real sports story, written like a reporter. Bring it Thursday."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
