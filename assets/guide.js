@@ -47,7 +47,7 @@
   var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var MEMBER = '.stems, .abox, details.check, .keys';     /* belongs to the question above it */
   var TAIL   = '.done-look, .row';                        /* end of the steps */
-  var ARRIVE_MS = REDUCE ? 0 : 2800;                      /* two pulses / two sweeps */
+  var ARRIVE_MS = REDUCE ? 0 : 3700;                      /* ring grows in, then two pulses / two sweeps */
   var WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
   function word(n) { return WORDS[n] || String(n); }
 
@@ -62,21 +62,25 @@
     '.stage-body>.gd-lead:first-child{margin-top:2.4rem}',          /* clear of the previous part's bar */
     '.stage{scroll-margin-top:2.8rem}',
     '.gd-lead.gd-on{box-shadow:0 0 0 3px ' + A + '}',
-    '.gd-lead.gd-on.gd-arrive{animation:gd-pulse 1.4s ease-in-out 2}',
+    /* the ring grows in from nothing, then pulses twice; the flag and button fade in with it */
+    '.gd-lead.gd-on.gd-arrive{animation:gd-ringin .9s ease-out both,gd-pulse 1.4s ease-in-out .9s 2}',
+    '@keyframes gd-ringin{from{box-shadow:0 0 0 0 ' + A + '}to{box-shadow:0 0 0 3px ' + A + '}}',
+    '.gd-lead.gd-on.gd-arrive>.gd-flag,.gd-lead.gd-on.gd-arrive .gd-ackrow{animation:gd-fadein .8s ease-out both}',
+    '@keyframes gd-fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}',
     '@keyframes gd-pulse{0%,100%{box-shadow:0 0 0 3px ' + A + '}50%{box-shadow:0 0 0 7px ' + A + '}}',
     '@property --gd-ang{syntax:"<angle>";inherits:false;initial-value:0deg}',
     '.gd-lead::before{content:"";position:absolute;inset:-6px;border-radius:18px;padding:4px;pointer-events:none;opacity:0;' +
       'background:conic-gradient(from var(--gd-ang),transparent 0 62%,' + A + ' 78%,' + OA + ' 86%,' + A + ' 92%,transparent 100%);filter:blur(3px);' +
       '-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;' +
       'mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}',
-    '.gd-lead.gd-on.gd-arrive::before{animation:gd-sweep 1.4s linear 2}',
+    '.gd-lead.gd-on.gd-arrive::before{animation:gd-sweep 1.4s linear .9s 2}',
     '@keyframes gd-sweep{0%{--gd-ang:0deg;opacity:0}10%{opacity:.9}90%{opacity:.9}100%{--gd-ang:360deg;opacity:0}}',
     '.gd-flag{position:absolute;top:-1.05rem;right:1rem;z-index:5;display:none;align-items:center;gap:.4rem;background:' + A + ';color:' + OA +
       ';border-radius:999px;padding:.3rem .85rem;font-weight:700;font-size:.9rem;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap}',
     '.gd-lead.gd-on>.gd-flag{display:flex}',
     /* the arrow bounces only while the box is arriving (same 2.8s), then rests */
     '.gd-arrow{display:inline-block;font-size:1.05rem}',
-    '.gd-lead.gd-arrive .gd-arrow{animation:gd-bob .7s ease-in-out 4}',
+    '.gd-lead.gd-arrive .gd-arrow{animation:gd-bob .7s ease-in-out .9s 4}',
     '@keyframes gd-bob{0%,100%{transform:translateY(-2px)}50%{transform:translateY(4px)}}',
     '.gd-flag.gd-shake{animation:gd-shake .5s ease 2}',
     '@keyframes gd-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}',
@@ -129,7 +133,7 @@
     '@keyframes gd-click{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}',
     '.gd-edge{fill:none;stroke:rgba(255,255,255,.4);stroke-width:.8}',
     '.gd-fly{position:absolute;z-index:70;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}',
-    '.gd-frame.gd-win{animation:gd-win 1.8s ease-in-out 2;border-color:' + G + '}',
+    '.gd-frame.gd-win{animation:gd-win 1.8s ease-in-out 1;border-color:' + G + '}',
     '@keyframes gd-win{0%,100%{box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 0 0 0 ' + G + '}50%{box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 0 22px 6px ' + G + '}}',
     '.gd-cap{font-size:.8rem;font-weight:700;color:var(--soft,#c5cdd8)}',
     '.gd-confirm{flex-basis:100%;display:none;border:2px solid ' + W + ';background:var(--warn-soft,#38290f);border-radius:12px;padding:.75rem 1rem}',
@@ -145,7 +149,7 @@
     '.gd-pill.show{display:block}',
     '.gd-ack:focus-visible,.gd-pill:focus-visible,.gd-howto:focus-visible,.gd-confirm button:focus-visible{outline:3px solid var(--ink,#f3f5f8);outline-offset:2px}',
     '.gd-sentinel{position:absolute;top:0;left:0;width:1px;pointer-events:none;visibility:hidden}',
-    '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on.gd-arrive,.gd-lead.gd-on.gd-arrive::before,.gd-arrow,.gd-flag.gd-shake,' +
+    '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on.gd-arrive,.gd-lead.gd-on.gd-arrive::before,.gd-arrow,.gd-flag.gd-shake,.gd-lead.gd-on.gd-arrive>.gd-flag,.gd-lead.gd-on.gd-arrive .gd-ackrow,' +
       '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-wave .gd-hand-i,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,.gd-pc.gd-click,' +
       '.gd-frame.gd-win,.gd-flash{animation:none}}'
   ].join('');
@@ -928,7 +932,7 @@
       if (!cur || cur.kind === 'end') return;
       var r = docRect(cur.el);
       var inView = band && r.top >= band.top && r.top <= band.bottom - 160;
-      if (!inView) { scrollTo(cur.el, 'start'); if (cur.kind === 'lead') setTimeout(function () { arrive(cur.el); }, 500); }
+      if (!inView) scrollTo(cur.el, 'start');          /* the arrival already playing carries on; restarting it would blink */
       setTimeout(function () {
         var steps = document.querySelector('.steps');
         if (!steps || !band || !cur || cur.kind !== 'lead') return;
