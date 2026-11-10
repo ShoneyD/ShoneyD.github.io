@@ -95,11 +95,14 @@
     '.gd-tag{position:absolute;top:-.95rem;left:1rem;display:none;background:' + AC + ';color:' + OAC +
       ';border-radius:999px;padding:.15rem .75rem;font-weight:700;font-size:.82rem}',
     '.gd-q.gd-cur>.gd-tag{display:block}',
-    '.gd-hand{position:absolute;left:-2.7rem;top:.85rem;font-size:2rem;line-height:1;display:none;pointer-events:none}',
+    '.gd-hand{position:absolute;left:-3.4rem;top:.85rem;font-size:2rem;line-height:1;display:none;pointer-events:none}',
+    /* the finger always pokes gently toward the question; the whole hand also bobs when off-centre */
+    '.gd-hand-i{display:inline-block;animation:gd-poke 1.4s ease-in-out infinite}',
+    '@keyframes gd-poke{0%,100%{transform:translateX(-3px)}50%{transform:translateX(4px)}}',
     '.gd-q.gd-cur>.gd-hand{display:block}',
     '.gd-q.gd-cur.gd-off>.gd-hand{animation:gd-hbob 1.8s ease-in-out infinite}',
     '@keyframes gd-hbob{0%,100%{transform:translateY(-3px)}50%{transform:translateY(4px)}}',
-    '@media (max-width:52rem){.gd-q{padding-left:2.9rem}.gd-hand{left:.35rem;font-size:1.7rem}}',
+    '@media (max-width:54rem){.gd-q{padding-left:3.3rem}.gd-hand{left:.2rem;font-size:1.7rem}}',
     '.gd-q.gd-cur p.q strong{background:' + HL + ';border-radius:4px;padding:0 .12em;animation:gd-glint .6s ease-in-out 2}',
     /* Next row + puzzle */
     '.row.gd-row{display:flex;align-items:center;gap:1rem 1.25rem;flex-wrap:wrap}',
@@ -136,7 +139,7 @@
     '.gd-ack:focus-visible,.gd-pill:focus-visible,.gd-howto:focus-visible,.gd-confirm button:focus-visible{outline:3px solid var(--ink,#f3f5f8);outline-offset:2px}',
     '.gd-sentinel{position:absolute;top:0;left:0;width:1px;pointer-events:none;visibility:hidden}',
     '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on.gd-arrive,.gd-lead.gd-on.gd-arrive::before,.gd-arrow,.gd-flag.gd-shake,' +
-      '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-cur.gd-off>.gd-hand,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,' +
+      '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-cur.gd-off>.gd-hand,.gd-hand-i,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,' +
       '.gd-frame.gd-win,.gd-flash{animation:none}}'
   ].join('');
   var tag = document.createElement('style');
@@ -261,7 +264,7 @@
       t.textContent = 'You’re here';
       var hand = document.createElement('span');
       hand.className = 'gd-hand'; hand.setAttribute('aria-hidden', 'true');
-      hand.textContent = '👉';
+      hand.innerHTML = '<span class="gd-hand-i">👉</span>';
       Q.insertBefore(hand, Q.firstChild);
       Q.insertBefore(t, Q.firstChild);
       steps.push({ kind: 'q', el: Q });
@@ -567,6 +570,16 @@
     if (row) row.classList.remove('gd-ready');
   }
 
+  /* Put the finger level with the middle of the question's first line, so it
+     points at "Q8." rather than at the box above it. */
+  function aimHand(q) {
+    var hand = q.querySelector('.gd-hand'), pq = q.querySelector('p.q');
+    if (!hand || !pq) return;
+    var lh = parseFloat(getComputedStyle(pq).lineHeight) || pq.getBoundingClientRect().height;
+    var top = pq.getBoundingClientRect().top - q.getBoundingClientRect().top;
+    hand.style.top = Math.round(top + (lh - hand.offsetHeight) / 2) + 'px';
+  }
+
   function setCurrent(stage, i, how) {
     var arr = STEPS[stage.id]; if (!arr) return;
     var prev = cur;
@@ -581,6 +594,7 @@
     }
     cur = arr[i];
     cur.el.classList.add(cur.kind === 'lead' ? 'gd-on' : 'gd-cur');
+    if (cur.kind === 'q') aimHand(cur.el);
     if (cur.kind === 'lead' && prev !== cur) arrive(cur.el);
     if (cur.kind === 'q') {
       var g = governingLead(arr, i);                   /* unread directions above keep their flag */
