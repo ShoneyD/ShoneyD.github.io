@@ -57,7 +57,7 @@
       G = 'var(--gold,#f2c75c)';
   var css = [
     /* steps: constant padding, so moving the highlight never shifts the layout */
-    '.gd-lead,.gd-q{position:relative;border-radius:14px;margin:.35rem -.8rem;scroll-margin-top:2.6rem;padding:1rem .8rem .55rem;transition:box-shadow .25s ease}',
+    '.gd-lead,.gd-q{position:relative;border-radius:14px;margin:.35rem -.8rem;scroll-margin-top:5rem;padding:1rem .8rem .55rem;transition:box-shadow .25s ease}',
     '.gd-lead{margin-top:1.1rem}',
     '.gd-lead.gd-on{box-shadow:0 0 0 3px ' + A + '}',
     '.gd-lead.gd-on.gd-arrive{animation:gd-pulse 1.4s ease-in-out 2}',
@@ -81,7 +81,7 @@
     '.gd-ack{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:10px;padding:.6rem 1.1rem;background:' + A + ';color:' + OA + '}',
     /* start reading here — only after the arrival animation has finished */
     '.gd-start{border-radius:4px;padding:0 .15em;margin:0 -.15em;box-decoration-break:clone;-webkit-box-decoration-break:clone}',
-    '.gd-lead.gd-read .gd-start{background:linear-gradient(' + HL + ',' + HL + ') no-repeat 0 0/100% 100%;animation:gd-wipe .7s ease-out both,gd-glint .6s ease-in-out .75s 2}',
+    '.gd-lead.gd-on.gd-read .gd-start{background:linear-gradient(' + HL + ',' + HL + ') no-repeat 0 0/100% 100%;animation:gd-wipe .7s ease-out both,gd-glint .6s ease-in-out .75s 2}',
     '@keyframes gd-wipe{from{background-size:0 100%}to{background-size:100% 100%}}',
     '@keyframes gd-glint{0%,100%{box-shadow:0 0 0 0 ' + W + '}50%{box-shadow:0 0 0 3px ' + W + '}}',
     /* "How does this work?" */
@@ -105,7 +105,7 @@
     '.row.gd-row{display:flex;align-items:center;gap:1rem 1.25rem;flex-wrap:wrap}',
     '.row.gd-ready .btn.go{box-shadow:0 0 0 3px var(--calm,#5ecb92)}',
     '.gd-puz{display:flex;flex-direction:column;align-items:center;gap:.25rem}',
-    '.gd-frame{width:12.5rem;padding:5px;border-radius:10px;background:var(--card,#1d2128);' +
+    '.gd-frame{width:16rem;max-width:100%;padding:5px;border-radius:10px;background:var(--card,#1d2128);' +
       'border:3px solid var(--soft,#c5cdd8);box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 4px 14px rgba(0,0,0,.3)}',
     '.gd-frame svg{display:block;width:100%;height:auto;border-radius:4px;overflow:visible}',
     '.gd-slot{fill:var(--field,#232830);stroke:var(--field-line,#414a56);stroke-width:1;stroke-dasharray:3 3}',
@@ -118,6 +118,7 @@
     '.gd-pc.gd-final{animation:gd-final .9s cubic-bezier(.3,1.3,.5,1) both}',
     '@keyframes gd-final{0%{opacity:0;transform:translate(40px,-55px) rotate(14deg) scale(1.15)}70%{opacity:1;transform:translate(0,0) rotate(0) scale(1.07)}100%{opacity:1;transform:none}}',
     '.gd-edge{fill:none;stroke:rgba(255,255,255,.4);stroke-width:.8}',
+    '.gd-fly{position:absolute;z-index:70;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}',
     '.gd-frame.gd-win{animation:gd-win 1.2s ease-in-out 2;border-color:' + G + '}',
     '@keyframes gd-win{0%,100%{box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 0 0 0 ' + G + '}50%{box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 0 22px 6px ' + G + '}}',
     '.gd-cap{font-size:.8rem;font-weight:700;color:var(--soft,#c5cdd8)}',
@@ -135,7 +136,7 @@
     '.gd-ack:focus-visible,.gd-pill:focus-visible,.gd-howto:focus-visible,.gd-confirm button:focus-visible{outline:3px solid var(--ink,#f3f5f8);outline-offset:2px}',
     '.gd-sentinel{position:absolute;top:0;left:0;width:1px;pointer-events:none;visibility:hidden}',
     '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on.gd-arrive,.gd-lead.gd-on.gd-arrive::before,.gd-arrow,.gd-flag.gd-shake,' +
-      '.gd-lead.gd-read .gd-start,.gd-q.gd-cur.gd-off>.gd-hand,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,' +
+      '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-cur.gd-off>.gd-hand,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,' +
       '.gd-frame.gd-win,.gd-flash{animation:none}}'
   ].join('');
   var tag = document.createElement('style');
@@ -427,20 +428,60 @@
      is held back until the puzzle is on screen, so its click-in is seen. */
   function syncPuzzle(stage, quiet) {
     var P = PUZ[stage.id]; if (!P) return;
-    var miss = missing(P), total = P.fields.length;
+    var miss = missing(P), total = P.fields.length, flying = false;
     P.fields.forEach(function (f, i) {
       var pc = P.pcs[i], on = filledEl(f);
-      if (on && !pc.classList.contains('gd-in')) {
-        if (miss === 0 && !P.won && !quiet) { P.last = i; return; }      /* held for the finale */
-        pc.classList.add('gd-in');
-        if (!quiet) restart(pc, 'gd-pop');
+      if (on && !pc.classList.contains('gd-in') && !pc._gdFly) {
+        if (quiet) { pc.classList.add('gd-in'); return; }
+        flying = true;
+        if (miss === 0 && !P.won) {                      /* the last piece: held for the finale */
+          P.last = i;
+          flyPiece(stage, i, function () { if (P.seen) finale(stage); });
+          return;
+        }
+        flyPiece(stage, i, function () {
+          if (!filledEl(P.fields[i])) return;            /* cleared while it flew */
+          pc.classList.add('gd-in'); restart(pc, 'gd-pop');
+        });
       }
       if (!on) { pc.classList.remove('gd-in', 'gd-pop', 'gd-final'); }
     });
     if (miss > 0) { P.won = false; P.frame.classList.remove('gd-win'); }
     if (quiet && miss === 0) P.won = true;
     P.cap.textContent = miss === 0 ? '🧩 Picture complete!' : '🧩 ' + word(total - miss) + ' of ' + word(total) + ' pieces';
-    if (miss === 0 && !P.won && P.seen) finale(stage);
+    if (!flying && miss === 0 && !P.won && P.seen) finale(stage);
+  }
+
+  /* A finished answer sends its piece out of the answer box and down toward
+     the puzzle. If the puzzle is far below, the piece heads down and fades,
+     so the student still sees it leave. */
+  function flyPiece(stage, i, then) {
+    var P = PUZ[stage.id], pc = P.pcs[i], box = P.fields[i].closest('.abox') || P.fields[i];
+    if (REDUCE || !document.body.animate || !P.slots[i].getBBox) { then(); return; }
+    var id = 'gdp-' + stage.id, d = P.slots[i].getAttribute('d'), bb = P.slots[i].getBBox();
+    var pad = 8, vw = bb.width + pad * 2, vh = bb.height + pad * 2, W0 = 78, H0 = Math.round(W0 * vh / vw);
+    var fly = document.createElement('div');
+    fly.className = 'gd-fly';
+    fly.innerHTML = '<svg viewBox="' + (bb.x - pad) + ' ' + (bb.y - pad) + ' ' + vw + ' ' + vh + '" width="' + W0 + '" height="' + H0 + '">' +
+      '<g clip-path="url(#' + id + '-c' + i + ')"><use href="#' + id + '-scene"/></g><path class="gd-edge" d="' + d + '"/></svg>';
+    var br = box.getBoundingClientRect();
+    var x0 = br.right + window.scrollX - W0 - 18, y0 = br.top + window.scrollY + 8;
+    fly.style.left = x0 + 'px'; fly.style.top = y0 + 'px';
+    document.body.appendChild(fly);
+    var sr = P.slots[i].getBoundingClientRect();
+    var tx = sr.left + window.scrollX + sr.width / 2 - (x0 + W0 / 2);
+    var ty = sr.top + window.scrollY + sr.height / 2 - (y0 + H0 / 2);
+    var far = Math.abs(ty) > 650;
+    var endScale = far ? .8 : Math.max(.3, (sr.width * vw / Math.max(bb.width, 1)) / W0);
+    if (far) { tx = tx * .25; ty = 280; }
+    pc._gdFly = true;
+    pc._gdFlyAnim = fly.animate([
+      { transform: 'translate(0,10px) scale(.4) rotate(-25deg)', opacity: 0 },
+      { transform: 'translate(0,-34px) scale(1.15) rotate(8deg)', opacity: 1, offset: .25 },
+      { transform: 'translate(0,-34px) scale(1) rotate(0deg)', opacity: 1, offset: .4 },
+      { transform: 'translate(' + tx + 'px,' + ty + 'px) scale(' + endScale + ') rotate(0deg)', opacity: far ? 0 : 1 }
+    ], { duration: far ? 1200 : 1100, easing: 'cubic-bezier(.45,0,.3,1)' });
+    pc._gdFlyAnim.onfinish = function () { fly.remove(); pc._gdFly = false; then(); };
   }
 
   function finale(stage) {
@@ -510,6 +551,15 @@
     for (var j = i; j >= 0; j--) if (arr[j].kind === 'lead') return arr[j].acked ? null : arr[j];
     return null;
   }
+  /* A lead counts as met once any question under it has an answer. Without
+     this, directions the student plainly got past could flag up again. */
+  function ackAnswered(stage) {
+    var arr = STEPS[stage.id] || [], lead = null;
+    arr.forEach(function (s) {
+      if (s.kind === 'lead') lead = s;
+      else if (lead && !lead.acked && filled(s.el)) lead.acked = true;
+    });
+  }
 
   function clearMarks(stage) {
     (STEPS[stage.id] || []).forEach(function (s) { s.el.classList.remove('gd-on', 'gd-cur', 'gd-off'); });
@@ -568,12 +618,17 @@
     setCurrent(stage, i, i === 0 ? null : how);
   }
 
+  function pending(s) { return s.kind === 'q' ? !filled(s.el) : !s.acked; }
   function advanceFrom(stage, i) {
     var arr = STEPS[stage.id];
-    var n = i + 1;
-    while (n < arr.length && arr[n].kind === 'q' && filled(arr[n].el)) n++;
+    ackAnswered(stage);
+    var n = -1, k;
+    for (k = i + 1; k < arr.length; k++) if (pending(arr[k])) { n = k; break; }
+    if (n < 0) for (k = 0; k < i; k++) if (arr[k].kind === 'q' && !filled(arr[k].el)) { n = k; break; }   /* a skipped one */
+    if (n < 0) n = arr.length;                               /* everything answered */
     var next = arr[n];
-    setCurrent(stage, n, next && next.kind === 'lead' ? 'scroll' : 'nearest');
+    var far = next && (n < i || next.kind === 'lead');
+    setCurrent(stage, n, far ? 'scroll' : 'nearest');
   }
 
   /* ------------------------------------------------------------- events */
@@ -613,6 +668,7 @@
     var hit = stepOf(t); if (!hit || hit.s.kind !== 'q') return;
     var arr = STEPS[hit.stage.id];
     var g = governingLead(arr, hit.i);
+    if (g && nudged && nudged.has(g.el)) { g.acked = true; g = null; }   /* nudged once already: let them go */
     if (g && (!nudged || !nudged.has(g.el))) {
       /* soft nudge: they jumped past the directions — say so once */
       if (nudged) nudged.add(g.el);
@@ -626,14 +682,21 @@
     if (cur !== hit.s) setCurrent(hit.stage, hit.i, null);
   });
 
+  /* An answer marks its directions as met; then move on if this was the
+     current step, or if the current step was those (now met) directions. */
+  function answered(hit) {
+    ackAnswered(hit.stage);
+    if (cur === hit.s || (cur && cur.kind === 'lead' && cur.acked)) advanceFrom(hit.stage, hit.i);
+  }
+
   /* a dropdown counts the moment something is picked */
   document.addEventListener('change', function (e) {
     var t = e.target;
     if (!t.dataset || t.dataset.q === undefined) return;
     var hit = stepOf(t);
     if (hit) syncPuzzle(hit.stage);
-    if (t.tagName !== 'SELECT' || !t.value) return;
-    if (hit && hit.s === cur) advanceFrom(hit.stage, hit.i);
+    if (t.tagName !== 'SELECT' || !t.value || !hit) return;
+    answered(hit);
   });
 
   /* typed answers count when the student leaves the box with something in it */
@@ -642,12 +705,11 @@
     if (t.tagName === 'SELECT' || !t.dataset || t.dataset.q === undefined) return;
     var hit = stepOf(t);
     if (hit) syncPuzzle(hit.stage);
-    if (!String(t.value).trim()) return;
-    if (!hit || hit.s !== cur) return;
+    if (!String(t.value).trim() || !hit) return;
     var to = e.relatedTarget;
     if (to && hit.s.el.contains(to)) return;             /* still inside this question (keys, stems) */
     /* let a click on another question land first; it may set its own current */
-    setTimeout(function () { if (cur === hit.s) advanceFrom(hit.stage, hit.i); }, 0);
+    setTimeout(function () { answered(hit); }, 0);
   });
 
   /* ------------------------------------------------- the stage lifecycle */
@@ -679,6 +741,9 @@
   pill.type = 'button';
   pill.className = 'gd-pill';
   document.body.appendChild(pill);
+  /* Pressing the pill must not take focus: leaving a typed box counts as
+     finishing it, which would move "current" on before the jump happens. */
+  pill.addEventListener('mousedown', function (e) { e.preventDefault(); });
   pill.addEventListener('click', function () {
     if (!cur) return;
     scrollTo(cur.el, cur.kind === 'lead' ? 'start' : 'center');

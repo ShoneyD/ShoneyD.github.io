@@ -243,3 +243,9 @@ details.sheet table{ width:100%; border-collapse:collapse; margin:.75rem 0 0; fo
         background:var(--card); color:var(--ink); opacity:.75 }
 .themetog:hover, .themetog:focus-visible{ opacity:1; border-color:var(--accent) }
 @media print{ .themetog{ display:none } }
+
+/* Native dropdown lists follow the page theme. Without this the open list
+   drew light-on-light in dark mode: only the highlighted option was legible. */
+:root{ color-scheme:dark }
+:root[data-theme="light"]{ color-scheme:light }
+select option{ background:var(--field); color:var(--ink) }

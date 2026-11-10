@@ -83,8 +83,11 @@
         color:var(--soft); font-size:.95rem; pointer-events:none }
   .hint{ font-size:.85rem; color:var(--soft) }
   .pick{ display:flex; align-items:center; gap:.4rem; font-size:.85rem; font-weight:700; color:var(--soft) }
-  .pick select{ font:inherit; font-size:.9rem; font-weight:400; color:var(--ink); background:var(--card);
+  .pick select{ color-scheme:dark; font:inherit; font-size:.9rem; font-weight:400; color:var(--ink); background:var(--paper);
         border:1px solid var(--line); border-radius:8px; padding:.45rem .6rem; max-width:17rem }
+  .pick select option{ background:var(--paper); color:var(--ink) }
+  .subs.engs button{ font-weight:400; font-family:Consolas,monospace; font-size:.8rem }
+  .subs.engs .lab{ font-size:.78rem; font-weight:700; color:var(--soft); align-self:center; margin-right:.2rem }
   .pick select:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft) }
 
   /* grade-level sub-menu */
@@ -118,10 +121,11 @@
         font-family:Consolas,monospace; word-break:break-all }
   .card .foot{ margin-top:auto; display:flex; gap:.4rem; flex-wrap:wrap }
   .card .note{ font-size:.78rem; color:var(--soft); font-style:italic; margin:0 0 .6rem }
-  .card .when{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem;
+  .card .when{ display:flex; flex-direction:column; align-items:flex-start; gap:.3rem;
         margin:0 0 .65rem; font-size:.95rem; font-weight:700; color:var(--ink) }
-  .card .when .code.used{ font-size:.8rem; font-weight:400; cursor:pointer }
-  .card .when .code{ font-family:Consolas,monospace; font-size:.9rem; color:var(--les);
+  .card .when .ids{ display:flex; gap:.35rem; flex-wrap:wrap }
+  .card .when .lidc.used{ font-size:.8rem; font-weight:400; cursor:pointer }
+  .card .when .lidc{ font-family:Consolas,monospace; font-size:.9rem; color:var(--les);
         background:var(--les-soft); border:1px solid var(--les-line); border-radius:6px; padding:.08rem .45rem }
   .card details.notes{ margin:0 0 .75rem; font-size:.8rem; color:var(--soft) }
   .card details.notes summary{ cursor:pointer; font-weight:700; color:var(--accent); width:max-content }
@@ -144,7 +148,7 @@
   /* ---- version + engine markers on an activity card ---- */
   .chip.ver{ font-family:Consolas,monospace; color:var(--soft); background:transparent;
         border-color:var(--line) }
-  button.chip.eng{ font:inherit; font-size:inherit; cursor:pointer }
+  button.chip.eng{ font:inherit; font-size:.72rem; font-weight:700; cursor:pointer; text-align:left }
   button.chip.eng:hover{ border-color:var(--accent) }
   .chip.eng{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent-line) }
   .stamp{ margin:.5rem 0 0; font-size:.74rem; color:var(--soft); letter-spacing:.02em }
@@ -227,6 +231,7 @@
   </div>
 
   <div class="subs" id="subs" role="group" aria-label="Filter by grade level"></div>
+  <div class="subs engs" id="engs" role="group" aria-label="Filter by engine"></div>
 
   <div class="grid" id="grid"></div>
 
@@ -1115,7 +1120,7 @@ const TABS = [
   { key:'resource', label:'Resources'  }
 ];
 
-let tab = 'lesson', course = 'All', query = '', lid = 'All', sortBy = 'new';
+let tab = 'lesson', course = 'All', query = '', lid = 'All', sortBy = 'new', eng = 'All';
 
 /* Which lessons use each activity/resource — read off the lessons' own embed
    menus, so it can never disagree with them. */
@@ -1134,6 +1139,7 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 function matches(it){
   if (it.type !== tab) return false;
   if (course !== 'All' && it.course !== course) return false;
+  if (eng !== 'All' && it.engine !== eng) return false;
   if (lid !== 'All' && (it.type === 'lesson' ? it.id !== lid : !(USED_IN[it.file] || []).includes(lid))) return false;
   if (!query) return true;
   /* "engine:sort" is an exact match on the mechanic, not a text search — that
@@ -1183,11 +1189,11 @@ function card(it, i){
     <div class="chips">
       <span class="chip tag">${esc(it.tag)}</span>
       <span class="chip">${esc(it.course)}</span>
-      ${it.engine ? `<button class="chip eng" onclick="filterEngine('${esc(it.engine)}')" title="${esc(ENGINES[it.engine] || it.engine)} — click to see every variant">${esc(it.engine)} · ${esc(it.variant || '')}</button>` : ''}
+      ${it.engine ? `<button class="chip eng" onclick="filterEngine('${esc(it.engine)}')" title="Engine: ${esc(ENGINES[it.engine] || it.engine)} — click to see every variant">⚙ ${esc(it.engine)} · ${esc(it.variant || '')}</button>` : ''}
       ${it.version ? `<span class="chip ver">v${it.version}</span>` : ''}
     </div>
     <h3>${esc(it.title)}</h3>
-    <p class="when">${it.id ? `<span class="code">${esc(it.id)}</span>` : (USED_IN[it.file] || []).slice().sort(idCmp).map(x => `<span class="code used" title="Used in ${esc(x)} — click to show that lesson" onclick="setLid('${esc(x)}')">${esc(x)}</span>`).join('')}<span class="date">${it.updated ? 'Last edited ' + esc(niceDate(it.updated)) : 'No edit date'}</span></p>
+    <p class="when">${it.id ? `<span class="ids"><span class="lidc">${esc(it.id)}</span></span>` : (USED_IN[it.file] || []).length ? `<span class="ids">${(USED_IN[it.file] || []).slice().sort(idCmp).map(x => `<span class="lidc used" title="Used in ${esc(x)} — click to show that lesson" onclick="setLid('${esc(x)}')">${esc(x)}</span>`).join(' ')}</span>` : ''}<span class="date">${it.updated ? 'Last edited ' + esc(niceDate(it.updated)) : 'No edit date'}</span></p>
     <p class="desc">${esc(it.desc)}</p>
     <p class="skills">${esc(it.skills)}</p>
     <details class="notes">
@@ -1311,15 +1317,29 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeQuestio
 /* Show every variant built on one engine — the answer to "which sort did I
    already make?". It is a search, so the box shows what is being filtered and
    clearing it puts everything back. */
-function filterEngine(eng){
-  const box = document.getElementById('q');
-  box.value = 'engine:' + eng;
-  box.dispatchEvent(new Event('input'));
-  box.scrollIntoView({behavior:'smooth', block:'center'});
+function filterEngine(e){
+  setEng(e);
+  document.getElementById('engs').scrollIntoView({behavior:'smooth', block:'center'});
 }
 
-function setTab(k){ tab = k; renderTabs(); renderSubs(); render(); }
-function setCourse(c){ course = c; renderSubs(); render(); }
+/* Engine bubbles: every mechanic on this tab (within the chosen course), with
+   how many variants each has. Persistent, like the course bubbles. */
+function renderEngs(){
+  const el = document.getElementById('engs');
+  const pool = ITEMS.filter(i => i.type === tab && i.engine && (course === 'All' || i.course === course));
+  const counts = {};
+  pool.forEach(i => { counts[i.engine] = (counts[i.engine] || 0) + 1; });
+  const names = Object.keys(counts).sort();
+  el.hidden = names.length < 2;
+  if (el.hidden) { eng = 'All'; el.innerHTML = ''; return; }
+  if (eng !== 'All' && !counts[eng]) eng = 'All';
+  el.innerHTML = '<span class="lab">⚙ Engine</span>' + ['All', ...names].map(n =>
+    `<button type="button" aria-pressed="${n === eng}" title="${n === 'All' ? 'Every engine' : esc(ENGINES[n] || n)}" onclick="setEng(${JSON.stringify(n).replace(/"/g,'&quot;')})">` +
+    `${n === 'All' ? 'All' : esc(n) + ' · ' + counts[n]}</button>`).join('');
+}
+function setEng(n){ eng = n; renderEngs(); render(); }
+function setTab(k){ tab = k; renderTabs(); renderSubs(); renderEngs(); render(); }
+function setCourse(c){ course = c; renderSubs(); renderEngs(); render(); }
 function togglePanel(i){ document.getElementById('panel-' + i).classList.toggle('show'); }
 function toggleCode(i){ document.getElementById('code-' + i).classList.toggle('show'); }
 
@@ -1380,7 +1400,7 @@ function whoFor(i, btn){
   else done(false);
 }
 
-renderTabs(); renderSubs(); renderLid(); render();
+renderTabs(); renderSubs(); renderEngs(); renderLid(); render();
 </script>
 <div class="qdrawer" id="qdrawer" role="dialog" aria-label="Questions in this item" aria-hidden="true">
   <button class="qclose" type="button" onclick="closeQuestions()">Close</button>
