@@ -451,8 +451,8 @@ function clearFb(id){ const fb = document.getElementById(id); fb.className = 'fb
    The student plays B, then A. Partner lines play recorded audio; her lines are checked
    with the browser's own speech recognition (ko-KR, Chrome/Edge). Nothing is recorded or
    sent anywhere by this page: the browser's recognizer returns text, and only the text is kept.
-   The check is a syllable LCS between what was heard and the line, so spacing differences
-   never count against her; each word is marked heard / partly heard / missed.
+   The check compares sounds, not spelling (see "the check" below), keeps each syllable's
+   best score across tries, and marks each word heard / partly heard / missed.
    It checks WHICH WORDS she said, not accent.
    ===================================================================== */
 const C = JSON.parse(document.getElementById('content').textContent);
@@ -470,19 +470,39 @@ const REWARDS = {
 /* ---------- speech recognition ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const inFrame = (() => { try { return window.self !== window.top; } catch(e){ return true; } })();
-function listen(onInterim){
+function listen(onInterim, onReady){
   return new Promise((resolve, reject) => {
     if (!SR) return reject({ error:'unsupported' });
-    const r = new SR(); r.lang = 'ko-KR'; r.interimResults = true; r.maxAlternatives = 5; r.continuous = false;
-    let finals = null, settled = false;
+    const r = new SR(); r.lang = 'ko-KR'; r.interimResults = true; r.maxAlternatives = 5;
+    /* continuous: a pause between two sentences no longer ends her turn. The turn ends
+       after a short silence, a tap on the button, or 15 seconds. */
+    r.continuous = true;
+    const segs = []; let interim = '', settled = false, quiet = null;
+    const cap = setTimeout(() => { try { r.stop(); } catch(e){} }, 15000);
+    const arm = ms => { clearTimeout(quiet); quiet = setTimeout(() => { try { r.stop(); } catch(e){} }, ms); };
+    const done = () => { clearTimeout(cap); clearTimeout(quiet); };
+    r.onaudiostart = () => { if (onReady) onReady(); arm(7000); };
     r.onresult = e => {
-      const res = e.results[e.results.length - 1];
-      if (res.isFinal) finals = [...res].map(a => a.transcript);
-      else if (onInterim) onInterim(res[0].transcript);
+      interim = '';
+      for (let k = e.resultIndex; k < e.results.length; k++){
+        const res = e.results[k];
+        if (res.isFinal) segs[k] = [...res].map(a => a.transcript).filter(Boolean);
+        else interim += res[0].transcript;
+      }
+      if (onInterim) onInterim((segs.filter(Boolean).map(s => s[0]).join(' ') + ' ' + interim).trim());
+      arm(interim ? 1800 : 1300);
     };
-    r.onerror = e => { if (!settled){ settled = true; reject(e); } };
-    r.onend = () => { if (!settled){ settled = true; finals ? resolve(finals) : reject({ error:'no-speech' }); } };
-    try { r.start(); } catch(e){ settled = true; reject({ error:'start' }); }
+    r.onerror = e => {
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
+      if (!settled){ settled = true; done(); reject(e); }
+    };
+    r.onend = () => {
+      if (settled) return; settled = true; done();
+      const s = segs.filter(x => x && x.length);
+      if (!s.length && interim.trim()) s.push([interim.trim()]);
+      s.length ? resolve(s) : reject({ error:'no-speech' });
+    };
+    try { r.start(); } catch(e){ settled = true; done(); reject({ error:'start' }); }
     listen.stop = () => { try { r.stop(); } catch(e){} };
   });
 }
@@ -497,36 +517,77 @@ function micTrouble(err){
   return ['I didn\'t hear anything.', 'Tap the mic, wait for the red dot, then talk. Get a little closer to the mic if you need to.'];
 }
 
-/* ---------- the check ---------- */
+/* ---------- the check ----------
+   Compared by SOUND, not spelling. Each Hangul block is split into its letters, then
+   letters that sound the same are merged (ㅐ/ㅔ/ㅖ/ㅒ, ㅙ/ㅚ/ㅞ; final consonants fold to
+   their seven sounds, so 낫/낮/낱 all count as 낟). A syllable then gets partial credit:
+   vowel counts most, first consonant next (plain/aspirated/tense of one family = most of
+   the credit), final consonant least. Alignment maximises total credit, so spacing and
+   an extra or missing syllable never knock everything after it out of line.
+   Across tries on the same line, each syllable keeps its best score, so a word said
+   right once stays right. */
 const syl = s => [...s].filter(ch => /[가-힣A-Za-z0-9]/.test(ch));
 function norm(s){ let t = s; C.same.forEach(([a, b]) => { t = t.split(a).join(b); }); return t; }
-/* LCS over syllables; returns the set of target positions that were heard. */
-function matchSet(target, heard){
-  const a = syl(target), b = syl(norm(heard));
-  const n = a.length, m = b.length, L = Array.from({ length:n + 1 }, () => new Uint16Array(m + 1));
-  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
-    L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
-  const hit = new Set(); let i = 0, j = 0;
-  while (i < n && j < m){ if (a[i] === b[j]){ hit.add(i); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++; }
-  return { hit, total:n, got:hit.size };
+const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ', JUNG = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
+const JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const VSAME = { 'ㅐ':'ㅔ', 'ㅒ':'ㅔ', 'ㅖ':'ㅔ', 'ㅙ':'ㅞ', 'ㅚ':'ㅞ' };   /* -예요/-에요 count as one */
+const FSAME = { 'ㄲ':'ㄱ','ㅋ':'ㄱ','ㄳ':'ㄱ','ㄺ':'ㄱ','ㅅ':'ㄷ','ㅆ':'ㄷ','ㅈ':'ㄷ','ㅊ':'ㄷ','ㅌ':'ㄷ','ㅎ':'ㄷ',
+                'ㅍ':'ㅂ','ㅄ':'ㅂ','ㄿ':'ㅂ','ㄵ':'ㄴ','ㄶ':'ㄴ','ㄼ':'ㄹ','ㄽ':'ㄹ','ㄾ':'ㄹ','ㅀ':'ㄹ','ㄻ':'ㅁ' };
+const FAMILY = { 'ㄱ':'g','ㄲ':'g','ㅋ':'g','ㄷ':'d','ㄸ':'d','ㅌ':'d','ㅂ':'b','ㅃ':'b','ㅍ':'b','ㅈ':'j','ㅉ':'j','ㅊ':'j','ㅅ':'s','ㅆ':'s','ㅇ':'o','ㅎ':'o' };
+function jamo(ch){
+  const c = ch.codePointAt(0) - 0xAC00; if (c < 0 || c > 11171) return null;
+  const v = JUNG[Math.floor(c % 588 / 28)], f = JONG[c % 28];
+  return [CHO[Math.floor(c / 588)], VSAME[v] || v, FSAME[f] || f];
 }
-function best(target, alts){
-  return alts.map(h => ({ h, ...matchSet(target, h) })).sort((x, y) => y.got - x.got)[0];
+function sim(a, b){
+  if (a === b) return 1;
+  const p = jamo(a), q = jamo(b); if (!p || !q) return 0;
+  const c = p[0] === q[0] ? 1 : FAMILY[p[0]] && FAMILY[p[0]] === FAMILY[q[0]] ? .7 : 0;
+  const v = p[1] === q[1] ? 1 : 0;
+  const f = p[2] === q[2] ? 1 : 0;
+  return .3 * c + .45 * v + .25 * f;
 }
-/* Marks each word of the line: ok / part / miss, with the missed syllables flagged. */
-function markup(target, hit){
+const HEARD = .7;           /* a syllable at or above this counts as heard */
+/* Weighted alignment: per target syllable, the credit it earned from what was heard. */
+function score(target, heard){
+  const a = syl(target), b = syl(norm(heard)), n = a.length, m = b.length;
+  const S = Array.from({ length:n + 1 }, () => new Float32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--){
+    const s = sim(a[i], b[j]);
+    S[i][j] = Math.max(S[i + 1][j], S[i][j + 1], s >= .5 ? S[i + 1][j + 1] + s : 0);
+  }
+  const per = new Array(n).fill(0); let i = 0, j = 0;
+  while (i < n && j < m){
+    const s = sim(a[i], b[j]);
+    if (s >= .5 && Math.abs(S[i][j] - (S[i + 1][j + 1] + s)) < 1e-4){ per[i] = s; i++; j++; }
+    else if (S[i + 1][j] >= S[i][j + 1]) i++; else j++;
+  }
+  return per;
+}
+/* The recognizer returns several guesses per stretch of speech; try each, keep the best. */
+function best(target, segs){
+  const top = segs.map(s => s[0]), cands = [top.join(' ')];
+  segs.forEach((s, k) => s.slice(1).forEach(alt => { const c = top.slice(); c[k] = alt; cands.push(c.join(' ')); }));
+  if (segs.length > 1) cands.push(segs.map(s => s[s.length - 1]).join(' '));
+  return cands.map(h => { const per = score(target, h); return { h, per, sum: per.reduce((x, y) => x + y, 0) }; })
+              .sort((x, y) => y.sum - x.sum)[0];
+}
+/* Words: ok / part / miss from their syllables' credit; weak syllables underlined. */
+function words(target, per){
   let k = 0;
-  return target.split(/(\s+)/).map(tok => {
-    if (/^\s+$/.test(tok)) return tok;
-    let inner = '', n = 0, got = 0;
-    for (const ch of tok){
-      if (/[가-힣A-Za-z0-9]/.test(ch)){ const h = hit.has(k++); n++; if (h) got++; inner += h ? esc(ch) : '<u>' + esc(ch) + '</u>'; }
-      else inner += esc(ch);
-    }
-    const cls = !n || got === n ? 'w-ok' : got === 0 ? 'w-miss' : 'w-part';
-    return '<span class="' + cls + '">' + inner + '</span>';
-  }).join('');
+  return target.split(/\s+/).filter(Boolean).map(tok => {
+    const cs = [];
+    for (const ch of tok){ if (/[가-힣A-Za-z0-9]/.test(ch)) cs.push({ ch, s: per[k++] || 0 }); else cs.push({ ch, s: null }); }
+    const sc = cs.filter(c => c.s !== null), avg = sc.length ? sc.reduce((x, c) => x + c.s, 0) / sc.length : 1;
+    const allHeard = sc.every(c => c.s >= HEARD);
+    return { cs, cls: allHeard || avg >= .9 ? 'w-ok' : avg >= .35 ? 'w-part' : 'w-miss' };
+  });
 }
+function markup(target, per){
+  return words(target, per).map(w => '<span class="' + w.cls + '">' +
+    w.cs.map(c => c.s === null || c.s >= HEARD || w.cls === 'w-ok' ? esc(c.ch) : '<u>' + esc(c.ch) + '</u>').join('') + '</span>').join(' ');
+}
+const allOk = (target, per) => words(target, per).every(w => w.cls === 'w-ok');
 
 /* ---------- audio (recorded clips, browser voice as fallback) ---------- */
 const VOICE = '../assets/say-it-back/voice/';
@@ -553,11 +614,11 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-say]
 
 /* ---------- mic check ---------- */
 document.getElementById('micTest').addEventListener('click', async ev => {
-  const btn = ev.currentTarget; btn.disabled = true; btn.textContent = '🔴 Listening…';
+  const btn = ev.currentTarget; btn.disabled = true; btn.textContent = '⏳ Starting…';
   try{
-    const alts = await listen(t => sayIn('micFb', 'hint', 'Hearing…', esc(t)));
-    const b = best('안녕하세요', alts);
-    sayIn('micFb', 'good', '✓ The mic works.', 'I heard: <strong>' + esc(b.h) + '</strong>' + (b.got < b.total ? '<br>Close enough for a test. Try the first conversation.' : ''));
+    const segs = await listen(t => sayIn('micFb', 'hint', 'Hearing…', esc(t)), () => { btn.textContent = '🔴 Talk now'; });
+    const b = best('안녕하세요', segs);
+    sayIn('micFb', 'good', '✓ The mic works.', 'I heard: <strong>' + esc(b.h) + '</strong>' + (allOk('안녕하세요', b.per) ? '' : '<br>Close enough for a test. Try the first conversation.'));
   }catch(err){ const [h, m] = micTrouble(err); sayIn('micFb', 'hint', h, m); }
   btn.disabled = false; btn.textContent = '🎤 Test my mic';
 });
@@ -581,7 +642,7 @@ function runDialogue(d){
   const chat = document.getElementById('chat-' + d.id), rb = document.getElementById('rb-' + d.id), go = document.getElementById('go-' + d.id);
   const stage = document.getElementById(d.id), hideBox = stage.querySelector('.hideMine');
   LOG[d.id] = { B:[], A:[] };
-  let me = 'B', i = 0, tries = 0, bestGot = null, started = false;
+  let me = 'B', i = 0, tries = 0, acc = null, lastHeard = '', listening = false, started = false;
 
   function roleBar(){
     const other = me === 'A' ? 'B' : 'A';
@@ -608,35 +669,43 @@ function runDialogue(d){
     const el = document.getElementById(d.id + '-l' + i);
     el.scrollIntoView({ behavior:'smooth', block:'nearest' });
     if (!mine){ await speak(line.ko, d.roles[line.r].voice); i++; setTimeout(step, 350); }
-    else { tries = 0; bestGot = null; }
+    else { tries = 0; acc = new Array(syl(line.ko).length).fill(0); lastHeard = ''; }
   }
   chat.addEventListener('click', async e => {
     const v = e.target.closest('.veiled'); if (v){ v.classList.remove('veiled'); return; }
-    const b = e.target.closest('[data-mic]'); if (!b || b.disabled || +b.dataset.mic !== i) return;
+    const b = e.target.closest('[data-mic]'); if (!b || +b.dataset.mic !== i) return;
+    if (listening){ if (listen.stop) listen.stop(); return; }      /* second tap = I'm done talking */
     const line = d.lines[i], el = document.getElementById(d.id + '-l' + i), out = el.querySelector('.heard');
-    b.disabled = true; b.textContent = '🔴 Listening…'; b.classList.add('live');
+    listening = true; b.textContent = '⏳ Starting…'; b.classList.add('live');
     try{
-      const alts = await listen(t => { out.innerHTML = '<span class="soft">Hearing: ' + esc(t) + '</span>'; });
-      const r = best(line.ko, alts); tries++;
-      if (!bestGot || r.got > bestGot.got) bestGot = r;
-      const pct = r.got / r.total;
-      out.innerHTML = '<p class="marked">' + markup(line.ko, r.hit) + '</p><p class="soft">I heard: ' + esc(r.h || '…') + '</p>';
+      const segs = await listen(t => { out.innerHTML = '<span class="soft">Hearing: ' + esc(t) + '</span>'; },
+                                () => { b.textContent = '🔴 Talk now · tap when done'; });
+      const r = best(line.ko, segs); tries++; lastHeard = r.h;
+      r.per.forEach((s, k) => { if (s > acc[k]) acc[k] = s; });
+      const thisTry = allOk(line.ko, r.per), merged = allOk(line.ko, acc);
+      out.innerHTML = '<p class="marked">' + markup(line.ko, acc) + '</p><p class="soft">I heard: ' + esc(r.h || '…') + '</p>';
       el.querySelector('.line').classList.remove('veiled');
-      if (pct === 1){ return pass('✓ Every word.', ''); }
-      if (pct >= .8) sayIn('fb-' + d.id, 'hint', 'Almost.', 'The <u>underlined</u> part is what I didn\'t hear. Tap 🔊 to hear it, then try again, or move on.');
-      else sayIn('fb-' + d.id, 'hint', 'Some words went missing.', 'Words in <span class="w-miss">red</span> I didn\'t hear at all; <u>underlined</u> bits are partly missing. Tap 🔊 hear it, then try again.');
-      if (tries >= 2 || pct >= .8) go.innerHTML = '<button class="btn ghost" type="button">Move on →</button>';
-      go.firstChild && (go.firstChild.onclick = () => pass('Moved on.', ''));
+      if (thisTry) return pass('✓ Every word.', '', 'every word');
+      if (merged) return pass('✓ Every word, across your tries.', 'Each word has now been heard clearly at least once.', 'every word over ' + tries + ' tries');
+      const ws = words(line.ko, acc), miss = ws.filter(w => w.cls === 'w-miss').length;
+      if (!miss) sayIn('fb-' + d.id, 'hint', 'Almost.', 'The <u>underlined</u> sounds didn\'t come through clearly. Tap 🔊 to hear it, then try again, or move on.');
+      else sayIn('fb-' + d.id, 'hint', 'Some words went missing.', 'Words in <span class="w-miss">red</span> I didn\'t hear at all; <u>underlined</u> sounds were unclear. Green words stay green, so just try again.');
+      if (tries >= 2 || !miss){
+        go.innerHTML = '<button class="btn ghost" type="button">Move on →</button>';
+        go.firstChild.onclick = () => pass('Moved on.', '', null);
+      }
     }catch(err){
       const [h, m] = micTrouble(err); sayIn('fb-' + d.id, 'hint', h, m);
     }
-    b.disabled = false; b.textContent = '🎤 Say it again'; b.classList.remove('live');
+    listening = false;
+    if (b.isConnected){ b.textContent = '🎤 Say it again'; b.classList.remove('live'); }
   });
-  function pass(head, body){
+  function pass(head, body, how){
     const line = d.lines[i], el = document.getElementById(d.id + '-l' + i);
-    const r = bestGot || { got:0, total:syl(line.ko).length, h:'' };
-    LOG[d.id][me].push(line.ko + '  →  heard "' + (r.h || '') + '"  (' + (r.got === r.total ? 'every word' : r.got + ' of ' + r.total + ' syllables') + ', ' + tries + (tries === 1 ? ' try' : ' tries') + ')');
-    el.classList.add('done'); el.querySelector('[data-mic]').remove();
+    const total = acc.length, heard = acc.filter(s => s >= HEARD).length;
+    LOG[d.id][me].push(line.ko + '  →  heard "' + lastHeard + '"  (' + (how || heard + ' of ' + total + ' syllables clear') + ', ' + tries + (tries === 1 ? ' try' : ' tries') + ')');
+    el.classList.add('done'); const mb = el.querySelector('[data-mic]'); if (mb) mb.remove();
+    listening = false; go.innerHTML = '';
     sayIn('fb-' + d.id, 'good', head, body); i++; setTimeout(step, 500);
   }
   function roundDone(){
