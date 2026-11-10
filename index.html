@@ -82,6 +82,10 @@
   .search .icon{ position:absolute; left:.7rem; top:50%; transform:translateY(-50%);
         color:var(--soft); font-size:.95rem; pointer-events:none }
   .hint{ font-size:.85rem; color:var(--soft) }
+  .pick{ display:flex; align-items:center; gap:.4rem; font-size:.85rem; font-weight:700; color:var(--soft) }
+  .pick select{ font:inherit; font-size:.9rem; font-weight:400; color:var(--ink); background:var(--card);
+        border:1px solid var(--line); border-radius:8px; padding:.45rem .6rem; max-width:17rem }
+  .pick select:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft) }
 
   /* grade-level sub-menu */
   .subs{ display:flex; gap:.4rem; flex-wrap:wrap; margin:0 0 1.25rem }
@@ -116,6 +120,7 @@
   .card .note{ font-size:.78rem; color:var(--soft); font-style:italic; margin:0 0 .6rem }
   .card .when{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem;
         margin:0 0 .65rem; font-size:.95rem; font-weight:700; color:var(--ink) }
+  .card .when .code.used{ font-size:.8rem; font-weight:400; cursor:pointer }
   .card .when .code{ font-family:Consolas,monospace; font-size:.9rem; color:var(--les);
         background:var(--les-soft); border:1px solid var(--les-line); border-radius:6px; padding:.08rem .45rem }
   .card details.notes{ margin:0 0 .75rem; font-size:.8rem; color:var(--soft) }
@@ -207,6 +212,17 @@
              placeholder="Search by title, lesson ID, or skill…"
              aria-label="Search lessons, activities and resources">
     </div>
+    <label class="pick">Lesson
+      <select id="lid" aria-label="Show one lesson and the activities it uses"></select></label>
+    <label class="pick">Sort
+      <select id="sortby" aria-label="Sort the cards">
+        <option value="new">Newest edit first</option>
+        <option value="old">Oldest edit first</option>
+        <option value="id">Lesson ID</option>
+        <option value="engine">Engine</option>
+        <option value="title">Title</option>
+        <option value="course">Course</option>
+      </select></label>
     <span class="hint" id="resultCount"></span>
   </div>
 
@@ -476,6 +492,25 @@ const ITEMS = [
       { key: 'intro', label: 'Introduce the Concept' },
       { file: 'activities/the-tell.html', label: 'The Tell', height: 1150 },
       { key: 'mastery', label: 'Independent Mastery' }
+    ]
+  },
+  {
+    type: 'lesson',
+    id:   'DEMO-L01',
+    course: 'Demo',
+    file: 'lessons/demo/DEMO-L01-guide-demo-same-word-different-job.html',
+    updated: '2026-11-10',
+    title: '🧭 Guide Demo: Same Word, Different Job',
+    tag: 'guide.js demo',
+    desc: 'A copy of LA6-L07 rendered with assets/guide.js, for trying the read-the-directions-first guide: red "Read this first" flag and sweep on each part\u2019s directions, highlighted first words, "I read it" button, the "You\u2019re here" question marker that moves on blur or dropdown pick, the soft nudge when a question is started before its directions, and the "Jump to current question" pill. Not assigned to anyone.',
+    skills: 'Demo · guide.js · reading directions',
+    note: 'Not a teaching lesson. Open a part (Embed ▾ → Open) and try skipping straight to a question. Safe to delete once guide.js has been tried in Canvas.',
+    height: 1500,
+    parts: [
+      { key: 'intro', label: '⭐🔀 Introduce the Concept: One word, three jobs' },
+      { key: 'guided', label: '⭐🎯 Guided Practice: Mixed range' },
+      { key: 'mastery', label: '📝📰 Independent Mastery: The reporter\'s rush job' },
+      { key: 'homework', label: '📝🏅 Homework: Your Match Report' }
     ]
   },
   {
@@ -1080,7 +1115,17 @@ const TABS = [
   { key:'resource', label:'Resources'  }
 ];
 
-let tab = 'lesson', course = 'All', query = '';
+let tab = 'lesson', course = 'All', query = '', lid = 'All', sortBy = 'new';
+
+/* Which lessons use each activity/resource — read off the lessons' own embed
+   menus, so it can never disagree with them. */
+const USED_IN = {};
+ITEMS.filter(i => i.type === 'lesson').forEach(l => (l.parts || []).forEach(pt => {
+  if (pt.file) (USED_IN[pt.file] = USED_IN[pt.file] || []).includes(l.id) || USED_IN[pt.file].push(l.id);
+}));
+/* 'ENG12A-L09' sorts after 'ENG12A-L10' as text; compare the numbers as numbers */
+const idCmp = (a, b) => (a || '\uffff').localeCompare(b || '\uffff', 'en', { numeric: true });
+const firstId = it => it.type === 'lesson' ? it.id : (USED_IN[it.file] || []).slice().sort(idCmp)[0];
 
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -1089,6 +1134,7 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 function matches(it){
   if (it.type !== tab) return false;
   if (course !== 'All' && it.course !== course) return false;
+  if (lid !== 'All' && (it.type === 'lesson' ? it.id !== lid : !(USED_IN[it.file] || []).includes(lid))) return false;
   if (!query) return true;
   /* "engine:sort" is an exact match on the mechanic, not a text search — that
      is what the engine chip sends, so clicking it shows every variant of that
@@ -1141,7 +1187,7 @@ function card(it, i){
       ${it.version ? `<span class="chip ver">v${it.version}</span>` : ''}
     </div>
     <h3>${esc(it.title)}</h3>
-    <p class="when">${it.id ? `<span class="code">${esc(it.id)}</span>` : ''}<span class="date">${it.updated ? 'Last edited ' + esc(niceDate(it.updated)) : 'No edit date'}</span></p>
+    <p class="when">${it.id ? `<span class="code">${esc(it.id)}</span>` : (USED_IN[it.file] || []).slice().sort(idCmp).map(x => `<span class="code used" title="Used in ${esc(x)} — click to show that lesson" onclick="setLid('${esc(x)}')">${esc(x)}</span>`).join('')}<span class="date">${it.updated ? 'Last edited ' + esc(niceDate(it.updated)) : 'No edit date'}</span></p>
     <p class="desc">${esc(it.desc)}</p>
     <p class="skills">${esc(it.skills)}</p>
     <details class="notes">
@@ -1154,6 +1200,7 @@ function card(it, i){
       <a class="b ghost" href="${it.file}" target="_blank" rel="noopener">Open</a>
       <button class="b" onclick="togglePanel(${i})">Embed${parts ? ' ▾' : ''}</button>
       <button class="b ghost" onclick="showQuestions(${i})">Questions</button>
+      ${it.type === 'lesson' ? `<button class="b ghost" onclick="whoFor(${i}, this)" title="Copies a link to your private Dashboard, filtered to this lesson">🔒 Who's it for?</button>` : ''}
     </div>
     <div class="parts" id="panel-${i}">
       ${parts ? `<p class="lab">In run order — one per Canvas assignment</p>` + parts.map((pt,k) => `
@@ -1174,6 +1221,16 @@ function card(it, i){
 
 function render(){
   const shown = ITEMS.map((it,i) => ({it,i})).filter(({it}) => matches(it));
+  const by = {
+    new:    (a, b) => (b.it.updated || '').localeCompare(a.it.updated || ''),
+    old:    (a, b) => (a.it.updated || '\uffff').localeCompare(b.it.updated || '\uffff'),
+    id:     (a, b) => idCmp(firstId(a.it), firstId(b.it)),
+    engine: (a, b) => (a.it.engine || '\uffff').localeCompare(b.it.engine || '\uffff') || idCmp(a.it.variant, b.it.variant),
+    title:  (a, b) => a.it.title.replace(/^[^A-Za-z0-9]+/, '').localeCompare(b.it.title.replace(/^[^A-Za-z0-9]+/, '')),
+    course: (a, b) => a.it.course.localeCompare(b.it.course) || idCmp(firstId(a.it), firstId(b.it))
+  }[sortBy];
+  /* stable: ties keep the order they have in ITEMS */
+  if (by) shown.sort((a, b) => by(a, b) || a.i - b.i);
   document.getElementById('grid').innerHTML =
     shown.length ? shown.map(({it,i}) => card(it,i)).join('')
                  : `<p class="empty">Nothing matches${query ? ` “${esc(query)}”` : ''} here.</p>`;
@@ -1285,7 +1342,45 @@ document.getElementById('q').addEventListener('input', e => {
   render();
 });
 
-renderTabs(); renderSubs(); render();
+/* Lesson ID picker: every lesson on the site, in ID order. Picking one shows
+   that lesson on the Lessons tab and the activities its menu uses on the
+   Activities tab. */
+function renderLid(){
+  const el = document.getElementById('lid');
+  const ls = ITEMS.filter(i => i.type === 'lesson').slice().sort((a, b) => idCmp(a.id, b.id));
+  el.innerHTML = '<option value="All">All lessons</option>' + ls.map(l =>
+    `<option value="${esc(l.id)}"${l.id === lid ? ' selected' : ''}>${esc(l.id)} · ${esc(l.title.replace(/^[^A-Za-z0-9]+/, '').slice(0, 34))}</option>`).join('');
+}
+function setLid(v){ lid = v; renderLid(); render(); }
+document.getElementById('lid').addEventListener('change', e => setLid(e.target.value));
+document.getElementById('sortby').addEventListener('change', e => { sortBy = e.target.value; render(); });
+
+/* "Who's it for?" — the student side lives only in Class Planning\Dashboard.html
+   on Sean's own machine. This site is public, so no name, ID or local path is
+   written into it: the Dashboard's location is asked for once and kept in this
+   browser only (localStorage). Browsers refuse to open file:// links from a web
+   page, so this COPIES the link; paste it into the address bar. */
+function whoFor(i, btn){
+  const KEY = 'hub.dashboardPath';
+  let path = null;
+  try { path = localStorage.getItem(KEY); } catch (e) {}
+  if (!path){
+    path = prompt('One-time setup, kept only in this browser.\nPaste the full path to your Dashboard.html, e.g.\nC:\\Users\\you\\…\\Class Planning\\Dashboard.html');
+    if (!path) return;
+    path = path.trim().replace(/^"|"$/g, '');
+    try { localStorage.setItem(KEY, path); } catch (e) {}
+  }
+  const url = 'file:///' + encodeURI(path.replace(/\\/g, '/').replace(/^file:\/+/, '')) + '#q=' + encodeURIComponent(ITEMS[i].id);
+  const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+  const done = ok => {
+    btn.textContent = ok ? '✓ Copied — paste in the address bar' : url;
+    setTimeout(() => { btn.textContent = label; }, 4000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
+  else done(false);
+}
+
+renderTabs(); renderSubs(); renderLid(); render();
 </script>
 <div class="qdrawer" id="qdrawer" role="dialog" aria-label="Questions in this item" aria-hidden="true">
   <button class="qclose" type="button" onclick="closeQuestions()">Close</button>

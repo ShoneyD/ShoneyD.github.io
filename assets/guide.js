@@ -75,7 +75,22 @@
     '.gd-pill.gd-alert{background:var(--alert,#ff6b6b);color:var(--on-alert,#1a0d0d)}' +
     '.gd-pill.show{display:block}' +
     '.gd-sentinel{position:absolute;top:0;left:0;width:1px;pointer-events:none;visibility:hidden}' +
-    '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on,.gd-arrow,.gd-flag.gd-shake{animation:none}}';
+    /* arrival: a soft light sweeps once round the directions box */
+    '@property --gd-ang{syntax:"<angle>";inherits:false;initial-value:0deg}' +
+    '.gd-lead::before{content:"";position:absolute;inset:-6px;border-radius:18px;padding:4px;pointer-events:none;' +
+      'opacity:0;background:conic-gradient(from var(--gd-ang),transparent 0 62%,var(--alert,#ff6b6b) 78%,' +
+      'var(--on-alert,#fff) 86%,var(--alert,#ff6b6b) 92%,transparent 100%);filter:blur(3px);' +
+      '-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;' +
+      'mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}' +
+    '.gd-lead.gd-on.gd-arrive::before{animation:gd-sweep 1.4s linear 2}' +
+    '@keyframes gd-sweep{0%{--gd-ang:0deg;opacity:0}10%{opacity:.9}90%{opacity:.9}100%{--gd-ang:360deg;opacity:0}}' +
+    /* where to start reading: the first few words, lightly marked */
+    '.gd-start{background:linear-gradient(var(--hl,#4a3d12),var(--hl,#4a3d12)) no-repeat 0 0/100% 100%;' +
+      'border-radius:4px;padding:0 .15em;margin:0 -.15em;box-decoration-break:clone;-webkit-box-decoration-break:clone}' +
+    '.gd-lead.gd-on.gd-arrive .gd-start{animation:gd-wipe .7s ease-out both,gd-nudge .5s ease-in-out .75s 3}' +
+    '@keyframes gd-wipe{from{background-size:0 100%}to{background-size:100% 100%}}' +
+    '@keyframes gd-nudge{0%,100%{box-shadow:0 0 0 0 var(--warn,#e8a94e)}50%{box-shadow:0 0 0 3px var(--warn,#e8a94e)}}' +
+    '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on,.gd-arrow,.gd-flag.gd-shake,.gd-lead.gd-arrive::before,.gd-lead.gd-arrive .gd-start{animation:none}}';
   var tag = document.createElement('style');
   tag.textContent = css;
   document.head.appendChild(tag);
@@ -109,6 +124,41 @@
            nodes.some(function (n) { return n.matches('figure, table, ul, ol, svg') || n.querySelector('figure, table, svg'); });
   }
 
+  /* Wrap the first few words of the directions so the student can see where
+     to start reading. Range.extractContents splits any <strong>/<em> it cuts
+     through, so the markup stays valid. */
+  function markStart(L) {
+    var p = L.querySelector('p, li');
+    if (!p) return;
+    var walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT), node, words = 0, endNode = null, endOff = 0;
+    var done = false;
+    while (!done && (node = walker.nextNode())) {
+      var re = /\S+/g, m;
+      while ((m = re.exec(node.data))) {
+        words++;
+        endNode = node; endOff = m.index + m[0].length;      /* fewer than 5 words: take them all */
+        if (words === 5) { done = true; break; }
+      }
+    }
+    if (!endNode) return;
+    try {
+      var r = document.createRange();
+      r.setStart(p, 0); r.setEnd(endNode, endOff);
+      var span = document.createElement('span');
+      span.className = 'gd-start';
+      span.appendChild(r.extractContents());
+      r.insertNode(span);
+    } catch (e) { /* leave the paragraph exactly as it was */ }
+  }
+
+  function arrive(el) {
+    if (!el || !el.classList.contains('gd-lead')) return;
+    el.classList.remove('gd-arrive'); void el.offsetWidth;
+    el.classList.add('gd-arrive');
+    clearTimeout(el._gdT);
+    el._gdT = setTimeout(function () { el.classList.remove('gd-arrive'); }, 3200);
+  }
+
   function segment(stage) {
     if (STEPS[stage.id]) return STEPS[stage.id];
     var body = stage.querySelector('.stage-body');
@@ -132,6 +182,7 @@
     groups.forEach(function (g) {
       if (g.lead.length && substantial(g.lead)) {
         var L = wrap(g.lead, 'gd-lead');
+        markStart(L);
         var flag = document.createElement('div');
         flag.className = 'gd-flag';
         flag.setAttribute('aria-hidden', 'true');
@@ -149,7 +200,7 @@
       var Q = wrap(g.q, 'gd-q');
       var t = document.createElement('span');
       t.className = 'gd-tag'; t.setAttribute('aria-hidden', 'true');
-      t.textContent = 'You’re here 👉';
+      t.textContent = '👈 You’re here';
       Q.insertBefore(t, Q.firstChild);
       steps.push({ kind: 'q', el: Q });
     });
@@ -200,6 +251,7 @@
     }
     cur = arr[i];
     cur.el.classList.add(cur.kind === 'lead' ? 'gd-on' : 'gd-cur');
+    if (cur.kind === 'lead') arrive(cur.el);
     if (cur.kind === 'q') {
       /* any unread directions still above it keep their flag */
       var g = governingLead(arr, i);
@@ -332,6 +384,7 @@
   pill.addEventListener('click', function () {
     if (!cur) return;
     scrollTo(cur.el, cur.kind === 'lead' ? 'start' : 'center');
+    if (cur.kind === 'lead') setTimeout(function () { arrive(cur.el); }, REDUCE ? 0 : 450);
     if (cur.kind === 'q') {
       var f = field(cur.el);
       if (f) setTimeout(function () { try { f.focus({ preventScroll: true }); } catch (x) {} }, REDUCE ? 0 : 450);
@@ -411,7 +464,7 @@
       if (!cur || cur.kind === 'end') return;
       var r = docRect(cur.el);
       var inView = band && r.top >= band.top && r.top <= band.bottom - 160;
-      if (!inView) scrollTo(cur.el, 'start');
+      if (!inView) { scrollTo(cur.el, 'start'); if (cur.kind === 'lead') setTimeout(function () { arrive(cur.el); }, 500); }
     }, 500);
   }, 50);
 
