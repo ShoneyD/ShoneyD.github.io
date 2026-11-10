@@ -59,6 +59,7 @@
     /* steps: constant padding, so moving the highlight never shifts the layout */
     '.gd-lead,.gd-q{position:relative;border-radius:14px;margin:.35rem -.8rem;scroll-margin-top:5rem;padding:1rem .8rem .55rem;transition:box-shadow .25s ease}',
     '.gd-lead{margin-top:1.1rem}',
+    '.stage-body>.gd-lead:first-child{margin-top:2.4rem}',          /* clear of the previous part's bar */
     '.stage{scroll-margin-top:2.8rem}',
     '.gd-lead.gd-on{box-shadow:0 0 0 3px ' + A + '}',
     '.gd-lead.gd-on.gd-arrive{animation:gd-pulse 1.4s ease-in-out 2}',
@@ -103,7 +104,7 @@
        or when she scrolls back past it; otherwise it rests */
     '.gd-hand-i{display:inline-block}',
     '.gd-q.gd-wave .gd-hand-i{animation:gd-poke .8s ease-in-out 3}',
-    '@keyframes gd-poke{0%,100%{transform:translate(-3px,0)}50%{transform:translate(4px,-3px)}}',
+    '@keyframes gd-poke{0%,100%{transform:none}50%{transform:translate(6px,-2px)}}',      /* starts and ends at rest: no jump */
     '.gd-q.gd-cur>.gd-hand{display:block}',
 
     '@media (max-width:54rem){.gd-q{padding-left:3.3rem}.gd-hand{left:.2rem;font-size:1.7rem}}',
@@ -181,7 +182,7 @@
       anchor.style.cssText = 'position:absolute;left:0;width:1px;height:1px;pointer-events:none;visibility:hidden';
       document.body.appendChild(anchor);
     }
-    var dur = Math.min(1700, 950 + Math.abs(to - from) * .6), t0 = null, id = ++glideId;
+    var dur = Math.min(1300, 720 + Math.abs(to - from) * .45), t0 = null, id = ++glideId;
     var ease = function (t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
     function step(ts) {
       if (id !== glideId) return;                        /* a newer scroll took over */
