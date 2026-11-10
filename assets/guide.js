@@ -198,6 +198,11 @@
     }
     requestAnimationFrame(step);
   }
+  /* The student always wins: any click, tap, wheel or key stops a glide at
+     once, so clicking another box mid-scroll lands there immediately. */
+  ['pointerdown', 'wheel', 'touchstart', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, function () { glideId++; }, { capture: true, passive: true });
+  });
   function docRect(el) {
     var r = el.getBoundingClientRect();
     return { top: r.top + window.scrollY, bottom: r.bottom + window.scrollY };
@@ -778,7 +783,10 @@
       var flag = g.el.querySelector('.gd-flag');
       if (flag) restart(flag, 'gd-shake');
       arrive(g.el);
-      scrollTo(g.el, 'start');
+      /* let go of the box: otherwise it stays focused off screen, and clicking
+         it again later is not a new focus (no ring, no "current") */
+      setTimeout(function () { if (document.activeElement === t) t.blur(); }, 0);
+      setTimeout(function () { scrollTo(g.el, 'start'); }, 10);   /* after this click's pointerdown, which would cancel it */
       return;
     }
     if (cur !== hit.s) setCurrent(hit.stage, hit.i, null);
