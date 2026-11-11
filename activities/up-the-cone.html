@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<!--
+  UP THE CONE — engine: climb · variant: cone-setting-structure
+
+  New mechanic on the shared chain shell (LL stage engine, turn-in, student.js).
+  Built for KK (English 8) on H. G. Wells, "The Cone" (1895 — public domain).
+  Outcome: discuss how plot structure and setting help inform tone and theme.
+
+  The idea the whole activity rests on: in "The Cone" the plot climbs and the
+  setting climbs with it — higher, hotter, closer to the fire — so structure
+  and setting are the same staircase, and the top step is the climax.
+
+  TEXT-SWAPPABLE. Everything text-specific is in the CONTENT block:
+      EVENTS   plot beats in story order, each with a station label, a heat
+               reading (0–100) and the plot stage it belongs to
+      PATTERN  Part 1 follow-up question (one right answer)
+      TONES    the four tones for Part 2
+      LINES    real setting lines, each with tone (+ optional alt), the
+               station it sits at, and a why line
+      THEMES   Part 3 theme choices (`ok` marks the acceptable ones)
+      SWAPS    the what-if settings for the climax: rewritten line, dread
+               0–100, tone, and what happens to the theme
+  Stations and heat drive the SVG climb; nothing below CONTENT names the text.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Up the Cone</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; --heat1:#e9b949; --heat2:#d9772b; --heat3:#b8321f;
+         --night:#2b2530; --night2:#4a2f35; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes wiggle{ 0%,100%{transform:none} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+  .fb ul{ margin:.5rem 0 0; padding-left:1.2rem } .fb li{ margin-bottom:.35rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  .item{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+        border-radius:10px; padding:.9rem 1.1rem; margin:0 0 1rem }
+  .item.right{ border-left-color:var(--calm); background:var(--calm-soft) }
+  .item.wrong{ border-left-color:var(--warn); background:var(--warn-soft) }
+  .item .quote{ font-size:1rem; line-height:1.65; margin:0 0 .3rem }
+  .item .num{ font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+        color:var(--soft); margin:0 0 .35rem }
+  .opts{ display:flex; gap:.4rem; flex-wrap:wrap }
+  .opts button{ font:inherit; font-size:.88rem; cursor:pointer; text-align:left;
+        border:1px solid var(--line); background:#fff; color:var(--ink);
+        border-radius:999px; padding:.35rem .85rem; display:inline-flex; align-items:center; gap:.4rem }
+  .opts button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+  .opts button[aria-pressed="true"]{ background:var(--accent); color:#fff; border-color:var(--accent) }
+  .opts button .ic{ font-size:1rem; line-height:1 }
+  .opts.stack{ flex-direction:column; align-items:stretch }
+  .opts.stack button{ border-radius:10px }
+  .item .why{ font-size:.92rem; margin:.7rem 0 0; padding-top:.6rem;
+        border-top:1px dashed var(--line); color:var(--ink); display:none }
+  .item.shown .why{ display:block }
+
+  .legend{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.9rem 1.15rem; margin:0 0 1.25rem }
+  .legend .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+  .legend dl{ margin:0 }
+  .legend dt{ font-weight:700; font-size:.95rem; margin-top:.55rem }
+  .legend dt:first-child{ margin-top:0 }
+  .legend dd{ margin:0; font-size:.92rem; color:var(--soft) }
+
+  figure{ margin:0 0 1rem }
+  figcaption{ font-size:.8rem; color:var(--soft); margin-top:.35rem }
+  svg{ max-width:100%; height:auto; display:block }
+
+  /* ---- the climb ---- */
+  .climb{ border-radius:12px; overflow:hidden; border:1px solid var(--line) }
+  .climb .seg{ transition:stroke .5s ease, opacity .5s ease }
+  .climb .st circle{ transition:fill .4s ease, r .3s ease }
+  .climb .st .lbl{ opacity:0; transition:opacity .5s ease }
+  .climb .st.on .lbl{ opacity:1 }
+  .climb .stagelab{ opacity:0; transition:opacity .6s ease }
+  .climb.solved .stagelab{ opacity:1 }
+  .climb .glow{ opacity:0; transition:opacity .8s ease }
+  .climb.peak .glow{ opacity:1 }
+
+  .heat{ display:flex; align-items:center; gap:.7rem; margin:.6rem 0 1rem; font-size:.92rem }
+  .heat .bar{ flex:1; height:16px; border-radius:999px; background:#ece6dc; overflow:hidden;
+        border:1px solid var(--line) }
+  .heat .fill{ height:100%; width:0; border-radius:999px;
+        background:linear-gradient(90deg,var(--heat1),var(--heat2),var(--heat3));
+        transition:width .7s cubic-bezier(.3,1.3,.5,1) }
+  .heat .read{ min-width:13rem; font-weight:700 }
+
+  .pool{ display:flex; flex-direction:column; gap:.5rem; margin:0 0 1rem }
+  .pool button{ font:inherit; font-size:.95rem; text-align:left; cursor:pointer;
+        background:#fff; border:1px solid var(--line); border-left:4px solid var(--heat2);
+        border-radius:10px; padding:.6rem .9rem; color:var(--ink) }
+  .pool button:hover{ border-color:var(--heat2); background:var(--warn-soft) }
+  .pool button.nope{ animation:wiggle .35s ease; border-left-color:var(--warn); background:var(--warn-soft) }
+  .pool button.placed{ display:none }
+
+  .swapgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr)); gap:.5rem; margin:0 0 1rem }
+  .swapgrid button{ font:inherit; font-size:.92rem; cursor:pointer; text-align:center;
+        background:#fff; border:2px solid var(--line); border-radius:12px; padding:.7rem .5rem; color:var(--ink) }
+  .swapgrid button .big{ display:block; font-size:1.8rem; line-height:1.2 }
+  .swapgrid button:hover{ border-color:var(--accent) }
+  .swapgrid button[aria-pressed="true"]{ border-color:var(--accent); background:var(--accent-soft) }
+  .swapgrid button.seen::after{ content:" ✓"; color:var(--calm); font-weight:700 }
+  .swapout{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:1rem 1.15rem; margin:0 0 1rem; display:none }
+  .swapout.show{ display:block; animation:slide .3s ease both }
+  .swapout .line{ font-size:1.02rem; margin:0 0 .6rem; font-style:italic }
+  .swapout .meta{ font-size:.92rem; margin:.5rem 0 0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  .bridge{ background:var(--accent-soft); border:1px solid #cfe0e8; border-radius:10px;
+        padding:.95rem 1.2rem; margin:1.25rem 0 0; font-size:.96rem }
+  .bridge .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin:0 0 .35rem }
+  .bridge p{ margin:0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Up the Cone</h1>
+  <p class="sub">H. G. Wells doesn’t just tell you something terrible is coming. He walks you there — step by step, higher and hotter, all the way to the top of a furnace. Rebuild the climb, then find out what the fire is doing to the story.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Finish one part, then press the green button when you’re ready for the next.</li>
+      <li>Retry as many times as you like. Nothing is timed and nothing is scored.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ============ STAGE 1 — build the climb ============ -->
+  <section class="stage active" id="s1" data-title="Build the climb">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1 — Build the climb</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 — Build the climb</h2>
+      <p>You’ve read it, so this part is yours. <strong>Plot structure</strong> is the shape of a story: it sets up, climbs, peaks at the <strong>climax</strong>, then comes back down.</p>
+      <p>Tap the events <strong>in the order they happen</strong>. Each one you get right goes up the climb, and the heat bar shows how hot the story is at that point.</p>
+
+      <figure>
+        <svg class="climb" id="climb" viewBox="0 0 720 330" role="img" aria-labelledby="clttl cldesc">
+          <title id="clttl">The plot of The Cone as a climb</title>
+          <desc id="cldesc">A path climbs from the bottom left, past a window, through the ironworks and along a canal, to the top of a blast furnace, then drops down the right side. Seven numbered spots on the path fill in as the events are placed. When all seven are in, the path is labelled exposition, rising action, climax, falling action and resolution.</desc>
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--night)"/>
+              <stop offset="1" stop-color="var(--night2)"/>
+            </linearGradient>
+            <radialGradient id="fire" cx=".5" cy=".5" r=".5">
+              <stop offset="0" stop-color="var(--heat1)" stop-opacity=".9"/>
+              <stop offset=".5" stop-color="var(--heat2)" stop-opacity=".5"/>
+              <stop offset="1" stop-color="var(--heat3)" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="720" height="330" fill="url(#sky)"/>
+          <!-- furnace glow + furnace -->
+          <circle class="glow" cx="470" cy="66" r="90" fill="url(#fire)"/>
+          <g fill="#1d1a20" stroke="#5c4a4f" stroke-width="1.5">
+            <rect x="440" y="86" width="60" height="214"/>
+            <path d="M432 86 L508 86 L488 64 L452 64 Z"/>
+            <rect x="404" y="210" width="34" height="90"/>
+            <rect x="530" y="190" width="22" height="110"/>
+          </g>
+          <!-- house with lit window, bottom left -->
+          <g>
+            <rect x="22" y="230" width="78" height="70" fill="#1d1a20" stroke="#5c4a4f"/>
+            <path d="M16 232 L61 200 L106 232 Z" fill="#1d1a20" stroke="#5c4a4f"/>
+            <rect x="48" y="250" width="22" height="20" fill="var(--heat1)" opacity=".85"/>
+          </g>
+          <rect x="0" y="300" width="720" height="30" fill="#17141a"/>
+          <!-- the path, one segment per step, lit as she goes -->
+          <g fill="none" stroke-width="5" stroke-linecap="round" id="segs"></g>
+          <!-- stations -->
+          <g id="stations" font-family="Verdana,sans-serif" font-size="12" text-anchor="middle"></g>
+          <!-- plot-stage labels, shown when solved -->
+          <g class="stagelab" font-family="Verdana,sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">
+            <text x="110" y="320">EXPOSITION</text>
+            <text x="290" y="320">RISING ACTION</text>
+            <text x="470" y="22" fill="var(--heat1)">CLIMAX</text>
+            <text x="590" y="320">FALLING ACTION</text>
+            <text x="655" y="252">RESOLUTION</text>
+          </g>
+        </svg>
+        <figcaption>The story’s plot, drawn as the walk Horrocks takes Raut on. The top of the climb is the top of the furnace.</figcaption>
+      </figure>
+
+      <div class="heat" aria-live="polite">
+        <span aria-hidden="true">🌡️</span>
+        <div class="bar"><div class="fill" id="heatfill"></div></div>
+        <span class="read" id="heatread">Not started</span>
+      </div>
+
+      <div class="pool" id="pool"></div>
+      <div class="fb" id="fb1" role="status" aria-live="polite"></div>
+
+      <div id="pattern" style="display:none">
+        <p class="q"><strong>One more.</strong> Look at your finished climb. As the plot rises, what does Wells do with the setting?</p>
+        <div class="opts stack" id="patopts"></div>
+        <div class="fb" id="fbp" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="row" id="s1next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s1')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — read the heat ============ -->
+  <section class="stage" id="s2" data-title="Read the heat">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2 — Read the heat</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — Read the heat</h2>
+      <p><strong>Tone</strong> is the feeling the writing gives off. In this story, a lot of the tone comes from the <strong>setting</strong> — the sky, the furnaces, the steam, the noise.</p>
+
+      <div class="legend">
+        <p class="lab">The four tones</p>
+        <dl id="tonelegend"></dl>
+      </div>
+
+      <p>Each line below is a real line from the story, and it says where it sits on your climb. Tap the tone it gives off. <strong>Two of these are arguable — if you can back it, you’re right.</strong></p>
+
+      <div id="build2"></div>
+
+      <div class="fb" id="fb2" role="status" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" id="check2">Check</button>
+        <button class="btn ghost" id="reset2">Start over</button>
+      </div>
+      <div class="row" id="s2next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s2')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 — swap the setting ============ -->
+  <section class="stage" id="s3" data-title="Swap the setting">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3 — Swap the setting</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 — Swap the setting</h2>
+      <p><strong>Theme</strong> is what the story is saying about people in general — something that would still be true about anyone in Horrocks’s spot.</p>
+      <p class="q"><strong>First:</strong> which theme does “The Cone” point at? Two of these work — pick the one you can back best.</p>
+      <div class="opts stack" id="themeopts"></div>
+      <div class="fb" id="fbt" role="status" aria-live="polite"></div>
+
+      <div id="lab" style="display:none">
+        <p class="q"><strong>Now the experiment.</strong> Same characters, same plot, same ending. Only the <strong>place</strong> where the climax happens changes. Try all four and watch the dread meter.</p>
+        <div class="swapgrid" id="swapgrid"></div>
+        <div class="swapout" id="swapout" aria-live="polite">
+          <p class="line" id="swapline"></p>
+          <div class="heat" style="margin:.2rem 0 .4rem">
+            <span aria-hidden="true">😨</span>
+            <div class="bar"><div class="fill" id="dreadfill"></div></div>
+            <span class="read" id="dreadread"></span>
+          </div>
+          <p class="meta" id="swaptheme"></p>
+        </div>
+
+        <div id="swapq" style="display:none">
+          <p class="q"><strong>Q1.</strong> Which swap changed the story the most? Did it break the <strong>tone</strong>, the <strong>theme</strong>, or both — and why?</p>
+          <div class="abox"><p class="lab">My answer</p>
+            <textarea data-q="Q1. The swap that changed the story most, what it broke (tone, theme or both), and why." placeholder="Type here… or say it out loud" rows="3"></textarea></div>
+          <div class="stems"><p class="lab">Starters — only if you want one</p>
+            <p>• Moving the climax to ____ broke the ____, because ____.<br>
+               • The frozen lake was still scary, but ____.</p></div>
+          <div class="row"><button class="btn go" onclick="LL.finish('s3')">Last part →</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 4 — put it together ============ -->
+  <section class="stage" id="s4" data-title="Put it together">
+    <button class="donebar" onclick="LL.toggle('s4')">
+      <span class="tick">✓</span> <strong>Part 4 — Put it together</strong>
+      <span class="sum" id="sum-s4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 4 — Put it together</h2>
+      <p>You’ve built the climb, read the heat, and broken the story on purpose. Now explain it. Short is fine. A real <strong>because</strong> is what counts.</p>
+
+      <p class="q"><strong>Q2.</strong> How does the <strong>order</strong> of the story build the tone? Say where it starts, where it peaks, and how the feeling changes on the way.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q2. How the order of the story builds the tone." placeholder="Type here… or say it out loud" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q3.</strong> How does the <strong>setting</strong> point at the theme? Name one detail from the story (the red sky, the steam, the cone…) and finish with a because.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. How the setting points at the theme, with one detail and a because." placeholder="Type here… or say it out loud" rows="3"></textarea></div>
+
+      <div class="stems"><p class="lab">Starters — only if you want one</p>
+        <p>• The story starts ____ and climbs to ____, so the tone goes from ____ to ____.<br>
+           • Wells puts the climax ____ because the theme is ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">Use one, or ignore both and write it your way. Spelling doesn’t count here.</p></div>
+
+      <p class="q"><strong>Q4.</strong> Design your own climb. Pick a story you could tell — a barn in a thunderstorm, a game’s final level, a trail ride that goes wrong. Where does it <strong>start</strong>, where is the <strong>top</strong>, and what is the setting at the top? What tone does that give it?</p>
+      <p style="font-size:.92rem;color:var(--soft);margin:0 0 .5rem;">Your choice: type it, <strong>or sketch the climb on paper and hold it up to the camera</strong> — then type one line saying what you drew.</p>
+      <div class="abox"><p class="lab">My climb</p>
+        <textarea data-q="Q4. My own climb: the start, the top, the setting at the top, and the tone." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('s4')">Done with this part →</button></div>
+
+      <div class="bridge">
+        <p class="lab">Take this with you</p>
+        <p>For any story: <strong>where is the top of the climb — and why did the writer put it in that place?</strong> The answer is usually the theme.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Part 1 — Build the climb",
+    "questions": [
+      "Tap seven events from \"The Cone\" in story order; each lands on a climb drawn as Horrocks and Raut's walk up to the furnace, with a heat bar.",
+      "As the plot rises, what does Wells do with the setting? (It gets hotter, higher and closer to the fire.)"
+    ] },
+  { "title": "Part 2 — Read the heat",
+    "questions": [
+      "For six real setting lines, each tied to a spot on the climb: which tone does it give off — Uneasy, Menacing, Hellish, or Stunned? (Two are arguable.)"
+    ] },
+  { "title": "Part 3 — Swap the setting",
+    "questions": [
+      "Which theme does the story point at? (Jealousy as a fire, or machines that don't care who they destroy — both accepted.)",
+      "Move the climax to four settings (furnace, horse pasture, crowded fair, frozen lake) and watch the dread meter.",
+      "Q1. Which swap changed the story the most — did it break the tone, the theme, or both, and why?"
+    ] },
+  { "title": "Part 4 — Put it together",
+    "questions": [
+      "Q2. How does the order of the story build the tone?",
+      "Q3. How does the setting point at the theme? One detail and a because.",
+      "Q4. Design your own climb: start, top, setting at the top, and the tone (type or sketch)."
+    ] }
+]
+</script>
+
+<script>
+/* ==================================================================
+   CONTENT — the only text-specific part of this file.
+   ================================================================== */
+
+/* Plot beats IN STORY ORDER. x,y = station on the SVG climb. heat 0–100. */
+const EVENTS = [
+  { id:'e1', x:122, y:274, short:'The window',
+    text:'Raut and Mrs. Horrocks sit at an open window on a hot, red summer night, talking about “him.”',
+    heat:18, read:'A hot, red summer night' },
+  { id:'e2', x:200, y:240, short:'The shadow',
+    text:'They suddenly realise Horrocks is standing silent in the dark room. Did he hear?',
+    heat:30, read:'Hot — and someone is listening' },
+  { id:'e3', x:285, y:202, short:'The walk',
+    text:'Horrocks takes Raut out to see the ironworks at night, gripping his shoulder hard.',
+    heat:46, read:'Out among the furnaces' },
+  { id:'e4', x:365, y:158, short:'The canal',
+    text:'By the canal the steam glows red, and Horrocks says it is “as red and hot as sin.”',
+    heat:64, read:'Steam “as red and hot as sin”' },
+  { id:'e5', x:470, y:52,  short:'The cone',
+    text:'High on top of the blast furnace, Horrocks forces Raut onto the burning cone.',
+    heat:100, read:'“Near a thousand degrees”' },
+  { id:'e6', x:590, y:150, short:'“What have I done?”',
+    text:'Horrocks cries out, “O God! what have I done?”',
+    heat:72, read:'Still burning' },
+  { id:'e7', x:670, y:214, short:'Silence',
+    text:'Voices and running feet below. The noise of the works suddenly stops.',
+    heat:38, read:'The noise stops' }
+];
+
+const PATTERN = {
+  right:'hot',
+  opts:{
+    hot:   'It gets hotter, higher, and closer to the fire.',
+    city:  'It moves from the city out to the countryside.',
+    sun:   'It gets brighter, like the sun is coming up.',
+    same:  'It stays the same — only the people change.'
+  },
+  good:'Yes. The plot and the setting climb together. Every step closer to the climax is a step closer to the furnace — so by the time you reach the top, you already feel what’s coming.',
+  hint:'Look at the heat bar and where the spots sit on the picture. What happens to them as the plot goes up?'
+};
+
+const TONES = {
+  uneasy:   { name:'Uneasy',   icon:'😰', gloss:'Something is wrong, but nobody says it out loud.' },
+  menacing: { name:'Menacing', icon:'🐺', gloss:'A threat is close, and something means harm.' },
+  hellish:  { name:'Hellish',  icon:'🔥', gloss:'Heat, red, flames, pain — like being dragged into hell.' },
+  stunned:  { name:'Stunned',  icon:'😶', gloss:'Shock after the worst thing. The noise drops away.' }
+};
+
+/* `at` = station number on the climb (1–7). `alt` = also accepted. */
+const LINES = [
+  { id:'sky', at:1, tone:'uneasy', alt:['menacing'],
+    quote:'The night was hot and overcast, the sky red, rimmed with the lingering sunset of mid-summer.',
+    why:'Arguable. Nothing has happened yet — two people are just talking — but the sky is already red and the air is too hot to breathe. That’s uneasy. Menacing works too if you read the red sky as a warning.' },
+  { id:'furn', at:1, tone:'menacing',
+    quote:'They stood heavy and threatening, full of an incessant turmoil of flames and seething molten iron,',
+    why:'Wells uses the word “threatening” himself. The furnaces are in view from the very first scene, like something waiting. The climax is sitting in the background from page one.' },
+  { id:'shadow', at:2, tone:'menacing', alt:['uneasy'],
+    quote:'In the shadow of the room stood a great shadowy figure—silent.',
+    why:'Arguable. A huge, silent figure in the dark is a threat — that’s menacing. Uneasy works if you focus on not knowing what he heard.' },
+  { id:'sin', at:4, tone:'hellish',
+    quote:'“Here it is red,” said Horrocks, “blood-red vapour as red and hot as sin;”',
+    why:'Blood, red, heat and sin all in one breath. Horrocks is describing the setting, but it sounds like he’s describing hell — and what he’s about to do.' },
+  { id:'circle', at:5, tone:'hellish',
+    quote:'A circle of glowing red appeared about him, and a tongue of flame, released from the chaos within, flickered up towards him.',
+    why:'The top of the climb is the hottest line in the story. Flame, glowing red, chaos — this is where the setting stops being the background and becomes the danger.' },
+  { id:'quiet', at:7, tone:'stunned',
+    quote:'Down below was the sound of voices and running steps. The clangour of rolling in the shed ceased abruptly.',
+    why:'The works have roared the whole story. Now they go quiet. The setting itself goes into shock — and that’s how the story ends.' }
+];
+
+const THEMES = {
+  jealous: { t:'Jealousy is a fire — it burns up the person who feels it, too.', ok:true,
+             why:'Backed. Horrocks gets his revenge, then cries “what have I done?” His jealousy destroys Raut and wrecks him at the same time.' },
+  machine: { t:'Machines are powerful, even beautiful — but they don’t care who they destroy.', ok:true,
+             why:'Backed. Horrocks is the man who thinks machinery is beautiful, and the machine he loves is what he kills with.' },
+  love:    { t:'True love always wins in the end.', ok:false,
+             why:'Look at the ending again. Do Raut and Mrs. Horrocks win?' },
+  work:    { t:'Hard work at a good job pays off.', ok:false,
+             why:'Horrocks is great at his job. Does the story say that pays off?' }
+};
+
+/* What-if settings for the climax. dread 0–100. */
+const SWAPS = [
+  { id:'furnace', icon:'🔥', name:'Top of the blast furnace', original:true,
+    line:'High above the roaring furnace, Horrocks forces Raut onto the red-hot cone.',
+    dread:100, tone:'Hellish',
+    theme:'The original. Both themes land: the fire he’s jealous with is the fire he uses, and the machine he loves does the killing.' },
+  { id:'pasture', icon:'🐴', name:'Sunny horse pasture at noon',
+    line:'In a sunny pasture at noon, with horses grazing, Horrocks grabs Raut by the collar.',
+    dread:12, tone:'Odd — almost silly',
+    theme:'The tone breaks: sunshine and horses fight the dread. The theme breaks too — no fire, no machine, nothing left to say “jealousy burns.”' },
+  { id:'fair', icon:'🎡', name:'A crowded fair',
+    line:'In the middle of a crowded fair, Horrocks grabs Raut by the collar.',
+    dread:34, tone:'Tense, but public',
+    theme:'A crowd means someone would stop him, so the dread leaks out. The rides are machines, so the machine theme half-survives — but a fair is fun, not hell.' },
+  { id:'lake', icon:'❄️', name:'Frozen lake at midnight',
+    line:'On a frozen lake at midnight, Horrocks pushes Raut toward a crack in the ice.',
+    dread:86, tone:'Menacing — still deadly',
+    theme:'Sneaky one. The tone mostly survives — it’s still terrifying. But it’s cold. “Jealousy is a fire” has no fire, and there’s no machine. Same tone, different theme.' }
+];
+
+/* ==================================================================
+   ENGINE — nothing text-specific below this line.
+   ================================================================== */
+
+const ACTIVITY_TITLE = 'Up the Cone — How plot structure and setting build tone and theme in “The Cone”';
+const ORDER = ['s1','s2','s3','s4'];
+const REWARDS = {
+  s1: { star:'★', msg:'You climbed it.' },
+  s2: { star:'★', msg:'You read the heat.' },
+  s3: { star:'★', msg:'Experiment complete.' },
+  s4: { star:'★', msg:'All done — go turn it in.' }
+};
+
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const SVGNS = 'http://www.w3.org/2000/svg';
+function heatColor(h){ return h >= 85 ? 'var(--heat3)' : h >= 45 ? 'var(--heat2)' : 'var(--heat1)'; }
+function say(boxId, kind, head, body){
+  const fb = document.getElementById(boxId);
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+/* ---------- stage 1: the climb ---------- */
+let placed = 0, misses = 0;
+const missLog = [];
+let patTries = 0, patDone = false;
+
+function drawClimb(){
+  const segs = document.getElementById('segs');
+  const sts  = document.getElementById('stations');
+  segs.innerHTML = ''; sts.innerHTML = '';
+  EVENTS.forEach((ev, i) => {
+    if (i > 0){
+      const p = EVENTS[i - 1];
+      const l = document.createElementNS(SVGNS, 'line');
+      l.setAttribute('x1', p.x); l.setAttribute('y1', p.y);
+      l.setAttribute('x2', ev.x); l.setAttribute('y2', ev.y);
+      l.setAttribute('class', 'seg'); l.setAttribute('id', 'seg' + i);
+      l.setAttribute('stroke', '#6d6070'); l.setAttribute('stroke-dasharray', '6 7');
+      segs.appendChild(l);
+    }
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('class', 'st'); g.setAttribute('id', 'st' + i);
+    const above = ev.y > 120;
+    g.innerHTML =
+      '<circle cx="' + ev.x + '" cy="' + ev.y + '" r="13" fill="#3a3340" stroke="#fff" stroke-width="2"/>' +
+      '<text x="' + ev.x + '" y="' + (ev.y + 4) + '" fill="#fff" font-weight="bold">' + (i + 1) + '</text>' +
+      '<text class="lbl" x="' + ev.x + '" y="' + (above ? ev.y - 20 : ev.y + 30) + '" fill="#fff">' + esc(ev.short) + '</text>';
+    sts.appendChild(g);
+  });
+}
+
+function buildPool(){
+  const pool = document.getElementById('pool');
+  pool.innerHTML = shuffle(EVENTS).map(ev =>
+    '<button type="button" data-ev="' + ev.id + '">' + esc(ev.text) + '</button>').join('');
+}
+
+function setHeat(h, read){
+  document.getElementById('heatfill').style.width = h + '%';
+  document.getElementById('heatread').textContent = read;
+}
+
+document.getElementById('pool').addEventListener('click', e => {
+  const b = e.target.closest('button[data-ev]');
+  if (!b || placed >= EVENTS.length) return;
+  const ev = EVENTS[placed];
+  if (b.dataset.ev !== ev.id){
+    misses++;
+    const tried = EVENTS.find(x => x.id === b.dataset.ev);
+    missLog.push('tried “' + tried.short + '” at spot ' + (placed + 1));
+    b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope');
+    say('fb1', 'hint', 'Not yet.',
+      EVENTS.indexOf(tried) > placed
+        ? 'That one happens later. What has to happen before it?'
+        : 'Check the order again.');
+    return;
+  }
+  b.classList.add('placed');
+  document.getElementById('fb1').className = 'fb';
+  const i = placed;
+  document.getElementById('st' + i).classList.add('on');
+  document.querySelector('#st' + i + ' circle').setAttribute('fill', heatColor(ev.heat));
+  if (i > 0){
+    const s = document.getElementById('seg' + i);
+    s.setAttribute('stroke', heatColor(ev.heat)); s.removeAttribute('stroke-dasharray');
+  }
+  if (ev.heat >= 100) document.getElementById('climb').classList.add('peak');
+  setHeat(ev.heat, ev.read);
+  placed++;
+  if (placed === EVENTS.length){
+    document.getElementById('climb').classList.add('solved');
+    say('fb1', 'good', 'The whole climb, in order.',
+      (misses === 0 ? 'First try, all seven. ' : '') +
+      'Now the stages are labelled on the picture. Notice where the climax is: the highest, hottest spot in the whole story.');
+    document.getElementById('pattern').style.display = 'block';
+  }
+});
+
+(function buildPattern(){
+  document.getElementById('patopts').innerHTML = shuffle(Object.keys(PATTERN.opts)).map(k =>
+    '<button type="button" aria-pressed="false" data-pat="' + k + '">' + esc(PATTERN.opts[k]) + '</button>').join('');
+})();
+document.getElementById('patopts').addEventListener('click', e => {
+  const b = e.target.closest('button[data-pat]');
+  if (!b || patDone) return;
+  patTries++;
+  document.querySelectorAll('#patopts button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.pat === PATTERN.right){
+    patDone = true;
+    say('fbp', 'good', 'That’s the pattern.', PATTERN.good);
+    document.getElementById('s1next').style.display = 'flex';
+    LL.summary.s1 = 'climb built, ' + misses + (misses === 1 ? ' miss' : ' misses');
+    LL.extra.s1 = 'Ordered all 7 events with ' + misses + (misses === 1 ? ' miss' : ' misses') +
+      (missLog.length ? ' (' + missLog.join('; ') + ')' : '') + '.\n' +
+      'Setting pattern question: right in ' + patTries + (patTries === 1 ? ' try.' : ' tries.');
+  } else {
+    say('fbp', 'hint', 'Look again.', PATTERN.hint);
+  }
+});
+
+/* ---------- stage 2: tone cards ---------- */
+const DECK = shuffle(LINES);
+const answers2 = {};
+let tries2 = 0;
+
+(function(){
+  const dl = document.getElementById('tonelegend');
+  Object.values(TONES).forEach(m => dl.insertAdjacentHTML('beforeend',
+    '<dt><span aria-hidden="true">' + esc(m.icon) + '</span> ' + esc(m.name) + '</dt><dd>' + esc(m.gloss) + '</dd>'));
+})();
+
+function build2(){
+  document.getElementById('build2').innerHTML = DECK.map((line, i) => {
+    const opts = shuffle(Object.keys(TONES)).map(k =>
+      '<button type="button" aria-pressed="false" data-line="' + line.id + '" data-val="' + k + '">' +
+      '<span class="ic" aria-hidden="true">' + esc(TONES[k].icon) + '</span>' + esc(TONES[k].name) + '</button>').join('');
+    return '<div class="item" id="s2-' + line.id + '">' +
+      '<p class="num">Line ' + (i + 1) + ' · spot ' + line.at + ' on the climb (' + esc(EVENTS[line.at - 1].short) + ')</p>' +
+      '<p class="quote">' + esc(line.quote) + '</p>' +
+      '<div class="opts">' + opts + '</div>' +
+      '<p class="why">' + esc(line.why) + '</p></div>';
+  }).join('');
+}
+
+document.getElementById('build2').addEventListener('click', e => {
+  const b = e.target.closest('button[data-line]');
+  if (!b) return;
+  answers2[b.dataset.line] = b.dataset.val;
+  b.closest('.opts').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+});
+
+document.getElementById('check2').addEventListener('click', () => {
+  tries2++;
+  const blank = DECK.filter(l => !answers2[l.id]).length;
+  if (blank){
+    say('fb2', 'hint', 'Not quite finished.',
+      blank + (blank > 1 ? ' lines still need a tone.' : ' line still needs a tone.') +
+      ' A guess you can argue for is more useful than a blank.');
+    return;
+  }
+  const wrong = [];
+  DECK.forEach(l => {
+    const ok = [l.tone].concat(l.alt || []).includes(answers2[l.id]);
+    const el = document.getElementById('s2-' + l.id);
+    el.classList.remove('right', 'wrong'); el.classList.add(ok ? 'right' : 'wrong');
+    if (!ok) wrong.push(l);
+  });
+  if (wrong.length){
+    say('fb2', 'hint', wrong.length + ' to look at again.',
+      'Read the orange ones out loud. Which words are about the <strong>place</strong> — the light, the heat, the noise? What do those words make you feel?');
+    return;
+  }
+  DECK.forEach(l => document.getElementById('s2-' + l.id).classList.add('shown'));
+  document.getElementById('check2').disabled = true;
+  say('fb2', 'good', 'All six.',
+    'Look at the spots: uneasy at the bottom, hellish at the top, stunned on the way down. <strong>The tone climbs with the plot.</strong> The reasons are open under each line.');
+  document.getElementById('s2next').style.display = 'flex';
+  LL.summary.s2 = 'solved in ' + tries2 + (tries2 === 1 ? ' try' : ' tries');
+  LL.extra.s2 = 'Solved in ' + tries2 + (tries2 === 1 ? ' try.\n' : ' tries.\n') +
+    DECK.map(l => '  “' + l.quote.slice(0, 44) + '…”  →  ' + TONES[answers2[l.id]].name).join('\n');
+});
+document.getElementById('reset2').addEventListener('click', () => {
+  Object.keys(answers2).forEach(k => delete answers2[k]);
+  build2();
+  document.getElementById('fb2').className = 'fb';
+  document.getElementById('s2next').style.display = 'none';
+  document.getElementById('check2').disabled = false;
+});
+
+/* ---------- stage 3: theme + swap lab ---------- */
+let themePick = '', themeTries = 0;
+const seen = new Set();
+
+(function(){
+  document.getElementById('themeopts').innerHTML = shuffle(Object.keys(THEMES)).map(k =>
+    '<button type="button" aria-pressed="false" data-th="' + k + '">' + esc(THEMES[k].t) + '</button>').join('');
+  document.getElementById('swapgrid').innerHTML = SWAPS.map(s =>
+    '<button type="button" aria-pressed="false" data-sw="' + s.id + '"><span class="big" aria-hidden="true">' +
+    s.icon + '</span>' + esc(s.name) + (s.original ? '<br><small>(the real one)</small>' : '') + '</button>').join('');
+})();
+
+document.getElementById('themeopts').addEventListener('click', e => {
+  const b = e.target.closest('button[data-th]');
+  if (!b || themePick) return;
+  themeTries++;
+  const th = THEMES[b.dataset.th];
+  document.querySelectorAll('#themeopts button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (th.ok){
+    themePick = b.dataset.th;
+    say('fbt', 'good', 'You can back that.', esc(th.why));
+    document.getElementById('lab').style.display = 'block';
+  } else {
+    say('fbt', 'hint', 'Hmm.', esc(th.why));
+  }
+});
+
+document.getElementById('swapgrid').addEventListener('click', e => {
+  const b = e.target.closest('button[data-sw]');
+  if (!b) return;
+  const s = SWAPS.find(x => x.id === b.dataset.sw);
+  document.querySelectorAll('#swapgrid button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  b.classList.add('seen'); seen.add(s.id);
+  document.getElementById('swapline').textContent = '“' + s.line + '”';
+  document.getElementById('dreadfill').style.width = s.dread + '%';
+  document.getElementById('dreadread').textContent = 'Dread: ' + s.tone;
+  document.getElementById('swaptheme').innerHTML = '<strong>Theme:</strong> ' + esc(s.theme);
+  document.getElementById('swapout').classList.add('show');
+  if (seen.size === SWAPS.length){
+    document.getElementById('swapq').style.display = 'block';
+    LL.summary.s3 = 'all four swaps tried';
+    LL.extra.s3 = 'Theme picked: ' + THEMES[themePick].t +
+      ' (' + themeTries + (themeTries === 1 ? ' try)' : ' tries)') + '\nTried all ' + SWAPS.length + ' setting swaps.';
+  }
+});
+
+/* ---------- stage engine (shared pattern — see templates/activity-shell.html) ---------- */
+const LL = {
+  extra: {}, summary: {}, done: new Set(),
+
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+/* ---------- evidence assembly ---------- */
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
+drawClimb(); buildPool(); build2();
+</script>
+<script src="../assets/student.js"></script>
+</body>
+</html>
