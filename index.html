@@ -296,6 +296,21 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'Korean 1A',
+    file: 'activities/say-it-back-unit-3.html',
+    engine: 'speak', variant: 'korean-1a-unit-3-check', version: 2, updated: '2026-11-11',
+    title: 'Say It Back: Unit 3 Check',
+    tag: 'speaking assessment',
+    desc: 'The speaking part of the Korean 1A Unit 3 assessment. Four new short conversations (F1 likes and how often, disliking onions with \uc804\ud600 \uc548, answering a negative question about yesterday plus \uc544\uc9c1, a polite exchange with a teacher ending on \ub4dc\uc138\uc694). The partner line plays recorded audio. She sees only the English for her own line and has to say it in Korean; the Korean appears after her first try. She plays B only, one round.',
+    skills: 'Korean speaking \u00b7 \uc88b\uc544\ud574\uc694 / \uc804\ud600 \uc548 \u00b7 answering negative questions \u00b7 \uc544\uc9c1 \u00b7 frequency words \u00b7 polite speech, \ub4dc\uc138\uc694 \u00b7 listening',
+    note: 'Rejigger of Say It Back (same engine, same version). "assess": true in the content JSON veils her lines with no tap-to-reveal, removes hear-it-first on her lines and ends each dialogue after the B round. Without it the page behaves exactly like the practice version, so it can be reused for any later check by swapping dialogues[]. Audio: scripts/voice/say-it-back-unit-3.json, 13 partner clips in the shared assets/say-it-back/voice, all verified by transcription.',
+    height: 1500,
+    parts: [
+      { file: 'activities/say-it-back-unit-3.html', label: '📕🎤 Unit 3 Assessment: Say It Back', height: 1500 }
+    ]
+  },
+  {
+    type: 'activity',
+    course: 'Korean 1A',
     file: 'activities/how-often.html',
     engine: 'particles', variant: 'frequency', version: 3, updated: '2026-11-09',
     title: 'How Often?',
@@ -915,6 +930,23 @@ const ITEMS = [
       { file: 'activities/hangul-stage.html', label: 'Hangul Stage', height: 900 },
       { key: 'mastery',  label: 'Independent Mastery' },
       { key: 'homework', label: 'Homework' }
+    ]
+  },
+  {
+    type: 'lesson',
+    id:   'KOR1A-U3',
+    course: 'Korean 1A',
+    file: 'lessons/korean-1a/KOR1A-U3-unit-3-check-likes-dislikes-and-how-often.html',
+    updated: '2026-11-11',
+    title: '🏎️ Unit 3 Check: Likes, Dislikes and How Often',
+    tag: 'unit assessment',
+    desc: 'Unit 3 assessment (Canvas L14\u2013L20) in five short parts, nothing new taught. 1: which speech level fits whom, plus \ub4dc\uc138\uc694 and \uc751. 2: six particle gaps and five tile sentences in SOV order. 3: five lines read aloud by the teacher (question or statement, by the tone), two questions of her own, then six questions to an F1 driver answered from his week log the Korean way, with frequency words. 4: the Say It Back Unit 3 conversations, then three live questions scored with a rubric. 5: five true sentences about herself (like, dislike, how often, can\u2019t or not yet, yesterday).',
+    skills: 'Korean speech levels \u00b7 \uc740/\ub294 \uc774/\uac00 \uc744/\ub97c \u00b7 SOV word order \u00b7 \uc88b\uc544\ud574\uc694 \uc2eb\uc5b4\ud574\uc694 \ubcc4\ub85c/\uc804\ud600 \uc548 \u00b7 yes/no question intonation \u00b7 answering negative questions \u00b7 frequency adverbs \u00b7 \ubabb \u00b7 \uc544\uc9c1 \u00b7 past tense \u00b7 speaking \u00b7 unit assessment',
+    note: 'Every Korean word comes from the 11/9 Anki deck or the Unit 3 activities, and all items are new (none copied from How Often? or The Interrogation). Answer keys and pass lines per outcome are in the teacher notes. The intonation lines are read live by the teacher, so the page holds no audio for them. Assessment ID KOR1A-U3, not a lesson number.',
+    height: 1700,
+    parts: [
+      { key: 'assessment', label: '📕🏎️ Unit 3 Assessment: Likes, Dislikes and How Often' },
+      { file: 'activities/say-it-back-unit-3.html', label: '📕🎤 Unit 3 Assessment: Say It Back', height: 1500 }
     ]
   },
   {
