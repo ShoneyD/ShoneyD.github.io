@@ -374,6 +374,18 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'English',
+    file: 'activities/time-archer.html',
+    engine: 'archery', variant: 'verb-tenses-6', version: 3, updated: '2026-11-12',
+    title: 'Time Archer',
+    tag: 'first-person archery',
+    desc: 'Bullseye for verb tenses. Each round shows a sentence with its time clue highlighted; the verb forms stand on targets and the student shoots the one that fits. Three ranges: read the clock (simple past, present, future); helpers carry the time (the -ing train with was/were, am/is/are, will be, then helper traps like will won and didn\u2019t went, plus rule-breaking pasts); a mixed Championship with tense names, time-jumpers, run-ons (shoot the word that should start the new sentence) and verb-job review, then two short written items.',
+    skills: 'Simple past / present / future \u00b7 progressive tenses \u00b7 irregular past forms \u00b7 tense consistency \u00b7 helping vs. linking verbs \u00b7 run-ons \u00b7 grade 6',
+    note: 'Rejigger of Bullseye (archery engine v3, mechanic unchanged): only LEARN, RANGES, the three stage sections, REWARDS and qsummary were swapped, and the final stage is s3 instead of s5. Banks: 9 / 6+8 / 15 rounds, drawn 6 / 4+4 / 9 per play, with mix tags so Range 1 always gets two of each time and the Championship always gets two each of name, jump, runon and job. Present-tense items pin the time with a second present verb, and future items use clues the present can\u2019t stand in for (someday, in ten years), so only one target is ever right. Sway starts at Range 2 (Bullseye: Range 3). Roughly 12\u201315 minutes.',
+    height: 1500
+  },
+  {
+    type: 'activity',
+    course: 'English',
     file: 'activities/bullseye.html',
     engine: 'archery', variant: 'nouns-pronouns-6', version: 3, updated: '2026-10-27',
     title: 'Bullseye',
@@ -531,6 +543,25 @@ const ITEMS = [
       { key: 'guided', label: '⭐🎯 Guided Practice: Mixed range' },
       { key: 'mastery', label: '📝📰 Independent Mastery: The reporter\'s rush job' },
       { key: 'homework', label: '📝🏅 Homework: Your Match Report' }
+    ]
+  },
+  {
+    type: 'lesson',
+    id:   'LA6-L08',
+    course: 'Language Arts 6',
+    file: 'lessons/language-arts-6/LA6-L08-then-now-next.html',
+    updated: '2026-11-12',
+    title: '⏳ Then, Now, Next',
+    tag: 'lesson 8',
+    desc: 'Simple past, present and future taught from the time clue out (read the clock, then pick the verb), with a timeline, an example-heavy then/now/next table and rule-breaking pasts. Stretch: the progressive as an -ing train whose helper cars carry the time (was/were · am/is/are · will be), tied back to the alone test. Opens with two review shots (verb job, run-on). Guided practice is Time Archer. Mastery: edit a reporter who keeps jumping through time (four time-jumpers incl. a will played helper trap, a quote that should NOT change, two run-ons), then rewrite two sentences as a preview or live commentary. Homework: an 80–120-word Then, Now, Next story with six achievements.',
+    skills: 'Simple past / present / future · progressive tenses · irregular past forms · tense consistency · helping verbs · run-ons · grade 6',
+    note: 'Archery/sports theming, archery-meadow puzzle. Rendered with guide.js. Folds in LA6-L07 (verb jobs, alone test, run-ons) in Q1–Q2, Time Archer Range 3, mastery and homework.',
+    height: 1500,
+    parts: [
+      { key: 'intro', label: '⭐⏳ Introduce the Concept: Then, now, next' },
+      { file: 'activities/time-archer.html', label: '⭐🏹 Guided Practice: Time Archer', height: 1500 },
+      { key: 'mastery', label: '📝📰 Independent Mastery: The time-jumping reporter' },
+      { key: 'homework', label: '📝🏅 Homework: Then, Now, Next' }
     ]
   },
   {

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LA6-L08 · Then, Now, Next</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">LA6-L08</p>
+  <h1 id="pagetitle">Language Arts 6 · Lesson 8</h1>
+  <p class="sub" id="pagesub">Then, Now, Next.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Two shots from last time">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Two shots from last time</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Two shots from last time</h2>
+
+      <p>Two quick ones from last lesson before we start. Run your tests.</p>
+
+      <p class="q"><strong>Q1.</strong> "The crowd grew quiet before the last arrow." What job is <strong>grew</strong> doing?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. &quot;The crowd grew quiet before the last arrow.&quot; What job is grew doing?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="action">action</option>
+          <option value="helping">helping</option>
+          <option value="linking">linking</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Linking. Run the = test: crowd = quiet ✓. The crowd didn't grow taller. It <em>became</em> quiet.</p>
+      </details>
+
+      <p class="q"><strong>Q2.</strong> "Lena packed her bow, the bus was already outside." Fix the run-on.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q2. &quot;Lena packed her bow, the bus was already outside.&quot; Fix the run-on." placeholder="Clap at every subject + verb…"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked and one run-on fixed.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="Then, now, next">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Then, now, next</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Then, now, next</h2>
+
+      <p>Every verb tells you <strong>when</strong>. Find the <strong>time clue</strong> first, then pick the verb that lives at that time.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 700 190" width="100%" style="max-width:44rem;display:block;margin:1rem auto" role="img" aria-label="A timeline arrow running left to right with three zones. Left zone, labelled Then, past: yesterday, last week, ago, example Lena shot. Middle zone, labelled Now, present: every day, these days, example Lena shoots. Right zone, labelled Next, future: tomorrow, someday, example Lena will shoot, with will marked as a helper.">
+  <g font-family="Verdana,sans-serif" text-anchor="middle">
+    <path d="M20 96 H668" stroke="var(--soft)" stroke-width="4"/>
+    <path d="M668 86 L688 96 L668 106 z" fill="var(--soft)"/>
+    <rect x="20" y="20" width="210" height="152" rx="12" fill="var(--card)" stroke="var(--calm)" stroke-width="2" opacity=".95"/>
+    <text x="125" y="46" font-size="17" font-weight="bold" fill="var(--ink)">⏪ THEN</text>
+    <text x="125" y="66" font-size="12" fill="var(--soft)">past</text>
+    <text x="125" y="104" font-size="18" fill="var(--ink)">Lena <tspan font-weight="bold">shot</tspan>.</text>
+    <text x="125" y="140" font-size="11" fill="var(--soft)">yesterday · last week</text>
+    <text x="125" y="157" font-size="11" fill="var(--soft)">two years ago</text>
+
+    <rect x="245" y="20" width="210" height="152" rx="12" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+    <text x="350" y="46" font-size="17" font-weight="bold" fill="var(--ink)">⏺ NOW</text>
+    <text x="350" y="66" font-size="12" fill="var(--soft)">present</text>
+    <text x="350" y="104" font-size="18" fill="var(--ink)">Lena <tspan font-weight="bold">shoots</tspan>.</text>
+    <text x="350" y="140" font-size="11" fill="var(--soft)">every day · these days</text>
+    <text x="350" y="157" font-size="11" fill="var(--soft)">every Saturday</text>
+
+    <rect x="470" y="20" width="210" height="152" rx="12" fill="var(--card)" stroke="var(--warn)" stroke-width="2"/>
+    <text x="575" y="46" font-size="17" font-weight="bold" fill="var(--ink)">⏩ NEXT</text>
+    <text x="575" y="66" font-size="12" fill="var(--soft)">future</text>
+    <text x="575" y="104" font-size="18" fill="var(--ink)">Lena <tspan font-weight="bold" fill="var(--warn)">will</tspan> <tspan font-weight="bold">shoot</tspan>.</text>
+    <text x="575" y="122" font-size="10" fill="var(--warn)">↑ helper</text>
+    <text x="575" y="140" font-size="11" fill="var(--soft)">tomorrow · someday</text>
+    <text x="575" y="157" font-size="11" fill="var(--soft)">next week · in ten years</text>
+  </g>
+</svg>
+      <figcaption>The time clue tells you which box you're in. The future is the only one that always needs a helper: <strong>will</strong>.</figcaption>
+      </figure>
+
+      <p>Here are more examples. Read across each row: then, now, next.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.95rem">
+<tr><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">⏪ Yesterday, she…</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">⏺ Every day, she…</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">⏩ Tomorrow, she…</th></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">practic<b>ed</b></td><td style="padding:.5rem;border-bottom:1px solid var(--line)">practice<b>s</b></td><td style="padding:.5rem;border-bottom:1px solid var(--line)"><b>will</b> practice</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">aim<b>ed</b></td><td style="padding:.5rem;border-bottom:1px solid var(--line)">aim<b>s</b></td><td style="padding:.5rem;border-bottom:1px solid var(--line)"><b>will</b> aim</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)"><b>shot</b> ⚡</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">shoot<b>s</b></td><td style="padding:.5rem;border-bottom:1px solid var(--line)"><b>will</b> shoot</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)"><b>won</b> ⚡</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">win<b>s</b></td><td style="padding:.5rem;border-bottom:1px solid var(--line)"><b>will</b> win</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)"><b>caught</b> ⚡</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">catch<b>es</b></td><td style="padding:.5rem;border-bottom:1px solid var(--line)"><b>will</b> catch</td></tr>
+<tr><td style="padding:.5rem"><b>was</b> ⚡ calm</td><td style="padding:.5rem"><b>is</b> calm</td><td style="padding:.5rem"><b>will be</b> calm</td></tr>
+</table>
+      <figcaption>⚡ = a rule-breaker. It doesn't take <em>-ed</em> in the past. The last row is a linking verb (she = calm), and it changes time too.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q3.</strong> "Last weekend, my team ___ the relay." Pick the verb.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. &quot;Last weekend, my team ___ the relay.&quot; Pick the verb.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="will win">will win</option>
+          <option value="won">won</option>
+          <option value="wins">wins</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> "Someday, Lena ___ an archery coach." Pick the verb.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. &quot;Someday, Lena ___ an archery coach.&quot; Pick the verb.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="was">was</option>
+          <option value="is">is</option>
+          <option value="will be">will be</option>
+        </select></div>
+
+      <p class="q"><strong>Q5.</strong> Move this sentence into the future: "Sami throws the ball."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q5. Move this sentence into the future: &quot;Sami throws the ball.&quot;" placeholder="Start with: Sami will…"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and one sentence moved into the future.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i3" data-title="The -ing train">
+    <button class="donebar" onclick="LL.toggle('i3')">
+      <span class="tick">&#10003;</span> <strong>Part 3 &mdash; The -ing train</strong>
+      <span class="sum" id="sum-i3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 &mdash; The -ing train</h2>
+
+      <p>Sometimes we don't mean <em>every day</em>. We mean <em>right now, while it's happening</em>. For that, English uses an <strong>-ing verb</strong> plus a <strong>helper</strong>. Remember the alone test? <em>Shooting</em> can't be the whole verb by itself. It needs a helper, and the <strong>helper carries the time</strong>.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 700 200" width="100%" style="max-width:44rem;display:block;margin:1rem auto" role="img" aria-label="Three short trains, one per row. Top row, past: helper car was or were, then engine shooting. Middle row, present: helper car am, is or are, then engine shooting. Bottom row, future: two helper cars, will and be, then engine shooting. The helper cars are coloured differently from the engine.">
+  <g font-family="Verdana,sans-serif" text-anchor="middle">
+    <text x="60" y="44" font-size="15" font-weight="bold" fill="var(--ink)">⏪ then</text>
+    <rect x="130" y="20" width="150" height="40" rx="8" fill="var(--accent-soft)" stroke="var(--warn)" stroke-width="2"/>
+    <text x="205" y="46" font-size="16" fill="var(--ink)">was / were</text>
+    <path d="M280 40 H310" stroke="var(--soft)" stroke-width="3"/>
+    <rect x="310" y="16" width="150" height="48" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+    <text x="385" y="46" font-size="17" font-weight="bold" fill="var(--ink)">shooting</text>
+
+    <text x="60" y="108" font-size="15" font-weight="bold" fill="var(--ink)">⏺ now</text>
+    <rect x="130" y="84" width="150" height="40" rx="8" fill="var(--accent-soft)" stroke="var(--warn)" stroke-width="2"/>
+    <text x="205" y="110" font-size="16" fill="var(--ink)">am / is / are</text>
+    <path d="M280 104 H310" stroke="var(--soft)" stroke-width="3"/>
+    <rect x="310" y="80" width="150" height="48" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+    <text x="385" y="110" font-size="17" font-weight="bold" fill="var(--ink)">shooting</text>
+
+    <text x="60" y="172" font-size="15" font-weight="bold" fill="var(--ink)">⏩ next</text>
+    <rect x="130" y="148" width="70" height="40" rx="8" fill="var(--accent-soft)" stroke="var(--warn)" stroke-width="2"/>
+    <text x="165" y="174" font-size="16" fill="var(--ink)">will</text>
+    <path d="M200 168 H210" stroke="var(--soft)" stroke-width="3"/>
+    <rect x="210" y="148" width="70" height="40" rx="8" fill="var(--accent-soft)" stroke="var(--warn)" stroke-width="2"/>
+    <text x="245" y="174" font-size="16" fill="var(--ink)">be</text>
+    <path d="M280 168 H310" stroke="var(--soft)" stroke-width="3"/>
+    <rect x="310" y="144" width="150" height="48" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+    <text x="385" y="174" font-size="17" font-weight="bold" fill="var(--ink)">shooting</text>
+
+    <text x="590" y="62" font-size="12" fill="var(--soft)">helper cars</text>
+    <text x="590" y="80" font-size="12" fill="var(--soft)">= the time</text>
+    <text x="590" y="122" font-size="12" fill="var(--soft)">the engine</text>
+    <text x="590" y="140" font-size="12" fill="var(--soft)">never changes</text>
+  </g>
+</svg>
+      <figcaption>The engine (<em>shooting</em>) stays the same. Swap the helper cars to move it through time. The future needs <strong>two</strong> cars: <em>will</em> <strong>and</strong> <em>be</em>.</figcaption>
+      </figure>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.95rem">
+<tr><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">Habit (every day)</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">Happening right now</th></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">Lena <b>shoots</b> after school.</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">Look! Lena <b>is shooting</b>.</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">The fans <b>cheer</b> at every game.</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">Listen! The fans <b>are cheering</b>.</td></tr>
+<tr><td style="padding:.5rem">I <b>wear</b> an arm guard.</td><td style="padding:.5rem">I <b>am wearing</b> it right now.</td></tr>
+</table>
+      <figcaption>One person → <em>was / is</em>. More than one → <em>were / are</em>. <em>I</em> gets its own: <em>am</em>.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q6.</strong> "At 6:00 last night, we ___ eating dinner." Pick the helper.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. &quot;At 6:00 last night, we ___ eating dinner.&quot; Pick the helper.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="are">are</option>
+          <option value="were">were</option>
+          <option value="was">was</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> What's the difference between "Lena shoots" and "Lena is shooting"?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; \"Lena shoots\" means … but \"Lena is shooting\" means … The helper is ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q7. What&#x27;s the difference between &quot;Lena shoots&quot; and &quot;Lena is shooting&quot;?" placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p><em>Shoots</em> is a habit, something Lena does regularly. <em>Is shooting</em> is happening right now, while you watch. The helper is <em>is</em>, and it carries the time.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked and one sentence explaining the difference between <em>shoots</em> and <em>is shooting</em>.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i3')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="The time-jumping reporter">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The time-jumping reporter</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The time-jumping reporter</h2>
+
+      <p>A sports reporter wrote this in a hurry and kept jumping through time. The match already happened, so the story should be in the <strong>past</strong>, except where it talks about next week. You're the editor.</p>
+
+      <figure class="dia">
+<div style="border:2px solid var(--line);border-radius:12px;padding:1rem 1.25rem;margin:1rem 0;background:var(--card);font-family:Georgia,serif;line-height:1.8">
+<p style="margin:0 0 .4rem;font-family:Verdana,sans-serif;font-size:.8rem;letter-spacing:.08em;color:var(--soft)">RIVERSIDE SPORTS · JUNIOR DIVISION</p>
+<p style="margin:0 0 .8rem;font-size:1.25rem;font-weight:bold">Hawks Steal the Final in the Last Minute</p>
+<p style="margin:0"><b>(1)</b> The Riverside Hawks played the city soccer final on Saturday afternoon. <b>(2)</b> The rain started early, the field was muddy by halftime. <b>(3)</b> In the first half, the Eagles score two goals. <b>(4)</b> The Hawks' coach called a time-out and gives a speech. <b>(5)</b> After that, the Hawks were playing like a different team. <b>(6)</b> Captain Nadia Saleh scored twice, the crowd went wild. <b>(7)</b> With one minute left, Jonah steals the ball and kicked it into the top corner. <b>(8)</b> The Hawks won 3–2. <b>(9)</b> The team will played the state semifinal next Saturday. <b>(10)</b> Coach Diaz said, "We are not stopping now."</p>
+</div>
+      <figcaption>The rush job. Sentence numbers are in bold so you can point at them.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q8.</strong> Four verbs are in the wrong time or built wrong. Find each one by its sentence number and fix it.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. Four verbs are in the wrong time or built wrong. Find each one by its sentence number and fix it." placeholder="(_) … → …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q9.</strong> Sentence 10 is in the present tense. Is that a mistake?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. Sentence 10 is in the present tense. Is that a mistake?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Yes. Change it to the past.">Yes. Change it to the past.</option>
+          <option value="No. It&#x27;s a quote, so it keeps the coach&#x27;s own words.">No. It&#x27;s a quote, so it keeps the coach&#x27;s own words.</option>
+          <option value="Yes. Change it to the future.">Yes. Change it to the future.</option>
+        </select></div>
+
+      <p class="q"><strong>Q10.</strong> Two sentences are run-ons. Find them and fix them, using a <strong>different</strong> fix for each.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q10. Two sentences are run-ons. Find them and fix them, using a different fix for each." placeholder="(_) …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q11.</strong> In sentence 5, <strong>were playing</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q11. In sentence 5, were playing is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="simple past">simple past</option>
+          <option value="present progressive">present progressive</option>
+          <option value="past progressive">past progressive</option>
+        </select></div>
+
+      <p>Your choice for the last one. <strong>Pick one:</strong> write a <strong>preview</strong> of next Saturday's semifinal (future), <em>or</em> write <strong>live commentary</strong> as if it's happening right now (present). Either way, rewrite <strong>sentences 3 and 6</strong> into your new time, with no run-ons.</p>
+
+      <p class="q"><strong>Q12.</strong> Your choice: preview (future) or live commentary (present). Rewrite sentences 3 and 6 in that time.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; I picked … (3) … (6) ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q12. Your choice: preview (future) or live commentary (present). Rewrite sentences 3 and 6 in that time." placeholder="Type here…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Check: are both sentences in the time you picked? For a preview, did one use will be + -ing? Is every new subject + verb its own sentence or joined with , and / , but / , so?</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Five answers: four time-jumpers fixed, the quote decided, both run-ons fixed two different ways, one tense named, and two sentences rewritten in a new time.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="Then, Now, Next">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Then, Now, Next</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Then, Now, Next</h2>
+
+      <p>Write a short story about <strong>archery, or any sport or hobby you love</strong>. You choose. Tell it in <strong>three parts</strong>, in this order:</p>
+
+      <ol>
+        <li><strong>⏪ Then:</strong> how you started (past).</li>
+        <li><strong>⏺ Now:</strong> what you do these days (present).</li>
+        <li><strong>⏩ Next:</strong> what you'll do in the future (future).</li>
+      </ol>
+
+      <p><strong>Length:</strong> 80–120 words. A short paragraph for each part is perfect.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.95rem">
+<tr><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">🏅 Achievement</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">How to unlock it</th></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">⚡ Rule-Breaker</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">2 past verbs that <b>don't</b> end in -ed (<i>shot, won, went, took</i>)</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🚂 Live Train</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 <b>am / is / are + -ing</b> verb in your Now part</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🔮 Future Train</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 <b>will be + -ing</b> verb in your Next part</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🎭 Double Agent</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 linking verb (<i>was, is, will be, felt, looked</i>) that passes the = test</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">⏳ No Time-Jumpers</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">every verb stays in its own part's time</td></tr>
+<tr><td style="padding:.5rem">🧱 Clean Edges</td><td style="padding:.5rem">zero run-ons. Read it out loud. Every new subject + verb gets a period or <b>, and / , but / , so</b></td></tr>
+</table>
+      <figcaption>Unlock at least four. All six earns the full badge.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q13.</strong> Your Then, Now, Next story, in three parts.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q13. Your Then, Now, Next story, in three parts." placeholder="⏪ Then: I started …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q14.</strong> Pick one sentence where you had to think hard about the time. Which time is it in, and how did you know?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The sentence \"…\" is in the … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q14. Pick one sentence where you had to think hard about the time. Which time is it in, and how did you know?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>80–120 words in three short parts (then, now, next), at least 4 of the 6 achievements unlocked, and zero run-ons.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The three times, the -ing train, and the traps &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">⏪ Simple past</td><td>Already happened: <em>shot, practiced, won</em>. Clues: <strong>yesterday, last week, ago</strong>.</td></tr>
+      <tr><td class="h">⏺ Simple present</td><td>Happens regularly, or is true now: <em>shoots, practices</em>. Clues: <strong>every day, these days, every Saturday</strong>.</td></tr>
+      <tr><td class="h">⏩ Simple future</td><td><strong>will</strong> + plain verb: <em>will shoot</em>. Clues: <strong>tomorrow, someday, next week, in ten years</strong>.</td></tr>
+      <tr><td class="h">The -ing train (progressive)</td><td>Going on at that moment. The helper carries the time: <strong>was/were</strong> + -ing · <strong>am/is/are</strong> + -ing · <strong>will be</strong> + -ing.</td></tr>
+      <tr><td class="h">Helper trap</td><td>After <strong>will, did, didn't, does</strong>, the main verb stays plain: <em>will win</em>, <em>didn't go</em>, <em>Did she see it?</em></td></tr>
+      <tr><td class="h">Rule-breakers</td><td>shoot → shot · win → won · catch → caught · throw → threw · take → took · go → went · see → saw · beat → beat</td></tr>
+      <tr><td class="h">One story, one time</td><td>Pick a time and stay there. A verb that jumps out is a <strong>time-jumper</strong>. Exception: words in quotation marks keep the time the speaker said them in.</td></tr>
+      <tr><td class="h">Run-on</td><td>A new subject + verb starts with no period. Fix: a period, or <strong>, and / , but / , so</strong>.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>Same word, different job still counts:</strong> <em>was</em> is linking in <em>Lena was nervous</em> (Lena = nervous) and helping in <em>Lena was aiming</em> (it leans on <em>aiming</em>).</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud instead of typing it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Language Arts 6 · Lesson 8";
+const LESSON_ID = "LA6-L08";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Form and use the simple past, present, and future, including rule-breaking past forms.",
+  "O2": "Build the progressive tenses with the right helper (was/were, am/is/are, will be + -ing).",
+  "O3": "Keep verb tense consistent, and fix a verb that jumps to the wrong time.",
+  "O4": "Prevent and fix run-ons, and tell action, helping and linking verbs apart (review)."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & your Match Report", mins:5 },
+  { label:"Then, now, next", mins:12, part:"intro" },
+  { label:"Time Archer", mins:13 },
+  { label:"The time-jumping reporter", mins:15, part:"mastery" },
+  { label:"Start your Then, Now, Next", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Two quick shots from last time, then how verbs tell time.", sheet: true, outcomes: ["O1", "O2", "O4"] },
+  mastery: { title: "Independent Mastery", sub: "A reporter keeps jumping through time. You're the editor.", sheet: false, outcomes: ["O1", "O2", "O3", "O4"] },
+  homework: { title: "Homework", sub: "Your archery story in three times.", sheet: true, outcomes: ["O1", "O2", "O3", "O4"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"Two clean shots. Last lesson's skills are still in your quiver."},
+  i2:{star:"★",msg:"You read the clock before you picked the verb. That's the whole trick."},
+  i3:{star:"★",msg:"You can tell a habit from something happening right now. In English, that's a different verb."},
+  m1:{star:"★",msg:"You edited a story that kept jumping through time, and you put every verb back where it belongs. That's an editor's job."},
+  h1:{star:"★",msg:"Your own story, told in three times, and every verb knew when it was."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* Puzzle pictures for guide.js, one per part in turn. */
+const PUZZLE = [{"src": "../../assets/puzzles/archery-meadow.svg", "alt": "A storybook archery meadow"}];
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/guide.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>

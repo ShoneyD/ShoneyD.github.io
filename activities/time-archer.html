@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<!--
+  TIME ARCHER — engine: archery · variant: verb-tenses-6 (rejigger of Bullseye, LA6-L08)
+
+  A first-person archery range. You stand behind your bow looking down the
+  lane; each round shows one sentence and the candidate words stand on
+  targets at different distances. Shoot the one the round asks for.
+  Mouse: move to aim the sight, press and HOLD to draw the string, let go to
+  shoot (a fuller draw flies flatter). Keyboard: click the range, arrow keys
+  aim, hold Space to draw. "Easy aim" turns the targets into buttons (the
+  click-to-place fallback).
+
+  Physics is in metres: arrows drop with distance, wind pushes sideways, and
+  from Range 2 the sight sways if a full draw is held too long. Per-range
+  knobs live on each RANGES entry: R (target radius, m), dist ([near, far] m),
+  guide (which targets get a gold landing ✕ while drawing, 0–1 from nearest to farthest), wind (max m/s² sideways),
+  sway (px), move ([slide px, bob m, Hz]: all targets slide together so
+  their words never overlap; each bobs on its own rhythm; they freeze when
+  the round is solved, and stay still under prefers-reduced-motion or the
+  Targets: still toggle).
+
+  CONTENT-SWAPPABLE. Everything grammar-specific lives in two constants at the
+  top of the script:
+
+      LEARN    the mini-lesson card shown above the range for each block
+      RANGES   five stages → blocks → rounds. Each block is a bank;
+               pick = how many are drawn per play, mix = tags (k) that
+               must each appear once. A round is
+               { ask, s, t:[[label, isRight, why], …] }
+               s marks candidate words {like this} and the focus pronoun [like this].
+
+  Blocks inside a range are played in order and never interleaved (one skill at
+  a time); rounds inside a block shuffle, and target positions shuffle per
+  round. Archery difficulty climbs with the grammar.
+
+  Missing the target costs nothing grammatical; hitting the wrong word gets a
+  why + retry, and after two wrong hits the block's tip appears.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time Archer</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a;
+         /* the range */
+         --sky1:#bfe0f3; --sky2:#eef7fc; --hill:#a9cf98; --grass:#7cb26a; --grass2:#5d9450;
+         --wood:#8a5a33; --ring-gold:#f2c230; --ring-red:#e04a3a; --ring-blue:#3a8fd6;
+         --ring-black:#2b2b2b; --ring-white:#f7f7f2; --sign:#fffdfa; --sign-dim:#e4e1db;
+         --focus-pill:#ffe7a8; --trees:#6f9a63; --string:#f4f1ea; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:52rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem;
+          display:flex; gap:1.2rem; align-items:center; flex-wrap:wrap }
+  .steps .txt{ flex:1 1 20rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+  .steps svg{ flex:0 0 auto; width:230px; max-width:100%; height:auto }
+  kbd{ font:inherit; font-size:.85em; border:1px solid var(--line); border-bottom-width:2px;
+       border-radius:5px; padding:0 .35em; background:#fff }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+  .done-looks{ font-size:.92rem; color:var(--soft); margin:-.4rem 0 1rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.small{ font-size:.85rem; padding:.35rem .8rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb.info{ background:var(--accent-soft); border:1px solid #bcd6e4 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+  .fb .tip{ display:block; margin-top:.45rem; font-size:.92rem }
+
+  /* mini-lesson card */
+  .learn-card{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+        padding:1rem 1.25rem; margin:0 0 1.1rem; font-size:.97rem }
+  .learn-card .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+        color:var(--accent); margin:0 0 .5rem }
+  .learn-card p{ margin:.35rem 0 }
+  .learn-card .new{ display:inline-block; background:var(--gold); color:#fff; border-radius:999px;
+        font-size:.72rem; font-weight:700; letter-spacing:.05em; padding:.05rem .55rem; margin-left:.4rem;
+        vertical-align:middle }
+  table.pair{ border-collapse:collapse; width:100%; margin:.3rem 0 .4rem; font-size:.95rem }
+  table.pair th, table.pair td{ border:1px solid var(--line); padding:.35rem .7rem; text-align:left }
+  table.pair th{ background:var(--accent-soft); font-size:.85rem }
+  .chips{ display:flex; flex-wrap:wrap; gap:.4rem; margin:.4rem 0 }
+  .chip{ border:1px solid var(--line); background:#fff; border-radius:999px; padding:.05rem .7rem; font-weight:700; font-size:.92rem }
+  .linkdemo{ position:relative; padding-top:2.4rem; margin:.3rem 0 .4rem; font-size:1.08rem }
+  .linkdemo p{ margin:0 }
+  .linkdemo [data-a]{ border-bottom:3px solid var(--accent); font-weight:700 }
+  .linkdemo [data-p]{ background:var(--focus-pill); border-radius:5px; padding:0 .2rem; font-weight:700 }
+  svg.links{ position:absolute; left:0; top:0; pointer-events:none; overflow:visible }
+  svg.links path{ fill:none; stroke:var(--accent); stroke-width:2.2 }
+  svg.links path.maybe{ stroke:var(--warn); stroke-dasharray:5 4 }
+  svg.links text{ font:700 15px "Atkinson Hyperlegible",Verdana,sans-serif; fill:var(--warn) }
+  .test{ background:var(--accent-soft); border-radius:8px; padding:.45rem .8rem; margin:.5rem 0 0; font-size:.93rem }
+  .strike{ text-decoration:line-through; color:var(--soft) }
+  details.remind{ border:1px solid var(--line); border-radius:8px; background:var(--card); padding:.5rem 1rem; margin:0 0 1rem; font-size:.93rem }
+  details.remind summary{ cursor:pointer; font-weight:700; color:var(--accent) }
+
+  /* the range */
+  #range{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.9rem; margin:0 0 1rem }
+  .rbar{ display:flex; flex-wrap:wrap; gap:.4rem .9rem; align-items:center; font-size:.85rem; color:var(--soft); margin:0 0 .6rem }
+  .rbar .rnd{ font-weight:700; color:var(--ink) }
+  .rbar .bulls{ color:var(--gold); font-weight:700 }
+  .rbar .sp{ margin-left:auto; display:flex; gap:.4rem }
+  .prompt{ border-left:5px solid var(--accent); background:var(--accent-soft); border-radius:6px;
+        padding:.55rem .9rem; margin:0 0 .7rem }
+  .prompt .ask{ font-size:1.1rem; font-weight:700; margin:0 }
+  .prompt .ask b{ color:var(--accent); text-transform:none }
+  .prompt .sent{ font-size:1.18rem; margin:.25rem 0 0; line-height:1.8 }
+  .sent .cand{ border-bottom:3px dotted var(--accent); }
+  .sent .focus{ background:var(--focus-pill); border-radius:5px; padding:0 .25rem; font-weight:700; border:1px solid #e6c766 }
+  canvas#cv{ display:block; width:100%; height:auto; aspect-ratio:960/500; border-radius:10px;
+        touch-action:none; cursor:none; background:var(--sky2) }
+  canvas#cv:focus-visible{ outline:3px solid var(--accent); outline-offset:3px }
+  .controls{ font-size:.85rem; color:var(--soft); margin:.5rem 0 .6rem }
+  .keyhint{ font-size:.88rem; color:var(--soft) }
+  #easyRow{ display:none; flex-wrap:wrap; gap:.5rem; margin:0 0 .8rem }
+  #easyRow.show{ display:flex }
+  #easyRow .lab{ width:100%; font-size:.8rem; color:var(--soft); margin:0 }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+  .log{ font-size:.88rem; white-space:pre-wrap; color:var(--soft); background:var(--card);
+        border:1px solid var(--line); border-radius:8px; padding:.7rem 1rem; display:none }
+  .stage.done .log{ display:block }
+  #finalwrite{ display:none }
+  #finalwrite.show{ display:block }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>⏳🏹 Time Archer</h1>
+  <p class="sub">Every round has a sentence and a time clue. The verbs stand on targets. Read the clock, then shoot the one that fits.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <div class="txt">
+      <p>How to shoot</p>
+      <ol>
+        <li><strong>Aim:</strong> move the mouse. The sight ⊕ follows it. (Keys: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>.)</li>
+        <li><strong>Draw:</strong> press and <strong>hold</strong> the mouse button (or <kbd>Space</kbd>) to pull the string back. Let go to shoot. A full draw flies flatter and faster.</li>
+        <li>Far targets need you to aim a little <strong>above</strong> them, because arrows drop. While you draw, a gold ✕ shows where the arrow will land on the target you're aiming at. In later ranges it only shows on the nearer targets.</li>
+        <li>The targets slide and bob. Aim a little ahead of where yours is going, or shoot as it slows down to turn around. (Teacher: the ↔ button freezes them.)</li>
+        <li>Missing is fine. Grab another arrow. Only the word you hit counts.</li>
+        <li>Hit the right word, read why, then press <kbd>Space</kbd> or <kbd>Enter</kbd> for the next round.</li>
+        <li>Three ranges. At the end, one button copies everything for Canvas.</li>
+      </ol>
+    </div>
+    <svg viewBox="0 0 230 130" role="img" aria-label="Diagram: the sight is placed a little above a far target; the arrow drops into the middle of the target. Below, a bar fills while you hold the button to draw.">
+      <rect x="0" y="0" width="230" height="70" fill="#d8ecf7"/><rect x="0" y="70" width="230" height="40" fill="#a9cf98"/>
+      <line x1="140" y1="86" x2="134" y2="110" stroke="#8a5a33" stroke-width="2"/><line x1="152" y1="86" x2="158" y2="110" stroke="#8a5a33" stroke-width="2"/>
+      <circle cx="146" cy="76" r="14" fill="#f7f7f2" stroke="#2b2b2b"/><circle cx="146" cy="76" r="11" fill="#2b2b2b"/><circle cx="146" cy="76" r="8.4" fill="#3a8fd6"/><circle cx="146" cy="76" r="5.6" fill="#e04a3a"/><circle cx="146" cy="76" r="2.8" fill="#f2c230"/>
+      <circle cx="146" cy="40" r="10" fill="none" stroke="#2b2b2b" stroke-width="2"/>
+      <line x1="130" y1="40" x2="140" y2="40" stroke="#2b2b2b" stroke-width="2"/><line x1="152" y1="40" x2="162" y2="40" stroke="#2b2b2b" stroke-width="2"/>
+      <circle cx="146" cy="52" r="2.6" fill="#c68a1a"/><circle cx="146" cy="61" r="2.6" fill="#c68a1a"/><circle cx="146" cy="70" r="2.6" fill="#c68a1a"/>
+      <text x="168" y="44" font-size="11" fill="#22252a" font-family="Verdana">aim here</text>
+      <text x="168" y="80" font-size="11" fill="#22252a" font-family="Verdana">lands here</text>
+      <rect x="10" y="116" width="120" height="10" rx="5" fill="#fff" stroke="#22252a"/><rect x="10" y="116" width="84" height="10" rx="5" fill="#c68a1a"/>
+      <text x="136" y="125" font-size="11" fill="#22252a" font-family="Verdana">hold to draw</text>
+    </svg>
+  </div>
+
+  <!-- ============ RANGE 1 ============ -->
+  <section class="stage active" id="s1" data-title="Range 1 — Then, Now, Next">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Range 1 — Read the Clock</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Range 1 — Read the Clock</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> one warm-up shot, then the right verb hit in six rounds: two past, two present, two future.</p>
+      <div class="learn"></div>
+      <div class="mount"></div>
+      <div class="log"></div>
+    </div>
+  </section>
+
+  <!-- ============ RANGE 2 ============ -->
+  <section class="stage" id="s2" data-title="Range 2 — Helpers Carry the Time">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Range 2 — Helpers Carry the Time</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Range 2 — Helpers Carry the Time</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> four -ing train rounds, then four helper-trap rounds. The sight starts to sway now, so don’t hold the draw too long.</p>
+      <div class="learn"></div>
+      <div class="mount"></div>
+      <div class="log"></div>
+    </div>
+  </section>
+
+  <!-- ============ RANGE 3 ============ -->
+  <section class="stage" id="s3" data-title="Range 3 — The Championship (mixed)">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Range 3 — The Championship</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Range 3 — The Championship</h2>
+      <p class="done-looks"><strong>Done looks like:</strong> nine mixed rounds (tense names, time-jumpers, run-ons, and verb jobs), then two short answers of your own.</p>
+      <div class="learn"></div>
+      <div class="mount"></div>
+
+      <div id="finalwrite">
+        <h2>Last step: your own sentences</h2>
+        <p class="q"><strong>Q1.</strong> This sentence has a time-jumper <em>and</em> a run-on: “Yesterday the Hawks scored first, they win the game in the last minute.” Fix both.</p>
+        <div class="abox"><p class="lab">My answer</p>
+          <textarea data-q="Q1. Fix the time-jumper and the run-on: “Yesterday the Hawks scored first, they win the game in the last minute.”" placeholder="Type here…" rows="2"></textarea></div>
+
+        <p class="q"><strong>Q2.</strong> Write two sentences about archery or any sport you do: one about your <strong>last</strong> practice and one about your <strong>next</strong> one. Then name the helping verb in your future sentence.</p>
+        <div class="abox"><p class="lab">My answer</p>
+          <textarea data-q="Q2. One sentence about your last practice (past), one about your next one (future). Name the helping verb in the future sentence." placeholder="Type here…" rows="3"></textarea></div>
+
+        <div class="stems"><p class="lab">Sentence starters, if you want them</p>
+          <p>• At my last practice, I ____. At my next practice, I will ____.<br>
+             • The helping verb in my future sentence is ____.</p>
+          <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">Three sentences is plenty. Don’t worry about spelling.</p></div>
+
+        <div class="row"><button class="btn go" onclick="LL.finish('s3', evidence('s3'))">Done with the Championship →</button></div>
+      </div>
+      <div class="log"></div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every range, ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- the range itself — moved into whichever stage is active -->
+  <div id="parking" hidden>
+    <div id="range">
+      <div class="rbar">
+        <span class="rnd" id="rnd">Round 1</span>
+        <span class="bulls" id="bulls"></span>
+        <span id="windTxt">Wind: calm</span>
+        <span id="aimTxt"></span>
+        <span class="sp">
+          <button class="btn ghost small" id="moveBtn" aria-pressed="true">↔ Targets: moving</button>
+          <button class="btn ghost small" id="easyBtn" aria-pressed="false">🎯 Easy aim: off</button>
+          <button class="btn ghost small" id="sndBtn" aria-pressed="false">🔇 Sound: off</button>
+        </span>
+      </div>
+      <div class="prompt">
+        <p class="ask" id="ask"></p>
+        <p class="sent" id="sent"></p>
+      </div>
+      <canvas id="cv" width="960" height="500" tabindex="0"
+        aria-label="First-person archery range. Move the mouse to aim the sight, then press and hold to draw the string and let go to shoot. Or use the arrow keys to aim and hold Space to draw. Turn on Easy aim to pick a word with a button instead."></canvas>
+      <p class="controls">Mouse: move to aim · <strong>press and hold</strong> to draw · let go to shoot &nbsp;|&nbsp; Keys: click here, <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> aim (<kbd>Shift</kbd> = big steps), hold <kbd>Space</kbd>, let go · <kbd>Esc</kbd> cancels a draw</p>
+      <div id="easyRow" aria-label="Easy aim targets"></div>
+      <div class="fb" id="gfb" role="status" aria-live="polite"></div>
+      <div class="row" id="nextRow" style="display:none">
+        <button class="btn go" id="nextBtn">Next round →</button>
+        <span class="keyhint">or press <kbd>Space</kbd> or <kbd>Enter</kbd></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   CONTENT — swap these two constants to point the range at other skills.
+   ===================================================================== */
+
+const LEARN = {
+  clock: `<div class="learn-card"><p class="lab">Read the clock first</p>
+    <table class="pair"><tr><th>⏪ Then (past)</th><th>⏺ Now (present)</th><th>⏩ Next (future)</th></tr>
+    <tr><td>yesterday, last week, two years ago</td><td>every day, these days, every Saturday</td><td>tomorrow, someday, in ten years</td></tr>
+    <tr><td>Lena <strong>shot</strong>.</td><td>Lena <strong>shoots</strong>.</td><td>Lena <strong>will shoot</strong>.</td></tr></table>
+    <p class="test"><strong>Test:</strong> find the time clue <em>before</em> you look at the targets. Then shoot the verb that lives at that time.</p></div>`,
+
+  prog: `<div class="learn-card"><p class="lab">The -ing train: helpers carry the time <span class="new">NEW</span></p>
+    <p>An <strong>-ing</strong> verb can’t stand alone (remember the alone test?). It needs a helper, and the <strong>helper</strong> tells you when.</p>
+    <table class="pair"><tr><th>⏪ was / were + -ing</th><th>⏺ am / is / are + -ing</th><th>⏩ will be + -ing</th></tr>
+    <tr><td>We <strong>were</strong> waiting.</td><td>We <strong>are</strong> waiting.</td><td>We <strong>will be</strong> waiting.</td></tr></table>
+    <p class="test">One person → <em>was / is</em>. More than one → <em>were / are</em>. Future always needs <strong>both</strong>: will <em>be</em>.</p></div>`,
+
+  base: `<div class="learn-card"><p class="lab">Helper traps <span class="new">NEW</span></p>
+    <p>When a helper like <strong>will, did, didn’t, does</strong> is already there, it carries the time. The main verb stays <strong>plain</strong>.</p>
+    <table class="pair"><tr><th>✓</th><th>✗</th></tr>
+    <tr><td>will <strong>win</strong></td><td>will <s>won</s></td></tr>
+    <tr><td>didn’t <strong>go</strong></td><td>didn’t <s>went</s></td></tr>
+    <tr><td>Did she <strong>see</strong> it?</td><td>Did she <s>saw</s> it?</td></tr></table>
+    <p class="test">Some past forms break the -ed rule: threw (not <s>throwed</s>), took, caught, won, beat.</p></div>`,
+
+  champ: `<div class="learn-card"><p class="lab">Championship rules</p>
+    <p>Everything mixed together, plus two things from last time: <strong>verb jobs</strong> and <strong>run-ons</strong>. Farther targets, wind, and a sight that sways if you hold too long.</p></div>
+    <details class="remind"><summary>Need a reminder? (Try a round without it first.)</summary>
+    <table class="pair">
+      <tr><td>Simple past / present / future</td><td>shot · shoots · will shoot</td></tr>
+      <tr><td>Past / present / future progressive</td><td>was shooting · is shooting · will be shooting</td></tr>
+      <tr><td>Time-jumper</td><td>a verb that leaves the time the rest of the sentence is in</td></tr>
+      <tr><td>Run-on</td><td>a new subject + verb starts with no period. Shoot the word that should start the new sentence</td></tr>
+      <tr><td>Verb jobs</td><td>= test → linking · leans on a main verb → helping · otherwise → action</td></tr>
+    </table></details>`
+};
+
+const UNCLEAR = '🤔 Unclear';
+
+const RANGES = {
+  s1: { name:'Range 1', R:1.15, dist:[15,26], guide:1.0, wind:0, sway:0, move:[0, .22, .20], warmup:true,
+    blocks:[ { learn:'clock', pick:6, mix:['past','past','now','now','next','next'],
+      tip:'Find the time clue first: did it already happen, does it happen regularly now, or has it not happened yet?',
+      rounds:[
+      { k:'past', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[Yesterday], Lena ___ three arrows into the gold.',
+        t:[['shot',1,'Yes! Yesterday already happened, so the verb goes in the past.'],
+           ['shoots',0,'That’s now. “Yesterday” is already over.'],
+           ['will shoot',0,'That hasn’t happened yet. “Yesterday” is already over.']] },
+      { k:'past', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[Last night], the goalie ___ every shot.',
+        t:[['caught',1,'Yes! Last night is over. Catch is a rule-breaker: caught, not catched.'],
+           ['catches',0,'That’s now. “Last night” is already over.'],
+           ['will catch',0,'That’s the future. “Last night” is already over.']] },
+      { k:'past', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[Two years ago], my cousin ___ the junior trophy.',
+        t:[['won',1,'Yes! Two years ago is the past. Win → won.'],
+           ['wins',0,'That’s now. Two years ago is long over.'],
+           ['will win',0,'That’s the future. Two years ago is long over.']] },
+      { k:'now', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[Every Saturday], our team ___ at the river field, and Coach Rivera brings the snacks.',
+        t:[['practices',1,'Yes! It happens regularly now, and “brings” is already in the present, so the sentence lives now.'],
+           ['practiced',0,'Look at the other verb: “brings” is present. Keep the whole sentence at the same time.'],
+           ['will practice',0,'This is a habit that happens now, and “brings” is present. No need for the future.']] },
+      { k:'now', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[Every morning], Mia ___ her bowstring before she shoots.',
+        t:[['checks',1,'Yes! A habit that happens now, and “shoots” matches it.'],
+           ['checked',0,'“Before she shoots” is present. Keep both verbs at the same time.'],
+           ['will check',0,'It’s a habit, and “shoots” is present. Stay in the present.']] },
+      { k:'now', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[These days], my brother ___ soccer, but he used to play baseball.',
+        t:[['plays',1,'Yes! “These days” means now. The baseball part is the past.'],
+           ['played',0,'“Used to play baseball” is the past. “These days” is now.'],
+           ['will play',0,'“These days” means now, not later.']] },
+      { k:'next', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[In ten years], Lena ___ an Olympic coach.',
+        t:[['will be',1,'Yes! Ten years from now hasn’t happened yet. Notice “be” is a linking verb: Lena = coach.'],
+           ['was',0,'That already happened. “In ten years” is still coming.'],
+           ['is',0,'That’s now. “In ten years” is still coming.']] },
+      { k:'next', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[Someday], I ___ in the Olympics.',
+        t:[['will compete',1,'Yes! Someday is still coming. “Will” is the helper that carries the future.'],
+           ['competed',0,'That already happened. “Someday” is still coming.'],
+           ['compete',0,'That’s now. “Someday” needs the helper “will”.']] },
+      { k:'next', ask:'Pick the verb that fits the <b>time clue</b>.', s:'[When I’m older], I ___ my own archery club.',
+        t:[['will start',1,'Yes! You’re not older yet, so it’s still coming.'],
+           ['started',0,'That already happened. “When I’m older” is still coming.'],
+           ['start',0,'That’s now. This one needs the helper “will”.']] }
+    ]} ] },
+
+  s2: { name:'Range 2', R:1.0, dist:[19,38], guide:0.45, wind:0, sway:5, move:[50, .2, .12],
+    blocks:[
+    { learn:'prog', pick:4,
+      tip:'The helper carries the time: was/were = then, am/is/are = now, will be = next. Count the people too.',
+      rounds:[
+      { ask:'Pick the <b>helper</b> that fits the time.', s:'[Right now], the crowd ___ cheering for Lena.',
+        t:[['is',1,'Yes! Right now, and one crowd, so “is”.'],
+           ['was',0,'“Was” is the past. Right now is now.'],
+           ['will be',0,'“Will be” is the future. Right now is now.']] },
+      { ask:'Pick the <b>helper</b> that fits the time.', s:'[At 3:00 yesterday], we ___ waiting for the bus.',
+        t:[['were',1,'Yes! Yesterday is the past, and “we” is more than one, so “were”.'],
+           ['are',0,'“Are” is now. Yesterday is over.'],
+           ['will be',0,'“Will be” is the future. Yesterday is over.']] },
+      { ask:'Pick the <b>helper</b> that fits the time.', s:'[At noon next Saturday], Sami ___ shooting his final round.',
+        t:[['will be',1,'Yes! The future -ing train needs two helpers: will + be.'],
+           ['was',0,'“Was” is the past. Next Saturday hasn’t happened yet.'],
+           ['will',0,'Close! “Will shooting” is missing a car. The future -ing train is will BE shooting.']] },
+      { ask:'Pick the <b>helper</b> that fits the time.', s:'[When the storm hit], the archers ___ packing up.',
+        t:[['were',1,'Yes! The storm already hit, and the archers are more than one.'],
+           ['are',0,'“Hit” is past here (the storm already came). Stay in the past.'],
+           ['was',0,'Right time, but “archers” is more than one. Use “were”.']] },
+      { ask:'Pick the <b>helper</b> that fits the time.', s:'[Look!] The wind ___ blowing the flags sideways.',
+        t:[['is',1,'Yes! “Look!” means it’s happening right now.'],
+           ['was',0,'“Look!” means right now, not before.'],
+           ['will be',0,'“Look!” means right now, not later.']] },
+      { ask:'Pick the <b>helper</b> that fits the time.', s:'[Right now], my sister and I ___ watching the final.',
+        t:[['are',1,'Yes! Now, and two people (my sister AND I), so “are”.'],
+           ['is',0,'Right time! But “my sister and I” is two people. Use “are”.'],
+           ['were',0,'“Were” is the past. Right now is now.']] }
+    ]},
+    { learn:'base', pick:4, mix:['base','base','irr'],
+      tip:'Is a helper already there (will, did, didn’t, does)? Then the main verb stays plain. No helper and it’s the past? Check for a rule-breaker.',
+      rounds:[
+      { k:'base', ask:'The helper already shows the time. Pick the <b>main verb</b>.', s:'Tomorrow the team [will] ___ to the final.',
+        t:[['travel',1,'Yes! “Will” carries the future, so the main verb stays plain.'],
+           ['traveled',0,'“Will traveled” puts the time in twice. After “will”, use the plain verb.'],
+           ['travels',0,'After “will”, the verb stays plain: will travel.']] },
+      { k:'base', ask:'The helper already shows the time. Pick the <b>main verb</b>.', s:'[Did] the coach ___ that shot?',
+        t:[['see',1,'Yes! “Did” already says past, so “see” stays plain.'],
+           ['saw',0,'“Did … saw” says past twice. “Did” already did the job.'],
+           ['seen',0,'“Seen” needs has/have/had. After “did”, use “see”.']] },
+      { k:'base', ask:'The helper already shows the time. Pick the <b>main verb</b>.', s:'Sami [didn’t] ___ to practice yesterday.',
+        t:[['go',1,'Yes! “Didn’t” carries the past, so “go” stays plain.'],
+           ['went',0,'“Didn’t went” says past twice. After “didn’t”, use the plain verb.'],
+           ['goes',0,'After “didn’t”, the verb stays plain: didn’t go.']] },
+      { k:'base', ask:'The helper already shows the time. Pick the <b>main verb</b>.', s:'[Will] Lena ___ the gold again?',
+        t:[['win',1,'Yes! In a question the helper jumps to the front, but it still does the job.'],
+           ['won',0,'“Will … won” mixes future and past. After “will”, use the plain verb.'],
+           ['wins',0,'After “will”, the verb stays plain: will win.']] },
+      { k:'base', ask:'The helper already shows the time. Pick the <b>main verb</b>.', s:'The goalie [does not] ___ the ball with her hands outside the box.',
+        t:[['touch',1,'Yes! “Does not” carries the present, so “touch” stays plain.'],
+           ['touches',0,'“Does” already has the -s. The main verb stays plain: does not touch.'],
+           ['touched',0,'After “does not”, the verb stays plain: does not touch.']] },
+      { k:'irr', ask:'No helper this time. Pick the right <b>past</b> form.', s:'[Last week], Rosa ___ the ball over the fence.',
+        t:[['threw',1,'Yes! Throw is a rule-breaker: threw, not throwed.'],
+           ['throwed',0,'Throw breaks the -ed rule. The past is “threw”.'],
+           ['throws',0,'That’s now. Last week is over.']] },
+      { k:'irr', ask:'No helper this time. Pick the right <b>past</b> form.', s:'[Yesterday], our team ___ the early bus.',
+        t:[['took',1,'Yes! Take is a rule-breaker: took.'],
+           ['taked',0,'Take breaks the -ed rule. The past is “took”.'],
+           ['takes',0,'That’s now. Yesterday is over.']] },
+      { k:'irr', ask:'No helper this time. Pick the right <b>past</b> form.', s:'[At the last meet], I ___ my personal best.',
+        t:[['beat',1,'Yes! Beat is a strange one: the past looks the same as the present.'],
+           ['beated',0,'Beat breaks the -ed rule. The past is just “beat”.'],
+           ['will beat',0,'The last meet already happened, so it’s the past.']] }
+    ]} ] },
+
+  s3: { name:'Range 3', R:0.9, dist:[23,52], guide:0.18, wind:3.0, sway:11, move:[70, .25, .14], final:true,
+    blocks:[ { learn:'champ', pick:9, mix:['name','name','jump','jump','runon','runon','job','job'],
+      tip:'Time-jumper? Find what time most of the sentence is in. Run-on? Clap at every subject + verb. Verb job? Run the = test, then the alone test.',
+      rounds:[
+      { k:'name', ask:'What tense is <b>was shooting</b>?', s:'Lena [was shooting] when the whistle blew.',
+        t:[['Past progressive',1,'Yes! “Was” + -ing = it was going on in the past.'],
+           ['Present progressive',0,'Present would be “is shooting”. “Was” is past.'],
+           ['Simple past',0,'Simple past is one word: “shot”. This one has a helper + -ing.'],
+           ['Future',0,'Future needs “will”.']] },
+      { k:'name', ask:'What tense is <b>will be</b>?', s:'The final [will be] windy.',
+        t:[['Simple future',1,'Yes! Will + plain verb. (And “be” is linking: final = windy.)'],
+           ['Future progressive',0,'Progressive needs an -ing verb: “will be blowing”.'],
+           ['Simple present',0,'Present would be “is”.'],
+           ['Simple past',0,'Past would be “was”.']] },
+      { k:'name', ask:'What tense is <b>are cheering</b>?', s:'Listen! The fans [are cheering].',
+        t:[['Present progressive',1,'Yes! “Are” + -ing = happening right now.'],
+           ['Past progressive',0,'Past would be “were cheering”.'],
+           ['Simple present',0,'Simple present is one word: “cheer”.'],
+           ['Future progressive',0,'Future would be “will be cheering”.']] },
+      { k:'name', ask:'What tense is <b>practices</b>?', s:'Mia [practices] every day after school.',
+        t:[['Simple present',1,'Yes! One word, and it happens regularly now.'],
+           ['Simple past',0,'Past would be “practiced”.'],
+           ['Present progressive',0,'That would be “is practicing”.'],
+           ['Simple future',0,'Future would be “will practice”.']] },
+      { k:'jump', ask:'One verb jumps to the wrong time. <b>Shoot it.</b>', s:'Lena {stepped} to the line, {took} a breath, and {hits} the gold.',
+        t:[['hits',1,'Yes! The story is in the past (stepped, took), so it should be “hit”.'],
+           ['stepped',0,'“Stepped” and “took” agree with each other. Which one doesn’t?'],
+           ['took',0,'“Took” matches “stepped”. Which verb left the past?']] },
+      { k:'jump', ask:'One verb jumps to the wrong time. <b>Shoot it.</b>', s:'Every Saturday we {wake} up early, {pack} the van, and {drove} to the field.',
+        t:[['drove',1,'Yes! It’s a habit happening now (wake, pack), so it should be “drive”.'],
+           ['wake',0,'“Wake” and “pack” agree with each other. Which one doesn’t?'],
+           ['pack',0,'“Pack” matches “wake”. Which verb jumped to the past?']] },
+      { k:'jump', ask:'One verb jumps to the wrong time. <b>Shoot it.</b>', s:'Next week the team {will travel} to the coast and {competed} in the final.',
+        t:[['competed',1,'Yes! It should be “will travel … and compete”. The “will” covers both verbs.'],
+           ['will travel',0,'“Next week” says future, and this matches. Which verb doesn’t?']] },
+      { k:'jump', ask:'One verb jumps to the wrong time. <b>Shoot it.</b>', s:'Yesterday the wind {was} strong, so the coach {moves} the targets {closer}.',
+        t:[['moves',1,'Yes! Yesterday is the past, so it should be “moved”.'],
+           ['was',0,'“Yesterday … was” is right. Which verb jumped?'],
+           ['closer',0,'“Closer” isn’t a verb. It tells where.']] },
+      { k:'runon', ask:'Run-on! Shoot the word that should start a <b>new sentence</b>.', s:'Sami {missed} the first {shot} {he} hit the gold on the {second}.',
+        t:[['he',1,'Yes! “He hit” is a new subject + verb. Sami missed the first shot. He hit the gold on the second.'],
+           ['shot',0,'“Shot” is still part of the first thought. Find where a new subject + verb starts.'],
+           ['missed',0,'“Missed” is the first verb. Keep reading: where does a second subject start?'],
+           ['second',0,'That’s the end of the sentence. The break comes earlier.']] },
+      { k:'runon', ask:'Run-on! Shoot the word that should start a <b>new sentence</b>.', s:'The {crowd} went quiet {everyone} {watched} the {last} arrow.',
+        t:[['everyone',1,'Yes! “Everyone watched” is a new subject + verb. The crowd went quiet. Everyone watched the last arrow.'],
+           ['crowd',0,'“The crowd went quiet” is the first thought. Where does the next subject start?'],
+           ['watched',0,'Close! “Watched” is the verb. The new sentence starts with its subject.'],
+           ['last',0,'“Last” describes the arrow. Look earlier.']] },
+      { k:'runon', ask:'Run-on! Shoot the word that should start a <b>new sentence</b>.', s:'The {coach} blew the {whistle} {the} archers {stepped} back.',
+        t:[['the',1,'Yes! “The archers stepped” is a new subject + verb. The coach blew the whistle. The archers stepped back.'],
+           ['whistle',0,'“Whistle” ends the first thought. The new sentence starts right after it.'],
+           ['stepped',0,'“Stepped” is the verb. The new sentence starts with its subject.'],
+           ['coach',0,'“Coach” is the first subject. Look for the second one.']] },
+      { k:'job', ask:'What job is <b>looked</b> doing?', s:'The field [looked] muddy after the rain.',
+        t:[['Linking',1,'Yes! field = muddy. The = test works.'],
+           ['Action',0,'Did the field look AT something? No. It’s field = muddy, so linking.'],
+           ['Helping',0,'“Looked” is the only verb here. Nothing to lean on.']] },
+      { k:'job', ask:'What job is <b>will</b> doing?', s:'The judges [will] check every score.',
+        t:[['Helping',1,'Yes! “Will” leans on “check” and carries the future. That’s why the future always has a helper.'],
+           ['Action',0,'Try the alone test: “The judges will every score.” Broken. It leans on “check”.'],
+           ['Linking',0,'Judges = every score? No. It leans on “check”, so helping.']] },
+      { k:'job', ask:'What job is <b>was</b> doing?', s:'Lena [was] nervous before the final.',
+        t:[['Linking',1,'Yes! Lena = nervous.'],
+           ['Helping',0,'Is there a main verb after “was” for it to lean on? “Nervous” describes Lena, so the = test wins.'],
+           ['Action',0,'Lena isn’t doing anything here. Lena = nervous, so linking.']] },
+      { k:'job', ask:'What job is <b>was</b> doing?', s:'Lena [was] aiming at the far target.',
+        t:[['Helping',1,'Yes! Same word as before, different job. Here it leans on “aiming”.'],
+           ['Linking',0,'Lena = aiming? The alone test says “was” leans on “aiming”, so helping.'],
+           ['Action',0,'The action is “aiming”. “Was” is the helper.']] }
+    ]} ] }
+};
+
+const WARMUP = { warm:true, ask:'Warm-up: hit the target. Any ring counts.',
+  s:'No grammar yet. Just get a feel for the bow.',
+  t:[['Warm-up',1,'Nice shot! That’s the feel. From now on, the word you hit is what counts.']] };
+
+/* =====================================================================
+   STAGE ENGINE (from the activity shell)
+   ===================================================================== */
+const ACTIVITY_TITLE = 'Time Archer: Verb Tenses';
+const ORDER = ['s1','s2','s3'];
+const REWARDS = {
+  s1: { star:'⏳', msg:'Range 1: you can read the clock!' },
+  s2: { star:'🎯', msg:'Helpers: they carry the time, and you caught every trap.' },
+  s3: { star:'🏆', msg:'Time Archer champion. Go turn it in.' }
+};
+
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const LL = {
+  extra: {}, summary: {}, done: new Set(),
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    fillLog(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank. Tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else sum.textContent = 'tap to see it again';
+  },
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'start'}), 120);
+  },
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+/* =====================================================================
+   THE RANGE — first person. You stand behind the bow looking down the lane.
+   The world is metres: x right, y up, z away. Targets sit at different
+   distances; the arrow is launched along the line through the sight and
+   then gravity pulls it down and wind pushes it sideways, so distance and
+   draw strength both matter.
+   ===================================================================== */
+const W = 960, H = 500, HZ = 228, FOC = 900, EYE = 1.6;
+const GRAV = 9.8, VMIN = 22, VMAX = 72, FULL_DRAW = 0.9;   /* seconds to full draw */
+const RING_NAMES = ['🎯 BULLSEYE!', 'Red ring!', 'Blue ring!', 'Black ring!', 'White ring!'];
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const rangeEl = document.getElementById('range');
+const $ = id => document.getElementById(id);
+let C = {};
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ['sky1','sky2','hill','grass','grass2','wood','ring-gold','ring-red','ring-blue','ring-black',
+   'ring-white','sign','sign-dim','ink','soft','accent','calm','calm-soft','warn','gold','line','trees','string']
+   .forEach(k => C[k] = cs.getPropertyValue('--' + k).trim() || '#888');
+}
+
+/* Each block is a BANK of sentences. Every page load draws b.pick of them at
+   random (all of them if pick is missing), so a replay gets mostly new
+   sentences. b.mix lists round tags (k) that must each be represented once
+   before the rest is filled at random, e.g. the murky block always has one
+   truly unclear sentence and one that can be solved. Blocks stay in order. */
+function pickRounds(b){
+  const bank = shuffle(b.rounds), n = Math.min(b.pick || bank.length, bank.length), out = [];
+  (b.mix || []).forEach(k => { const i = bank.findIndex(r => r.k === k && !out.includes(r)); if (i >= 0 && out.length < n) out.push(bank[i]); });
+  bank.forEach(r => { if (out.length < n && !out.includes(r)) out.push(r); });
+  return shuffle(out);
+}
+const PLAY = {};
+for (const id in RANGES){
+  const R = RANGES[id], list = [];
+  if (R.warmup) list.push(Object.assign({ block:0 }, WARMUP));
+  R.blocks.forEach((b, bi) => pickRounds(b).forEach(r => list.push(Object.assign({ block:bi }, r))));
+  PLAY[id] = list;
+}
+
+let game = null;
+let soundOn = false, easyOn = false, actx = null;
+/* Moving targets are on unless the student's system asks for reduced motion. */
+let movesOn = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function plain(html){ const d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
+function sentHtml(s){
+  return esc(s).replace(/\{([^}]+)\}/g, '<span class="cand">$1</span>')
+               .replace(/\[([^\]]+)\]/g, '<span class="focus">$1</span>');
+}
+function sentPlain(s){ return s.replace(/[{}]/g, '').replace(/\[([^\]]+)\]/g, '[$1]'); }
+function proj(x, y, z){ return { x: W / 2 + FOC * x / z, y: HZ + FOC * (EYE - y) / z, s: FOC / z }; }
+
+/* ---------- stage mounting ---------- */
+function mountActive(){
+  const st = [...document.querySelectorAll('.stage.active')].find(s => RANGES[s.id] && !LL.done.has(s.id));
+  ORDER.forEach(fillLog);
+  if (!st){ $('parking').appendChild(rangeEl); game = null; return; }
+  if (game && game.id === st.id) return;
+  st.querySelector('.mount').appendChild(rangeEl);
+  startStage(st.id);
+}
+function fillLog(id){
+  const el = document.querySelector('#' + id + ' .log');
+  if (el && LL.extra[id]) el.textContent = LL.extra[id];
+}
+
+function startStage(id){
+  game = { id, R: RANGES[id], list: PLAY[id], ri: -1, block: -1,
+    aim: { x: W / 2, y: HZ - 6 }, power: 0, hold: 0, drawing: false, fly: null, last: 0,
+    stats: { rounds:0, first:0, arrows:0, bulls:0, easy:false, log:[] } };
+  if (id === 's3') $('finalwrite').classList.remove('show');
+  nextRound();
+  resize();
+}
+
+function renderLearn(){
+  const box = document.getElementById(game.id).querySelector('.learn');
+  box.innerHTML = LEARN[game.R.blocks[game.block].learn];
+  requestAnimationFrame(() => drawLinks(box));
+}
+
+function nextRound(){
+  game.ri++;
+  const r = game.list[game.ri];
+  const newBlock = r.block !== game.block;
+  if (newBlock){ game.block = r.block; renderLearn(); }
+  setupRound(r);
+  if (newBlock && game.block > 0)
+    say('info', 'New target type unlocked.', 'Read the new card above the range, then shoot.');
+}
+
+function setupRound(r){
+  const ts = shuffle(r.t), n = ts.length, D = game.R.dist;
+  const depths = n === 1 ? [(D[0] + D[1]) / 2]
+               : shuffle(ts.map((_, i) => D[0] + (D[1] - D[0]) * i / (n - 1)));
+  const heights = shuffle([1.0, 1.35, 1.7, 2.05, 2.4]).slice(0, n);
+  const targets = ts.map((t, i) => {
+    const sx = n === 1 ? W / 2 : 150 + (W - 300) * i / (n - 1);
+    return { label: t[0], ok: !!t[1], why: t[2], z: depths[i], y: heights[i], hy: heights[i], hx: sx,
+             ph: Math.random() * 6.28, x: (sx - W / 2) * depths[i] / FOC, state: '' };
+  });
+  const wmax = game.R.wind;
+  const wind = wmax ? Math.round((Math.random() * 2 - 1) * wmax * 10) / 10 : 0;
+  game.round = { r, targets, stuck: [], wrongs: [], arrows: 0, solved: false, wind };
+  game.fly = null; game.drawing = false; game.power = 0; game.hold = 0;
+  game.mt = Math.random() * 20;                 /* movement clock: a fresh starting pose each round */
+  moveTargets(0);
+
+  const real = game.list.filter(x => !x.warm).length;
+  const k = game.list.slice(0, game.ri + 1).filter(x => !x.warm).length;
+  $('rnd').textContent = r.warm ? game.R.name + ' · Warm-up' : game.R.name + ' · Round ' + k + ' of ' + real;
+  $('ask').innerHTML = r.ask;
+  $('sent').innerHTML = sentHtml(r.s);
+  $('windTxt').textContent = 'Wind: ' + windWord(wind, true);
+  $('aimTxt').textContent = 'Drop guide: ' + (game.R.guide >= .9 ? 'long' : game.R.guide >= .5 ? 'medium' : 'short') +
+                            (game.R.sway ? ' · sight sways if you hold too long' : '');
+  $('bulls').textContent = game.stats.bulls ? '🎯 × ' + game.stats.bulls : '';
+  $('nextRow').style.display = 'none';
+  $('gfb').className = 'fb';
+  renderEasy();
+  draw();
+  if (moving()) loop();
+}
+
+/* ---------- moving targets ----------
+   One shared slide for every target (so the words never run into each other)
+   plus a small bob each on its own rhythm. Smooth back-and-forth: they slow
+   down to turn around at each end, which is the easy moment to shoot. */
+function moving(){ return movesOn && game && game.round && !game.round.solved && game.R.move &&
+                          (game.R.move[0] > 0 || game.R.move[1] > 0); }
+function moveTargets(dt){
+  if (moving()) game.mt += dt;
+  const m = game.R.move || [0, 0, 0], w = 2 * Math.PI * m[2], k = movesOn ? 1 : 0;
+  const slide = k * m[0] * Math.sin(w * game.mt);
+  game.round.targets.forEach(t => {
+    t.x = (t.hx + slide - W / 2) * t.z / FOC;
+    t.y = t.hy + k * m[1] * Math.sin(w * 1.35 * game.mt + t.ph);
+  });
+}
+
+function windWord(w, long){
+  const a = Math.abs(w);
+  if (a < 0.3) return 'calm';
+  const word = a < 1.2 ? 'light' : a < 2.2 ? 'steady' : 'strong';
+  return word + (w > 0 ? ' →' : ' ←') + (long ? (w > 0 ? ' (pushes arrows right)' : ' (pushes arrows left)') : '');
+}
+
+function canShoot(){ return game && game.round && !game.fly && !game.round.solved; }
+
+function say(kind, head, body){
+  const fb = $('gfb');
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+/* ---------- the sight: where you point, plus sway at higher ranges ---------- */
+function sway(){
+  if (!game.drawing || !game.R.sway) return { x: 0, y: 0 };
+  const t = performance.now() / 1000;
+  const tired = Math.min(1, Math.max(0, (game.hold - 1.2) / 2.5));   /* holding full draw too long */
+  const amp = game.R.sway * (0.25 + 1.4 * tired);
+  return { x: amp * Math.sin(t * 1.9), y: amp * Math.sin(t * 2.6 + 1.3) };
+}
+function sightPoint(){ const s = sway(); return { x: game.aim.x + s.x, y: game.aim.y + s.y }; }
+
+function launch(power, from){
+  const a = from || sightPoint();
+  let dx = (a.x - W / 2) / FOC, dy = (HZ - a.y) / FOC, dz = 1;
+  const n = Math.hypot(dx, dy, dz); dx /= n; dy /= n; dz /= n;
+  const v = VMIN + (VMAX - VMIN) * power, z0 = 0.8;
+  return { p: { x: dx / dz * z0, y: EYE + dy / dz * z0, z: z0 }, v: { x: dx * v, y: dy * v, z: dz * v } };
+}
+
+/* ---------- the bow, as one rigid piece ----------
+   Your drawing hand sits at the cheek (N0, low right). The arrow always lies
+   on the line from that hand to the sight; the bow's rest sits on that same
+   line, so when you aim, the whole bow + arrow swing together. Drawing slides
+   the nock back along the line and the arrow through the rest. */
+const ARROW_OVER = 86, DRAW_PX = 74;
+function bowGeom(){
+  const S = sightPoint(), p = game.power;
+  const N0 = { x: W / 2 + 150, y: H - 34 };
+  const R = { x: N0.x + (S.x - N0.x) * .36, y: N0.y + (S.y - N0.y) * .36 };
+  let ux = S.x - R.x, uy = S.y - R.y; const n = Math.hypot(ux, uy) || 1; ux /= n; uy /= n;
+  const back = Math.hypot(R.x - N0.x, R.y - N0.y) + p * DRAW_PX;
+  const N = { x: R.x - ux * back, y: R.y - uy * back };
+  const tip = { x: R.x + ux * (ARROW_OVER - p * (DRAW_PX - 8)), y: R.y + uy * (ARROW_OVER - p * (DRAW_PX - 8)) };
+  const cant = (S.x - W / 2) * .00025;                       /* a slight lean toward where you aim */
+  const T = { x: R.x - 14 + 150 * Math.sin(cant), y: R.y - 150 };
+  const B = { x: R.x + 14 - 190 * Math.sin(cant), y: R.y + 190 };
+  return { S, N0, R, N, tip, T, B, ux, uy };
+}
+
+/* ---------- shooting ---------- */
+function fire(){
+  if (!canShoot()) return;
+  const L = launch(Math.max(.05, game.power));
+  game.fly = { p: L.p, v: L.v, t: 0, passes: [], from: bowGeom().tip };
+  game.drawing = false; game.power = 0; game.hold = 0;
+  game.round.arrows++;
+  sfx('twang'); loop();
+}
+function fireEasy(t){
+  if (!canShoot()) return;
+  game.stats.easy = true;
+  game.fly = { magic: true, to: t, t: 0, dur: .55, p: { x: 0, y: EYE - .1, z: 1 }, v: { x: 0, y: 0, z: 1 }, from: bowGeom().tip };
+  game.round.arrows++;
+  sfx('twang'); loop();
+}
+
+function step(dt){
+  const f = game.fly; if (!f) return;
+  if (f.magic){
+    f.t += dt;
+    const k = Math.min(1, f.t / f.dur), e = 1 - Math.pow(1 - k, 2);
+    f.p = { x: f.to.x * e, y: (EYE - .1) + (f.to.y - (EYE - .1)) * e + Math.sin(k * Math.PI) * .6, z: 1 + (f.to.z - 1) * e };   /* chases a moving target */
+    if (k >= 1) landHit(f.to, { x: f.to.x, y: f.to.y, z: f.to.z }, -1);
+    return;
+  }
+  const sub = 1 / 240, R = game.R.R; let left = dt;
+  while (left > 0 && game.fly){
+    const h = Math.min(sub, left); left -= h;
+    const pz = f.p.z, px = f.p.x, py = f.p.y;
+    f.v.x += game.round.wind * h; f.v.y -= GRAV * h;
+    f.p.x += f.v.x * h; f.p.y += f.v.y * h; f.p.z += f.v.z * h; f.t += h;
+    for (const t of game.round.targets){
+      if (pz < t.z && f.p.z >= t.z){
+        const k = (t.z - pz) / (f.p.z - pz);
+        const hx = px + (f.p.x - px) * k, hy = py + (f.p.y - py) * k;
+        const d = Math.hypot(hx - t.x, hy - t.y);
+        if (d < R){ landHit(t, { x: hx, y: hy, z: t.z }, Math.min(4, Math.floor(d / R * 5))); return; }
+        f.passes.push({ t, dx: hx - t.x, dy: hy - t.y, d });
+      }
+    }
+    if (f.p.y <= 0){ landMiss('ground'); return; }
+    if (f.p.z > 95 || f.t > 4){ landMiss('away'); return; }
+  }
+}
+
+function landHit(t, at, ring){
+  game.round.stuck.push({ t, dx: at.x - t.x, dy: at.y - t.y, z: t.z });   /* rides along with its target */
+  game.fly = null;
+  sfx('thunk');
+  const R = game.round, r = R.r, S = game.stats;
+  const ringTxt = ring < 0 ? 'Guided shot.' : RING_NAMES[ring];
+  if (t.ok){
+    R.solved = true; R.solvedAt = performance.now(); t.state = 'right';
+    if (!r.warm){
+      S.rounds++; S.arrows += R.arrows;
+      if (!R.wrongs.length) S.first++;
+      if (ring === 0) S.bulls++;
+      S.log.push((R.wrongs.length ? '✓ (after ' + R.wrongs.join(', ') + ') ' : '✓ ') +
+        plain(r.ask) + '  “' + sentPlain(r.s) + '” → ' + t.label);
+    }
+    $('bulls').textContent = S.bulls ? '🎯 × ' + S.bulls : '';
+    sfx('yay');
+    say('good', ringTxt + ' Right word: ' + esc(t.label) + '.', t.why);
+    const last = game.ri === game.list.length - 1;
+    $('nextBtn').textContent = !last ? 'Next round →' : (game.R.final ? 'On to the last step ↓' : 'Finish ' + game.R.name + ' 🎯');
+    $('nextRow').style.display = '';
+  } else {
+    if (t.state !== 'wrong'){ t.state = 'wrong'; R.wrongs.push(t.label); }
+    sfx('nope');
+    const tip = R.wrongs.length >= 2 ? '<span class="tip">💡 <strong>Tip:</strong> ' + esc(game.R.blocks[game.block].tip) + '</span>' : '';
+    say('hint', ringTxt + ' Nice shot, but <em>' + esc(t.label) + '</em> isn’t the one.', t.why + tip);
+  }
+  renderEasy();
+  draw();
+}
+
+/* A miss says which way it went — archery coaching, never grammar. */
+function landMiss(where){
+  const f = game.fly;
+  if (where === 'ground') game.round.stuck.push({ x: f.p.x, y: 0, z: f.p.z, ground: true });
+  game.fly = null;
+  let msg;
+  const near = f.passes.sort((a, b) => a.d - b.d)[0];
+  if (!near) msg = 'Dropped short. Pull the string all the way back before you let go, or aim a little higher.';
+  else if (Math.abs(near.dy) >= Math.abs(near.dx))
+    msg = near.dy < 0 ? 'Went under. Aim a little higher (farther targets need more height) or draw fuller.'
+                      : 'Went over the top. Aim a little lower.';
+  else {
+    const slid = movesOn && game.R.move && game.R.move[0] > 0;
+    msg = 'Missed to the ' + (near.dx > 0 ? 'right' : 'left') + '. ' +
+          (Math.abs(game.round.wind) >= .3 ? 'The wind pushes your arrow. Aim a little into it. ' : '') +
+          (slid ? 'The targets keep sliding while your arrow flies. Aim a little ahead of where yours is going, or wait and shoot when it slows to turn around.'
+                : (Math.abs(game.round.wind) >= .3 ? '' : 'Nudge your sight the other way.'));
+  }
+  say('info', 'Missed. Grab another arrow.', msg + ' Missing doesn’t count against you.');
+  draw();
+}
+
+/* ---------- loop ---------- */
+let rafOn = false;
+function loop(){
+  if (rafOn) return; rafOn = true; game.last = performance.now();
+  const tick = now => {
+    if (!game){ rafOn = false; return; }
+    const dt = Math.min(1 / 30, (now - game.last) / 1000); game.last = now;
+    if (game.drawing){
+      game.power = Math.min(1, game.power + dt / FULL_DRAW);
+      if (game.power >= 1) game.hold += dt;
+    }
+    moveTargets(dt);
+    step(dt);
+    draw();
+    if (game && (game.fly || game.drawing || moving())) requestAnimationFrame(tick);
+    else rafOn = false;
+  };
+  requestAnimationFrame(tick);
+}
+
+/* ---------- input: pointer (mouse aims; press and hold draws the string) ---------- */
+function pt(e){
+  const r = cv.getBoundingClientRect();
+  return { x: Math.max(0, Math.min(W, (e.clientX - r.left) * W / r.width)),
+           y: Math.max(0, Math.min(H, (e.clientY - r.top) * H / r.height)) };
+}
+cv.addEventListener('pointerdown', e => {
+  if (!canShoot()) return;
+  cv.focus({ preventScroll: true });
+  game.aim = pt(e);
+  game.drawing = 'ptr'; game.power = 0; game.hold = 0;
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  e.preventDefault(); loop();
+});
+cv.addEventListener('pointermove', e => {
+  if (!game || !game.round) return;
+  if (e.pointerType !== 'mouse' && game.drawing !== 'ptr') return;
+  game.aim = pt(e);
+  if (!rafOn) draw();
+});
+function endPtr(fireIt){
+  if (!game || game.drawing !== 'ptr') return;
+  if (fireIt && game.power > .08) fire();
+  else { game.drawing = false; game.power = 0; game.hold = 0; draw(); }
+}
+cv.addEventListener('pointerup', () => endPtr(true));
+cv.addEventListener('pointercancel', () => endPtr(false));
+
+/* ---------- input: keyboard (only while the range has focus) ---------- */
+cv.addEventListener('keydown', e => {
+  if (!game) return;
+  const k = e.key, big = e.shiftKey ? 16 : 4;
+  if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) e.preventDefault();
+  if (!canShoot()) return;
+  const A = game.aim;
+  if (k === 'ArrowUp')    A.y = Math.max(0, A.y - big);
+  if (k === 'ArrowDown')  A.y = Math.min(H, A.y + big);
+  if (k === 'ArrowLeft')  A.x = Math.max(0, A.x - big);
+  if (k === 'ArrowRight') A.x = Math.min(W, A.x + big);
+  if (k === ' ' && !e.repeat && !game.drawing){ game.drawing = 'kb'; game.power = 0; game.hold = 0; loop(); }
+  if (k === 'Escape'){ game.drawing = false; game.power = 0; game.hold = 0; }
+  if (!rafOn) draw();
+});
+cv.addEventListener('keyup', e => {
+  if (!game || e.key !== ' ' || game.drawing !== 'kb') return;
+  e.preventDefault();
+  if (game.power > .08) fire(); else { game.drawing = false; game.power = 0; draw(); }
+});
+cv.addEventListener('blur', () => { if (game && game.drawing === 'kb'){ game.drawing = false; game.power = 0; draw(); } });
+
+/* ---------- easy aim ---------- */
+function renderEasy(){
+  const row = $('easyRow');
+  row.classList.toggle('show', easyOn);
+  if (!easyOn || !game) { row.innerHTML = ''; return; }
+  row.innerHTML = '<p class="lab">Easy aim: pick a word and the arrow flies there.</p>';
+  game.round.targets.slice().sort((a, b) => proj(a.x, a.y, a.z).x - proj(b.x, b.y, b.z).x).forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'btn ghost'; b.textContent = (t.state === 'wrong' ? '✗ ' : t.state === 'right' ? '✓ ' : '🎯 ') + t.label;
+    b.disabled = !canShoot();
+    b.onclick = () => fireEasy(t);
+    row.appendChild(b);
+  });
+}
+function syncMoveBtn(){
+  $('moveBtn').setAttribute('aria-pressed', movesOn);
+  $('moveBtn').textContent = movesOn ? '↔ Targets: moving' : '⏸ Targets: still';
+}
+$('moveBtn').onclick = () => {
+  movesOn = !movesOn; syncMoveBtn();
+  if (game && game.round){ moveTargets(0); draw(); if (moving()) loop(); }
+};
+syncMoveBtn();
+$('easyBtn').onclick = () => {
+  easyOn = !easyOn;
+  $('easyBtn').setAttribute('aria-pressed', easyOn);
+  $('easyBtn').textContent = '🎯 Easy aim: ' + (easyOn ? 'on' : 'off');
+  renderEasy();
+};
+$('sndBtn').onclick = () => {
+  soundOn = !soundOn;
+  $('sndBtn').setAttribute('aria-pressed', soundOn);
+  $('sndBtn').textContent = (soundOn ? '🔊' : '🔇') + ' Sound: ' + (soundOn ? 'on' : 'off');
+  if (soundOn) sfx('yay');
+};
+
+/* ---------- next / finish ---------- */
+$('nextBtn').onclick = () => goNext();
+/* Space or Enter moves on once a round is solved. Ignored while typing, on a
+   focused button (it already clicks itself), and for a moment after the hit so
+   a key held from the shot can't skip the explanation. */
+document.addEventListener('keydown', e => {
+  if (e.key !== ' ' && e.key !== 'Enter') return;
+  if (!game || !game.round || !game.round.solved || e.repeat) return;
+  if ($('nextRow').style.display === 'none') return;
+  const tag = (e.target && e.target.tagName) || '';
+  if (/^(TEXTAREA|INPUT|SELECT|BUTTON|SUMMARY|A)$/.test(tag)) return;
+  if (performance.now() - (game.round.solvedAt || 0) < 400) return;
+  e.preventDefault();
+  goNext();
+});
+function goNext(){
+  if (!game || !game.round.solved) return;
+  const last = game.ri === game.list.length - 1;
+  if (!last){ nextRound(); if (document.activeElement === $('nextBtn')) cv.focus({ preventScroll: true }); return; }
+  if (game.R.final){
+    $('nextRow').style.display = 'none';
+    LL.extra.s3 = evidence('s3');
+    $('finalwrite').classList.add('show');
+    $('finalwrite').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  LL.finish(game.id, evidence(game.id));
+};
+
+function evidence(id){
+  if (!game || game.id !== id) return LL.extra[id] || '';
+  const S = game.stats;
+  LL.summary[id] = S.first + ' of ' + S.rounds + ' right on the first hit' + (S.bulls ? ' · 🎯 ' + S.bulls : '');
+  return 'Rounds: ' + S.rounds + ' · Right on the first hit: ' + S.first + ' of ' + S.rounds +
+         ' · Arrows shot: ' + S.arrows + ' · Bullseyes: ' + S.bulls + (S.easy ? ' · used Easy aim' : '') +
+         '\n' + S.log.join('\n');
+}
+
+/* =====================================================================
+   DRAWING
+   ===================================================================== */
+function resize(){
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+const FONT = '700 16px "Atkinson Hyperlegible", Verdana, sans-serif';
+
+function draw(){
+  if (!game || !game.round) return;
+  drawScene();
+  const R = game.round;
+  /* far to near, so nearer things cover farther ones */
+  const things = R.targets.map(t => ({ z: t.z, f: () => drawTarget(t) }))
+    .concat(R.stuck.map(s => ({ z: s.z - .01, f: () => drawStuck(s) })));
+  things.sort((a, b) => b.z - a.z).forEach(o => o.f());
+  R.targets.forEach(drawSign);
+  if (game.fly) drawFlying(game.fly);
+  drawWind(R.wind);
+  drawBow();
+  if (canShoot() || game.drawing) drawSight();
+  drawGuide();                       /* on top of the sight, or the near dots hide under it */
+  if (game.drawing) drawPowerBar();
+  if (R.solved && $('nextRow').style.display !== 'none') drawNextBanner();
+}
+
+/* A banner on the range itself once the round is solved, so the student
+   knows how to move on without hunting for the button. */
+function drawNextBanner(){
+  const last = game.ri === game.list.length - 1;
+  const what = !last ? 'the next round' : (game.R.final ? 'the last step' : 'finish ' + game.R.name);
+  const msg = '✓ Press Space or Enter for ' + what;
+  ctx.save(); ctx.font = '700 18px "Atkinson Hyperlegible", Verdana, sans-serif';
+  const w = ctx.measureText(msg).width + 36, x = W / 2 - w / 2, y = H - 64;
+  ctx.fillStyle = C.calm; roundRect(x, y, w, 40, 20); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(msg, W / 2, y + 21);
+  ctx.restore();
+}
+
+function drawScene(){
+  const sky = ctx.createLinearGradient(0, 0, 0, HZ);
+  sky.addColorStop(0, C.sky1); sky.addColorStop(1, C.sky2);
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, HZ);
+  /* tree line on the horizon */
+  ctx.fillStyle = C.trees; ctx.beginPath(); ctx.moveTo(0, HZ);
+  for (let x = 0; x <= W; x += 30) ctx.quadraticCurveTo(x + 15, HZ - 22 - 10 * Math.sin(x * .7), x + 30, HZ - 6);
+  ctx.lineTo(W, HZ); ctx.fill();
+  const gr = ctx.createLinearGradient(0, HZ, 0, H);
+  gr.addColorStop(0, C.hill); gr.addColorStop(1, C.grass2);
+  ctx.fillStyle = gr; ctx.fillRect(0, HZ, W, H - HZ);
+  /* lane edges converging on the horizon */
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
+  [-9, 9].forEach(x => { const a = proj(x, 0, 3), b = proj(x, 0, 120); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); });
+  /* distance lines, so the student can judge how far each target is */
+  ctx.font = '700 12px "Atkinson Hyperlegible", Verdana, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)';
+  [10, 20, 30, 40, 50].forEach(z => {
+    const a = proj(-9, 0, z), b = proj(9, 0, z);
+    ctx.globalAlpha = .45; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.fillText(z + ' m', a.x - 34, a.y + 4);
+  });
+  ctx.restore();
+}
+
+function drawTarget(t){
+  const c = proj(t.x, t.y, t.z), r = game.R.R * c.s, g = proj(t.x, 0, t.z);
+  ctx.save();
+  ctx.strokeStyle = C.wood; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2, c.s * .07);
+  ctx.beginPath(); ctx.moveTo(c.x - r * .35, c.y); ctx.lineTo(c.x - r * .75, g.y);
+  ctx.moveTo(c.x + r * .35, c.y); ctx.lineTo(c.x + r * .75, g.y); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(g.x, g.y, r * .9, r * .12, 0, 0, Math.PI * 2); ctx.fill();
+  const cols = [C['ring-white'], C['ring-black'], C['ring-blue'], C['ring-red'], C['ring-gold']];
+  cols.forEach((col, i) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(c.x, c.y, r * (5 - i) / 5, 0, Math.PI * 2); ctx.fill(); });
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
+  if (t.state === 'right'){ ctx.strokeStyle = C.calm; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(c.x, c.y, r + 5, 0, Math.PI * 2); ctx.stroke(); }
+  if (t.state === 'wrong'){ ctx.globalAlpha = .5; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
+function wrap(text, maxW){
+  ctx.font = FONT;
+  const words = text.split(' '), lines = []; let cur = '';
+  words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; });
+  if (cur) lines.push(cur); return lines;
+}
+/* Signs stay full size at every distance — the word must always be readable. */
+function drawSign(t){
+  const c = proj(t.x, t.y, t.z), r = game.R.R * c.s;
+  const mark = t.state === 'right' ? '✓ ' : t.state === 'wrong' ? '✗ ' : '';
+  const lines = wrap(mark + t.label, 128);
+  ctx.save(); ctx.font = FONT;
+  const lw = Math.max(...lines.map(l => ctx.measureText(l).width));
+  const sw = lw + 20, sh = lines.length * 20 + 12, sx = c.x - sw / 2, sy = c.y - r - 14 - sh;
+  ctx.strokeStyle = C.wood; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(c.x, sy + sh); ctx.lineTo(c.x, c.y - r); ctx.stroke();
+  ctx.fillStyle = t.state === 'right' ? C['calm-soft'] : t.state === 'wrong' ? C['sign-dim'] : C.sign;
+  ctx.strokeStyle = t.state === 'right' ? C.calm : C.ink; ctx.lineWidth = t.state === 'right' ? 2.5 : 1.5;
+  roundRect(sx, sy, sw, sh, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = t.state === 'wrong' ? C.soft : C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  lines.forEach((l, i) => ctx.fillText(l, c.x, sy + 16 + i * 20));
+  ctx.restore();
+}
+function roundRect(x, y, w, h, r){
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+/* An arrow stuck in a target, seen from behind: a short shaft and fletching. */
+function drawStuck(s){
+  const sx = s.t ? s.t.x + s.dx : s.x, sy = s.t ? s.t.y + s.dy : s.y, sz = s.t ? s.t.z : s.z;
+  const p = proj(sx, sy, sz), L = Math.max(6, Math.min(40, p.s * .55));
+  ctx.save(); ctx.lineCap = 'round';
+  ctx.strokeStyle = C.wood; ctx.lineWidth = Math.max(1.5, L * .09);
+  ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + L * .25, p.y + L * .7); ctx.stroke();
+  ctx.fillStyle = C['ring-red'];
+  ctx.beginPath(); ctx.arc(p.x + L * .25, p.y + L * .7, Math.max(2, L * .14), 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+/* The arrow in flight, from behind: a nock with three vanes, shrinking with distance. */
+function drawFlying(f){
+  const p = f.p, q = proj(p.x, p.y, Math.max(p.z, .8));
+  /* for the first instant it leaves from the bow, then it's out on the range */
+  const k = Math.min(1, f.t / .12);
+  if (f.from && k < 1){ q.x = f.from.x + (q.x - f.from.x) * k; q.y = f.from.y + (q.y - f.from.y) * k; q.s = q.s * k + 300 * (1 - k); }
+  const r = Math.max(3, Math.min(34, q.s * .09));
+  ctx.save(); ctx.translate(q.x, q.y);
+  ctx.strokeStyle = C['ring-red']; ctx.lineWidth = Math.max(1.5, r * .35); ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++){ const a = i * 2.094 - 1.57; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); ctx.stroke(); }
+  ctx.fillStyle = C.wood; ctx.beginPath(); ctx.arc(0, 0, Math.max(1.5, r * .3), 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+/* Drop guide: when the sight is near a target, a small gold ✕ shows where an
+   arrow released right now would land on it. Every target gets one at Range 1;
+   later ranges only mark the nearer ones, so the scaffold fades. Wind is left
+   out on purpose: reading the flag is the skill. */
+function drawGuide(){
+  if (!game.drawing || game.power <= .08 || game.R.guide <= 0) return;
+  const D = game.R.dist, reach = D[0] + (D[1] - D[0]) * game.R.guide + .5;
+  const L = launch(game.power);
+  ctx.save();
+  game.round.targets.filter(t => t.z <= reach).forEach(t => {
+    const tt = (t.z - L.p.z) / L.v.z;
+    const y = L.p.y + L.v.y * tt - .5 * GRAV * tt * tt, x = L.p.x + L.v.x * tt;
+    if (y <= 0 || Math.hypot(x - t.x, y - t.y) > game.R.R * 2.6) return;   /* only near the target you're aiming at */
+    const q = proj(x, y, t.z), k = 6;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(q.x - k, q.y - k); ctx.lineTo(q.x + k, q.y + k); ctx.moveTo(q.x + k, q.y - k); ctx.lineTo(q.x - k, q.y + k); ctx.stroke();
+    ctx.strokeStyle = C.gold; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(q.x - k, q.y - k); ctx.lineTo(q.x + k, q.y + k); ctx.moveTo(q.x + k, q.y - k); ctx.lineTo(q.x - k, q.y + k); ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawSight(){
+  const a = sightPoint(), full = game.power >= 1;
+  ctx.save();
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.85)';
+  ctx.beginPath(); ctx.arc(a.x, a.y, 16, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 2; ctx.strokeStyle = game.drawing ? (full ? C.calm : C.gold) : C.ink;
+  ctx.beginPath(); ctx.arc(a.x, a.y, 16, 0, Math.PI * 2);
+  ctx.moveTo(a.x - 26, a.y); ctx.lineTo(a.x - 8, a.y); ctx.moveTo(a.x + 8, a.y); ctx.lineTo(a.x + 26, a.y);
+  ctx.moveTo(a.x, a.y - 26); ctx.lineTo(a.x, a.y - 8); ctx.moveTo(a.x, a.y + 8); ctx.lineTo(a.x, a.y + 26); ctx.stroke();
+  ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(a.x, a.y, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+/* Your bow in the foreground — one rigid piece built by bowGeom(). The arrow
+   lies on the rest and points at the sight; the string runs from each limb
+   tip to the nock at your hand. After a shot the string snaps straight and
+   the next arrow appears once you can shoot again. */
+function drawBow(){
+  const g = bowGeom(), loaded = canShoot() || game.drawing;
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  /* string: to the nock while loaded, straight when it has just been released */
+  ctx.strokeStyle = C.string; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(g.T.x, g.T.y);
+  if (loaded) ctx.lineTo(g.N.x, g.N.y);
+  ctx.lineTo(g.B.x, g.B.y); ctx.stroke();
+  /* limbs bend away from you, riser in the middle */
+  ctx.strokeStyle = C.wood; ctx.lineWidth = 13;
+  ctx.beginPath(); ctx.moveTo(g.T.x, g.T.y); ctx.quadraticCurveTo(g.R.x - 46, g.R.y + 10, g.B.x, g.B.y); ctx.stroke();
+  ctx.fillStyle = '#4a3020'; roundRect(g.R.x - 30, g.R.y + 6, 26, 66, 8); ctx.fill();        /* grip, just under the rest */
+  ctx.fillStyle = '#3a2618'; ctx.beginPath(); ctx.arc(g.R.x - 17, g.R.y + 2, 5, 0, Math.PI * 2); ctx.fill();   /* the rest */
+  if (loaded){
+    /* shaft from the nock, across the rest, out to the tip */
+    ctx.strokeStyle = C.wood; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(g.N.x, g.N.y); ctx.lineTo(g.tip.x, g.tip.y); ctx.stroke();
+    ctx.fillStyle = '#6b6f76';
+    const a = Math.atan2(g.uy, g.ux);
+    ctx.save(); ctx.translate(g.tip.x, g.tip.y); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-4, -6); ctx.lineTo(-4, 6); ctx.closePath(); ctx.fill(); ctx.restore();
+    /* fletching near the nock */
+    ctx.fillStyle = C['ring-red'];
+    ctx.save(); ctx.translate(g.N.x, g.N.y); ctx.rotate(a);
+    [-1, 1].forEach(sg => { ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(36, 0); ctx.lineTo(14, sg * 13); ctx.closePath(); ctx.fill(); });
+    ctx.restore();
+    /* your hand on the string */
+    ctx.fillStyle = '#c99b78'; ctx.beginPath(); ctx.ellipse(g.N.x + 10, g.N.y + 14, 22, 16, a, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawWind(w){
+  const x = 92, y = 18, a = Math.abs(w);
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,.8)'; roundRect(14, 8, 156, 54, 8); ctx.fill();
+  ctx.strokeStyle = C.wood; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 18); ctx.stroke();
+  ctx.fillStyle = C.warn; ctx.beginPath();
+  if (a < .3){ ctx.moveTo(x, y - 4); ctx.lineTo(x + 5, y + 10); ctx.lineTo(x, y + 12); }
+  else { const len = Math.min(64, 14 + a * 14), d = w > 0 ? 1 : -1; ctx.moveTo(x, y - 4); ctx.lineTo(x + d * len, y + 2); ctx.lineTo(x, y + 8); }
+  ctx.fill();
+  ctx.fillStyle = C.ink; ctx.font = '700 13px "Atkinson Hyperlegible", Verdana, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('wind: ' + windWord(w), x, y + 36);
+  ctx.restore();
+}
+
+function drawPowerBar(){
+  const x = 20, y = H - 34, w = 170, h = 14, full = game.power >= 1;
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,.85)'; roundRect(x, y, w, h, 7); ctx.fill();
+  ctx.fillStyle = full ? C.calm : C.gold; roundRect(x, y, Math.max(7, w * game.power), h, 7); ctx.fill();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1; roundRect(x, y, w, h, 7); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = '700 13px "Atkinson Hyperlegible", Verdana, sans-serif'; ctx.textBaseline = 'bottom';
+  ctx.fillText(full ? (game.R.sway && game.hold > 1.2 ? 'FULL DRAW: let go before you wobble!' : 'FULL DRAW') : 'drawing…', x, y - 4);
+  ctx.restore();
+}
+
+/* ---------- link diagrams on the mini-lesson cards ---------- */
+function drawLinks(root){
+  root.querySelectorAll('.linkdemo').forEach(box => {
+    box.querySelectorAll('svg.links').forEach(s => s.remove());
+    const br = box.getBoundingClientRect(); if (!br.width) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'links'); svg.setAttribute('width', br.width); svg.setAttribute('height', br.height);
+    svg.setAttribute('aria-hidden', 'true');
+    const id = 'lh' + Math.random().toString(36).slice(2, 7);
+    svg.innerHTML = '<defs><marker id="' + id + '" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#2f6f8f"/></marker>' +
+                    '<marker id="' + id + 'w" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#a8641b"/></marker></defs>';
+    box.querySelectorAll('[data-p]').forEach(p => {
+      const pr = p.getBoundingClientRect();
+      box.querySelectorAll('[data-a="' + p.dataset.p + '"]').forEach(a => {
+        const ar = a.getBoundingClientRect();
+        if (Math.abs(ar.top - pr.top) > 6) return;
+        const x1 = pr.left + pr.width / 2 - br.left, x2 = ar.left + ar.width / 2 - br.left, y = pr.top - br.top - 2;
+        const h = Math.min(y - 4, 16 + Math.abs(x1 - x2) * .12);
+        const maybe = !!a.dataset.maybe;
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', 'M' + x1 + ' ' + y + ' C' + x1 + ' ' + (y - h) + ', ' + x2 + ' ' + (y - h) + ', ' + x2 + ' ' + (y - 1));
+        if (maybe) path.setAttribute('class', 'maybe');
+        path.setAttribute('marker-end', 'url(#' + id + (maybe ? 'w' : '') + ')');
+        svg.appendChild(path);
+        if (maybe){
+          const tx = document.createElementNS(NS, 'text');
+          tx.setAttribute('x', (x1 + x2) / 2 - 4); tx.setAttribute('y', y - h * .75 - 2); tx.textContent = '?';
+          svg.appendChild(tx);
+        }
+      });
+    });
+    box.appendChild(svg);
+  });
+}
+
+/* ---------- sound: opt-in, off by default ---------- */
+function sfx(kind){
+  if (!soundOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime;
+    const tone = (f1, f2, dur, type, vol, delay) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.setValueAtTime(f1, t0 + delay); o.frequency.exponentialRampToValueAtTime(f2, t0 + delay + dur);
+      g.gain.setValueAtTime(vol, t0 + delay); g.gain.exponentialRampToValueAtTime(.001, t0 + delay + dur);
+      o.connect(g).connect(actx.destination); o.start(t0 + delay); o.stop(t0 + delay + dur + .02);
+    };
+    if (kind === 'twang') tone(220, 90, .18, 'triangle', .25, 0);
+    if (kind === 'thunk') tone(140, 60, .09, 'square', .12, 0);
+    if (kind === 'yay'){ tone(660, 660, .12, 'sine', .18, .05); tone(990, 990, .18, 'sine', .18, .17); }
+    if (kind === 'nope') tone(260, 200, .16, 'sine', .14, .05);
+  } catch (e) { /* no audio — fine */ }
+}
+
+/* ---------- turn-in panel (from the shell) ---------- */
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' ranges.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' ranges.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = $('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+$('copyAll').addEventListener('click', async () => {
+  const plainTxt = buildPlain();
+  $('previewText').value = plainTxt;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plainTxt],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plainTxt); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = $('previewText');
+      $('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    $('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand. Takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+$('showPrev').addEventListener('click', () => {
+  $('previewText').value = buildPlain();
+  $('preview').classList.toggle('show');
+});
+
+/* ---------- boot ---------- */
+/* Wrap next() so the range follows the active stage. student.js wraps this
+   wrapper in turn, so a restored session lands on the right range too. */
+const baseNext = LL.next.bind(LL);
+LL.next = function(){ baseNext(); mountActive(); };
+window.addEventListener('resize', () => {
+  if (!game) return; resize();
+  const st = document.getElementById(game.id); if (st) drawLinks(st.querySelector('.learn'));
+});
+readColors();
+mountActive();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+  draw(); if (game) drawLinks(document.getElementById(game.id).querySelector('.learn'));
+});
+</script>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "Range 1 — Then, Now, Next",
+    "questions": [ "Warm-up shot, then 6 rounds from a bank of 9 (always two past, two present, two future): read the time clue and shoot the verb form that fits (shot / shoots / will shoot). Present items pin the time with a second present verb; future items use clues the present can’t stand in for (someday, in ten years)." ] },
+  { "title": "Range 2 — Helpers Carry the Time",
+    "questions": [ "4 rounds (bank of 6): pick the helper for the -ing train (was/were, am/is/are, will be), with a “will” (missing be) trap and two subject-count traps.",
+                   "4 rounds (bank of 8): after will / did / didn’t / does, shoot the plain main verb; plus irregular pasts (threw, took, beat) against -ed over-regularisations." ] },
+  { "title": "Range 3 — The Championship (mixed)",
+    "questions": [ "9 mixed rounds from a bank of 15, always including two tense names (simple vs. progressive), two time-jumpers, two run-ons (shoot the word that starts the new sentence) and two verb-job rounds from LA6-L07 (incl. “was” doing both jobs).",
+                   "Q1. Fix the time-jumper and the run-on in “Yesterday the Hawks scored first, they win the game in the last minute.”",
+                   "Q2. One sentence about your last practice, one about your next; name the helping verb in the future one." ] }
+]
+</script>
+<script src="../assets/student.js"></script>
+</body>
+</html>
