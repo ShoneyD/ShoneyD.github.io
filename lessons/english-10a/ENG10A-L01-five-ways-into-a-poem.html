@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG10A-L01 · Five Ways Into a Poem</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG10A-L01</p>
+  <h1 id="pagetitle">English 10A · Lesson 1</h1>
+  <p class="sub" id="pagesub">Five Ways Into a Poem.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Five ways in, one way not">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Five ways in, one way not</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Five ways in, one way not</h2>
+
+      <p>Read <strong>"Introduction to Poetry"</strong> by Billy Collins: <a href="https://www.poetryfoundation.org/poems/46712/introduction-to-poetry">open it on Poetry Foundation</a>. It's sixteen lines.</p>
+
+      <p>Collins lists things a reader can <strong>do</strong> to a poem: look at it against the light, listen to it, wander around inside it. Then he describes what students actually do: interrogate it until it "confesses" what it means. Today the good moves become <strong>five tests</strong>, and the interrogation is <strong>banned</strong>.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 640 230" role="img" aria-label="Five tests drawn as five doors into a poem. Light test for imagery, Ear test for sound, Mouse test for syntax, Light-switch test for figurative language, Voice test for dialect and tone. Below, a crossed-out chair labelled banned: what does it really mean.">
+  <rect x="235" y="8" width="170" height="44" rx="10" fill="none" stroke="var(--ink)" stroke-width="3"/>
+  <text x="320" y="37" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">THE POEM</text>
+  <g font-size="13" text-anchor="middle" fill="var(--ink)">
+    <line x1="64" y1="92" x2="300" y2="52" stroke="var(--line)" stroke-width="2"/>
+    <line x1="192" y1="92" x2="310" y2="52" stroke="var(--line)" stroke-width="2"/>
+    <line x1="320" y1="92" x2="320" y2="52" stroke="var(--line)" stroke-width="2"/>
+    <line x1="448" y1="92" x2="330" y2="52" stroke="var(--line)" stroke-width="2"/>
+    <line x1="576" y1="92" x2="340" y2="52" stroke="var(--line)" stroke-width="2"/>
+    <rect x="12" y="92" width="104" height="78" rx="10" fill="none" stroke="var(--accent)" stroke-width="3"/>
+    <text x="64" y="120" font-size="22">🎞️</text><text x="64" y="142" font-weight="700">Light test</text><text x="64" y="160">imagery</text>
+    <rect x="140" y="92" width="104" height="78" rx="10" fill="none" stroke="var(--accent)" stroke-width="3"/>
+    <text x="192" y="120" font-size="22">🐝</text><text x="192" y="142" font-weight="700">Ear test</text><text x="192" y="160">sound</text>
+    <rect x="268" y="92" width="104" height="78" rx="10" fill="none" stroke="var(--accent)" stroke-width="3"/>
+    <text x="320" y="120" font-size="22">🐭</text><text x="320" y="142" font-weight="700">Mouse test</text><text x="320" y="160">syntax</text>
+    <rect x="396" y="92" width="104" height="78" rx="10" fill="none" stroke="var(--accent)" stroke-width="3"/>
+    <text x="448" y="120" font-size="22">💡</text><text x="448" y="142" font-weight="700">Light switch</text><text x="448" y="160">figurative</text>
+    <rect x="524" y="92" width="104" height="78" rx="10" fill="none" stroke="var(--accent)" stroke-width="3"/>
+    <text x="576" y="120" font-size="22">🗣️</text><text x="576" y="142" font-weight="700">Voice test</text><text x="576" y="160">dialect, tone</text>
+  </g>
+  <text x="320" y="210" text-anchor="middle" font-size="15" fill="var(--warn)">🪑 BANNED: "What does it REALLY mean?"</text>
+  <line x1="186" y1="205" x2="454" y2="205" stroke="var(--warn)" stroke-width="2"/>
+</svg>
+      <figcaption>Five ways in. Meaning is what you find inside, not what you force out.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q1.</strong> Which test would you try first on a poem you've never seen?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Which test would you try first on a poem you&#x27;ve never seen?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="🎞️ Light test: what can I see?">🎞️ Light test: what can I see?</option>
+          <option value="🐝 Ear test: what does it sound like?">🐝 Ear test: what does it sound like?</option>
+          <option value="🐭 Mouse test: how do the sentences move?">🐭 Mouse test: how do the sentences move?</option>
+          <option value="💡 Light-switch test: what&#x27;s it being compared to?">💡 Light-switch test: what&#x27;s it being compared to?</option>
+          <option value="🗣️ Voice test: who&#x27;s talking, and how?">🗣️ Voice test: who&#x27;s talking, and how?</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked: the test you'd try first.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="The runaway colt">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; The runaway colt</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; The runaway colt</h2>
+
+      <p><strong>Robert Frost, "The Runaway"</strong> (1923). Frost lived on a New England farm. A <em>Morgan</em> is a breed of horse.</p>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:16px 20px;max-width:34em;line-height:1.75;font-size:1.12rem;white-space:pre-line;">Once when the snow of the year was beginning to fall,
+We stopped by a mountain pasture to say, "Whose colt?"
+A little Morgan had one forefoot on the wall,
+The other curled at his breast. He dipped his head
+And snorted at us. And then he had to bolt.
+We heard the miniature thunder where he fled,
+And we saw him, or thought we saw him, dim and grey,
+Like a shadow against the curtain of falling flakes.
+"I think the little fellow's afraid of the snow.
+He isn't winter-broken. It isn't play
+With the little fellow at all. He's running away.
+I doubt if even his mother could tell him, 'Sakes,
+It's only weather.' He'd think she didn't know!
+Where is his mother? He can't be out alone."
+And now he comes again with clatter of stone,
+And mounts the wall again with whited eyes
+And all his tail that isn't hair up straight.
+He shudders his coat as if to throw off flies.
+"Whoever it is that leaves him out so late,
+When other creatures have gone to stall and bin,
+Ought to be told to come and take him in."</div>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top;width:50%;"><span style="font-size:1.6rem;">🎞️</span> <strong>Light test, done for you</strong><br>"Like a shadow against the curtain of falling flakes." I can see a small grey shape behind a white sheet of snow, half there. <strong>Effect:</strong> the colt seems lost and hard to reach.</td>
+    <td style="padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top;width:50%;"><span style="font-size:1.6rem;">🐝</span> <strong>Ear test, done for you</strong><br>"miniature thunder" and "clatter of stone." Hard <em>t</em>, <em>d</em> and <em>k</em> sounds, like hooves. <strong>Effect:</strong> you hear the panic before you see it.</td>
+  </tr>
+</table>
+      <figcaption>Each test has two halves: what the poet did, and what it does to you.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q2.</strong> You know horses. Frost gives the colt "whited eyes," a raised tail, and a coat he "shudders … as if to throw off flies." Did Frost get a scared colt right?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. You know horses. Frost gives the colt &quot;whited eyes,&quot; a raised tail, and a coat he &quot;shudders … as if to throw off flies.&quot; Did Frost get a scared colt right?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="yes, that&#x27;s exactly what a spooked young horse does">yes, that&#x27;s exactly what a spooked young horse does</option>
+          <option value="mostly, but something&#x27;s off">mostly, but something&#x27;s off</option>
+          <option value="no, he&#x27;s never been near a scared horse">no, he&#x27;s never been near a scared horse</option>
+        </select></div>
+
+      <p class="q"><strong>Q3.</strong> 🐭 Mouse test. Most sentences in the poem run across two or three lines. Then: "And then he had to bolt." What does that short sentence do?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. 🐭 Mouse test. Most sentences in the poem run across two or three lines. Then: &quot;And then he had to bolt.&quot; What does that short sentence do?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="it stops short and fast, like the colt bolting">it stops short and fast, like the colt bolting</option>
+          <option value="it slows the poem down to feel calm">it slows the poem down to feel calm</option>
+          <option value="it makes the poem sound funny">it makes the poem sound funny</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> 💡 Light-switch test. Read the last three lines again. Besides a colt, who or what could the runaway stand for?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The colt could also stand for ___, because the last lines say ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q4. 💡 Light-switch test. Read the last three lines again. Besides a colt, who or what could the runaway stand for?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and one sentence that finishes the starter.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="Pick your poem">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Pick your poem</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Pick your poem</h2>
+
+      <p>Pick <strong>one</strong>. Both are short, and both are about work.</p>
+
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:12px;border:2px solid var(--warn);border-radius:10px;vertical-align:top;width:50%;"><span style="font-size:1.8rem;">🪚</span><br><strong>A. "Out, Out—"</strong><br>Robert Frost, 1916. A farm. A buzz saw. A boy doing a man's job. Printed in full below.</td>
+    <td style="padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top;width:50%;"><span style="font-size:1.8rem;">🥶</span><br><strong>B. "Those Winter Sundays"</strong><br>Robert Hayden, 1962. A father who got up in the freezing dark, every week. <a href="https://www.poetryfoundation.org/poems/46461/those-winter-sundays" target="_blank">Read it on Poetry Foundation</a> (14 lines).</td>
+  </tr>
+</table>
+
+<details style="max-width:34em;margin:8px 0 14px;padding:8px 14px;border:2px solid var(--line);border-radius:10px;"><summary style="cursor:pointer;font-size:1.08rem;"><strong>🪚 Open "Out, Out—" by Robert Frost</strong></summary>
+<div style="padding:10px 4px;line-height:1.75;font-size:1.1rem;white-space:pre-line;">The buzz saw snarled and rattled in the yard
+And made dust and dropped stove-length sticks of wood,
+Sweet-scented stuff when the breeze drew across it.
+And from there those that lifted eyes could count
+Five mountain ranges one behind the other
+Under the sunset far into Vermont.
+And the saw snarled and rattled, snarled and rattled,
+As it ran light, or had to bear a load.
+And nothing happened: day was all but done.
+Call it a day, I wish they might have said
+To please the boy by giving him the half hour
+That a boy counts so much when saved from work.
+His sister stood beside them in her apron
+To tell them "Supper." At the word, the saw,
+As if to prove saws knew what supper meant,
+Leaped out at the boy's hand, or seemed to leap—
+He must have given the hand. However it was,
+Neither refused the meeting. But the hand!
+The boy's first outcry was a rueful laugh,
+As he swung toward them holding up the hand
+Half in appeal, but half as if to keep
+The life from spilling. Then the boy saw all—
+Since he was old enough to know, big boy
+Doing a man's work, though a child at heart—
+He saw all spoiled. "Don't let him cut my hand off—
+The doctor, when he comes. Don't let him, sister!"
+So. But the hand was gone already.
+The doctor put him in the dark of ether.
+He lay and puffed his lips out with his breath.
+And then—the watcher at his pulse took fright.
+No one believed. They listened at his heart.
+Little—less—nothing!—and that ended it.
+No more to build on there. And they, since they
+Were not the one dead, turned to their affairs.</div></details>
+
+      <p class="q"><strong>Q5.</strong> Which poem are you taking?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. Which poem are you taking?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="A. &quot;Out, Out—&quot; (Frost)">A. &quot;Out, Out—&quot; (Frost)</option>
+          <option value="B. &quot;Those Winter Sundays&quot; (Hayden)">B. &quot;Those Winter Sundays&quot; (Hayden)</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked, and the poem read out loud once.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="guided" id="g2" data-title="Three tests">
+    <button class="donebar" onclick="LL.toggle('g2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Three tests</strong>
+      <span class="sum" id="sum-g2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Three tests</h2>
+
+      <p>Run each test on <strong>your</strong> poem. The box tells you where to look for A and for B.</p>
+
+      <p class="q"><strong>Q6.</strong> 🐝 Ear test. <strong>A:</strong> "snarled and rattled" shows up three times. <strong>B:</strong> read stanza 1 aloud and listen for the hard <em>k</em> sounds, starting with "blueblack cold." What does the sound make the poem feel like?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The sound of ___ makes the poem feel ___ because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q6. 🐝 Ear test. A: &quot;snarled and rattled&quot; shows up three times. B: read stanza 1 aloud and listen for the hard k sounds, starting with &quot;blueblack cold.&quot; What does the sound make the poem feel like?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q7.</strong> 🐭 Mouse test. <strong>A:</strong> find "So. But the hand was gone already." <strong>B:</strong> find the shortest sentence in the whole poem. What does that short sentence do after the long ones?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. 🐭 Mouse test. A: find &quot;So. But the hand was gone already.&quot; B: find the shortest sentence in the whole poem. What does that short sentence do after the long ones?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="it hits like a door slamming: a hard stop">it hits like a door slamming: a hard stop</option>
+          <option value="it speeds things up and makes them exciting">it speeds things up and makes them exciting</option>
+          <option value="it doesn&#x27;t change anything">it doesn&#x27;t change anything</option>
+        </select></div>
+
+      <p class="q"><strong>Q8.</strong> 🗣️ Voice test. Read the last two lines of your poem. What is the speaker's tone, and which words prove it?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The ending sounds ___ (numb? guilty? angry? proud?), and the words that prove it are ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. 🗣️ Voice test. Read the last two lines of your poem. What is the speaker&#x27;s tone, and which words prove it?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three answers: one sentence with "because" in it, one dropdown, and one sentence naming a tone and the line that proves it.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Your poem">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Your poem</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Your poem</h2>
+
+      <p>Pick <strong>one</strong> poem you have not read. Every one of them has a horse, a farm, or a field in it somewhere.</p>
+
+<table style="width:100%;max-width:42em;border-collapse:separate;border-spacing:6px;font-size:1rem;line-height:1.55;">
+  <tr>
+    <td style="padding:10px 12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:50%;">🐴 <strong>"A Blessing"</strong>, James Wright<br>Two ponies come to the fence at twilight. <a href="https://www.poetryfoundation.org/poems/46481/a-blessing" target="_blank">Read it</a></td>
+    <td style="padding:10px 12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:50%;">🚜 <strong>"Follower"</strong>, Seamus Heaney<br>A boy trailing his father's horse-plough. <a href="https://poetryfoundation.org/poems/57371/follower" target="_blank">Read it</a></td>
+  </tr>
+  <tr>
+    <td style="padding:10px 12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;">🪖 <strong>"As the Team's Head-Brass"</strong>, Edward Thomas<br>A ploughman and his horses, 1916, while the war goes on. <a href="https://poetryarchive.org/poem/as-teams-head-brass" target="_blank">Read it (and hear it)</a></td>
+    <td style="padding:10px 12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;">🐭 <strong>"To a Mouse"</strong>, Robert Burns<br>A farmer ploughs up a mouse's nest. Written in Scots. <a href="https://www.ibiblio.org/gaelic/Scots/toamouse.html" target="_blank">Read it</a> · <a href="https://homepages.uc.edu/~druryjp/Burns,%20To%20a%20Mouse.htm" target="_blank">word list</a></td>
+  </tr>
+  <tr>
+    <td colspan="2" style="padding:10px 12px;border:2px dashed var(--warn);border-radius:10px;vertical-align:top;">🦅 <strong>"The Windhover"</strong>, Gerard Manley Hopkins. <strong>This one's meant to be hard.</strong> A falcon riding the wind, written like a rider on a horse. Printed below.</td>
+  </tr>
+</table>
+
+<details style="max-width:34em;margin:8px 0 14px;padding:8px 14px;border:2px dashed var(--warn);border-radius:10px;"><summary style="cursor:pointer;font-size:1.08rem;"><strong>🦅 Open "The Windhover" (meant to be hard)</strong></summary>
+<div style="padding:10px 4px;line-height:1.8;font-size:1.1rem;white-space:pre-line;"><em>To Christ our Lord</em>
+
+I caught this morning morning's minion, king-
+&emsp;dom of daylight's dauphin, dapple-dawn-drawn Falcon, in his riding
+&emsp;Of the rolling level underneath him steady air, and striding
+High there, how he rung upon the rein of a wimpling wing
+In his ecstasy! then off, off forth on swing,
+&emsp;As a skate's heel sweeps smooth on a bow-bend: the hurl and gliding
+&emsp;Rebuffed the big wind. My heart in hiding
+Stirred for a bird,—the achieve of, the mastery of the thing!
+
+Brute beauty and valour and act, oh, air, pride, plume, here
+&emsp;Buckle! AND the fire that breaks from thee then, a billion
+Times told lovelier, more dangerous, O my chevalier!
+
+&emsp;No wonder of it: shéer plód makes plough down sillion
+Shine, and blue-bleak embers, ah my dear,
+&emsp;Fall, gall themselves, and gash gold-vermilion.</div>
+<p style="font-size:.98rem;line-height:1.6;margin-top:6px;"><strong>Words:</strong> minion = favourite · dauphin = prince · wimpling = rippling · sillion = a ploughed furrow · chevalier = knight on horseback</p></details>
+
+      <p class="q"><strong>Q9.</strong> Which poem did you pick?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. Which poem did you pick?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="&quot;A Blessing&quot; (Wright)">&quot;A Blessing&quot; (Wright)</option>
+          <option value="&quot;Follower&quot; (Heaney)">&quot;Follower&quot; (Heaney)</option>
+          <option value="&quot;As the Team&#x27;s Head-Brass&quot; (Thomas)">&quot;As the Team&#x27;s Head-Brass&quot; (Thomas)</option>
+          <option value="&quot;To a Mouse&quot; (Burns)">&quot;To a Mouse&quot; (Burns)</option>
+          <option value="&quot;The Windhover&quot; (Hopkins) — the hard one">&quot;The Windhover&quot; (Hopkins) — the hard one</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One poem picked and opened in a second tab.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="mastery" id="m2" data-title="Two tests, two paragraphs">
+    <button class="donebar" onclick="LL.toggle('m2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Two tests, two paragraphs</strong>
+      <span class="sum" id="sum-m2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Two tests, two paragraphs</h2>
+
+      <p>Pick <strong>two different tests</strong> and run them on your poem. Each paragraph is 2–3 sentences: <strong>the device → the quote → the effect.</strong></p>
+
+      <figure class="dia">
+<svg viewBox="0 0 620 90" role="img" aria-label="Three boxes joined by arrows: what the poet did, then the quote that shows it, then what it makes the poem feel like and why.">
+  <rect x="6" y="14" width="170" height="60" rx="10" fill="none" stroke="var(--accent)" stroke-width="3"/>
+  <text x="91" y="40" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">1. The device</text>
+  <text x="91" y="60" text-anchor="middle" font-size="12" fill="var(--soft)">"The poet uses…"</text>
+  <path d="M182 44 L218 44" stroke="var(--line)" stroke-width="3" marker-end="url(#ah)"/>
+  <rect x="224" y="14" width="170" height="60" rx="10" fill="none" stroke="var(--accent)" stroke-width="3"/>
+  <text x="309" y="40" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">2. The quote</text>
+  <text x="309" y="60" text-anchor="middle" font-size="12" fill="var(--soft)">in "quotation marks"</text>
+  <path d="M400 44 L436 44" stroke="var(--line)" stroke-width="3" marker-end="url(#ah)"/>
+  <rect x="442" y="14" width="170" height="60" rx="10" fill="none" stroke="var(--warn)" stroke-width="3"/>
+  <text x="527" y="40" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">3. The effect</text>
+  <text x="527" y="60" text-anchor="middle" font-size="12" fill="var(--soft)">"…because…"</text>
+  <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="var(--line)"/></marker></defs>
+</svg>
+      <figcaption>Every paragraph, same three moves.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q10.</strong> Test #1: which one?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q10. Test #1: which one?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="🎞️ Light test (imagery)">🎞️ Light test (imagery)</option>
+          <option value="🐝 Ear test (sound)">🐝 Ear test (sound)</option>
+          <option value="🐭 Mouse test (syntax)">🐭 Mouse test (syntax)</option>
+          <option value="💡 Light-switch test (figurative language)">💡 Light-switch test (figurative language)</option>
+          <option value="🗣️ Voice test (dialect and tone)">🗣️ Voice test (dialect and tone)</option>
+        </select></div>
+
+      <p class="q"><strong>Q11.</strong> Paragraph #1.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The poet uses ___ in the line \"___.\" This makes the poem feel ___ because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q11. Paragraph #1." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q12.</strong> Test #2: a different one.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q12. Test #2: a different one.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="🎞️ Light test (imagery)">🎞️ Light test (imagery)</option>
+          <option value="🐝 Ear test (sound)">🐝 Ear test (sound)</option>
+          <option value="🐭 Mouse test (syntax)">🐭 Mouse test (syntax)</option>
+          <option value="💡 Light-switch test (figurative language)">💡 Light-switch test (figurative language)</option>
+          <option value="🗣️ Voice test (dialect and tone)">🗣️ Voice test (dialect and tone)</option>
+        </select></div>
+
+      <p class="q"><strong>Q13.</strong> Paragraph #2.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The poet uses ___ in the line \"___.\" This makes the poem feel ___ because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q13. Paragraph #2." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two short paragraphs. Each one names a test, quotes a line in quotation marks, and says what it does to the poem with the word "because."</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="Annotate &amp; Explain: start it">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Annotate &amp; Explain: start it</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Annotate &amp; Explain: start it</h2>
+
+      <p>Same poem as Independent Mastery. You already have <strong>two of the three explanations</strong> (Q11 and Q13). Here's what the whole assignment needs:</p>
+
+<table style="max-width:36em;border-collapse:collapse;font-size:1.02rem;line-height:1.6;">
+  <tr><td style="padding:6px 10px;border-bottom:1px solid var(--line);">✅ Explanations 1 and 2</td><td style="padding:6px 10px;border-bottom:1px solid var(--line);"><strong>Done</strong> in class (Q11, Q13)</td></tr>
+  <tr><td style="padding:6px 10px;border-bottom:1px solid var(--line);">✍️ Annotations 1 and 2</td><td style="padding:6px 10px;border-bottom:1px solid var(--line);"><strong>Now</strong>, together (Q14)</td></tr>
+  <tr><td style="padding:6px 10px;border-bottom:1px solid var(--line);">✍️ "Overall" sentence</td><td style="padding:6px 10px;border-bottom:1px solid var(--line);"><strong>Now</strong>, together (Q15)</td></tr>
+  <tr><td style="padding:6px 10px;">⏳ 4 more annotations + explanation 3</td><td style="padding:6px 10px;">Before Tuesday</td></tr>
+</table>
+
+      <p class="q"><strong>Q14.</strong> Annotations 1 and 2. For each: the device name, then the words from the poem.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 1. ___ (device): \"___\"   2. ___ (device): \"___\"____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q14. Annotations 1 and 2. For each: the device name, then the words from the poem." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q15.</strong> Finish the sentence the assignment ends with.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Overall, the poet creates ___ through the use of ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q15. Finish the sentence the assignment ends with." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Your first two annotations written here, and your "Overall" sentence drafted. Then it goes into Canvas before we hang up.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The five tests (and the one question that's banned) &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">🎞️ Light test: imagery</td><td>Hold the poem up to the light. What exactly can you SEE? Colour, size, temperature, movement.</td></tr>
+      <tr><td class="h">🐝 Ear test: sound</td><td>Read it out loud. Which sounds repeat? Same first letter = alliteration (snarled… sticks). Same consonant anywhere in the word = consonance (cracked… ached). Hard sounds feel harsh; soft sounds feel calm.</td></tr>
+      <tr><td class="h">🐭 Mouse test: syntax</td><td>Follow one sentence through the lines like a mouse in a maze. Where does it run long, stop short, or get cut by a line break?</td></tr>
+      <tr><td class="h">💡 Light-switch test: figurative language</td><td>Find the comparison (simile, metaphor, personification) that makes the whole poem click on.</td></tr>
+      <tr><td class="h">🗣️ Voice test: dialect and tone</td><td>Who is talking? How would they sound? What's their attitude: proud, numb, sorry, scared?</td></tr>
+      <tr><td class="h">🚫 Banned question</td><td>"What does it REALLY mean?" Meaning comes out of the tests. Never beat it out of the poem.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>Every answer has two halves:</strong> what the poet did, and what it makes the poem feel like <em>because</em> of it.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud and your teacher will type it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "English 10A · Lesson 1";
+const LESSON_ID = "ENG10A-L01";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Analyze how poets use literary devices such as imagery, alliteration, consonance, dialect, figurative language, or syntax to develop meaning, tone, and emotional impact.",
+  "O2": "Back a claim about a device with a quoted line and the effect it has on the reader."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & the poem-torture poem", mins:5 },
+  { label:"Five ways into a poem", mins:12, part:"intro" },
+  { label:"The saw and the cold", mins:13, part:"guided" },
+  { label:"Your poem, your two tests", mins:15, part:"mastery" },
+  { label:"Annotate & Explain: start it", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Five tests you can run on any poem, tried out on a runaway colt.", sheet: true, outcomes: ["O1"] },
+  guided: { title: "Guided Practice", sub: "Pick a poem. Run three tests. No interrogation.", sheet: true, outcomes: ["O1", "O2"] },
+  mastery: { title: "Independent Mastery", sub: "You pick the poem and the two tests. Two short paragraphs.", sheet: true, outcomes: ["O1", "O2"] },
+  homework: { title: "Homework", sub: "The Annotate & Explain assignment, with two explanations already written.", sheet: true, outcomes: ["O1", "O2"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You've got five ways into any poem. None of them use rope."},
+  i2:{star:"★",msg:"You checked Frost's horse like someone who knows horses. That's close reading."},
+  g1:{star:"★",msg:"Poem picked. Now you'll walk around inside it."},
+  g2:{star:"★",msg:"Three tests, three answers, zero confessions. That's the method."},
+  m1:{star:"★",msg:"You picked your own poem. That choice is half of reading well."},
+  m2:{star:"★",msg:"Two tests, two claims, two quotes. That's real analysis, and it's yours."},
+  h1:{star:"★",msg:"Started. That's the hardest part of any homework, and it's behind you."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/guide.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
