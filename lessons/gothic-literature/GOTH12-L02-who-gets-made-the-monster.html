@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GOTH12-L02 · Who Gets Made the Monster</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">GOTH12-L02</p>
+  <h1 id="pagetitle">Gothic Literature · Lesson 2</h1>
+  <p class="sub" id="pagesub">Who Gets Made the Monster.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Us and them">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Us and them</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Us and them</h2>
+
+      <p>Last lesson's question was <strong>where's the monster?</strong> Today's is harder: <strong>who gets made into one?</strong></p>
+
+      <p>The Gothic has a habit. It takes a group of people a society is nervous about and turns them into the monster. That move has a name: <strong>othering</strong>.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 620 200" role="img" aria-label="Othering drawn as two circles. On the left, a large circle labelled US: normal, safe, belongs here. On the right, a small circle labelled THEM: strange, dangerous, the monster. A thick wall separates them, labelled othering builds this wall.">
+  <circle cx="160" cy="105" r="85" fill="none" stroke="var(--accent)" stroke-width="4"/>
+  <text x="160" y="95" text-anchor="middle" font-size="26" font-weight="700" fill="var(--accent)">US</text>
+  <text x="160" y="122" text-anchor="middle" font-size="14" fill="var(--ink)">normal, safe,</text>
+  <text x="160" y="140" text-anchor="middle" font-size="14" fill="var(--ink)">belongs here</text>
+  <rect x="300" y="25" width="22" height="160" fill="var(--soft)" opacity=".7"/>
+  <text x="311" y="18" text-anchor="middle" font-size="13" fill="var(--soft)">the wall</text>
+  <circle cx="470" cy="105" r="55" fill="none" stroke="var(--warn)" stroke-width="4" stroke-dasharray="7 5"/>
+  <text x="470" y="98" text-anchor="middle" font-size="22" font-weight="700" fill="var(--warn)">THEM</text>
+  <text x="470" y="120" text-anchor="middle" font-size="13" fill="var(--ink)">strange,</text>
+  <text x="470" y="137" text-anchor="middle" font-size="13" fill="var(--ink)">dangerous</text>
+</svg>
+      <figcaption>Othering builds the wall. The Gothic puts the monster on the far side of it.</figcaption>
+      </figure>
+
+      <figure class="photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Dracamer99.jpg?width=760"
+             alt="An 1899 book cover for Dracula: a dark castle on a cliff under a night sky.">
+        <figcaption>Dracula, 1899 American edition. A count from far-off Transylvania, coming to London. <a href="https://commons.wikimedia.org/wiki/File:Dracamer99.jpg">via Wikimedia Commons</a>.</figcaption>
+      </figure>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> 1897. Count Dracula, a rich nobleman from Eastern Europe, buys a house in London and ships himself there. He feeds on English people and turns them into creatures like him. The heroes hunt him down and drive him out.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> what he wants from London.</p>
+</div>
+
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  I long to go through the crowded streets of your mighty London
+</div>
+
+      <p class="q"><strong>Q1.</strong> Victorian readers in London found this terrifying. What fear is the book playing on?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Victorian readers in London found this terrifying. What fear is the book playing on?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a fear of the dark">a fear of the dark</option>
+          <option value="a fear of outsiders: he&#x27;s foreign, and he wants to move in">a fear of outsiders: he&#x27;s foreign, and he wants to move in</option>
+          <option value="a fear of old castles">a fear of old castles</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked, and one sentence out loud about what's scary in the picture.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="It cuts both ways">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; It cuts both ways</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; It cuts both ways</h2>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> 1818. Victor Frankenstein builds a man from dead body parts and brings him to life. He is horrified by how the creature looks and runs away. Everyone the creature meets screams, hits him or chases him off. Alone, he teaches himself to read and speak. Only then does he turn violent.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> who he blames.</p>
+</div>
+
+      <figure class="photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Frankenstein.1831.inside-cover.jpg?width=760"
+             alt="An 1831 engraving: a huge, muscular figure sits up on the floor of a laboratory, while a young man flees through the door in horror.">
+        <figcaption>Theodor von Holst, 1831. The creature has just woken up. Look at who is running. <a href="https://commons.wikimedia.org/wiki/File:Frankenstein.1831.inside-cover.jpg">via Wikimedia Commons</a>.</figcaption>
+      </figure>
+
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  Everywhere I see bliss, from which I alone am irrevocably excluded.
+</div>
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  I am malicious because I am miserable.
+</div>
+<details style="max-width:30em;margin:-4px 0 14px;padding:8px 14px;border:2px dashed var(--field-line);border-radius:10px;font-size:1.05rem;line-height:1.6;"><summary style="cursor:pointer;color:var(--soft);"><strong>Stuck? Tap for plain English</strong> (read the real lines first)</summary><p style="margin-top:.5rem;">Everyone else gets to be happy, and I'm locked out forever. I'm cruel because I'm miserable.</p></details>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:12px;border:2px solid var(--warn);border-radius:10px;vertical-align:top;width:50%;"><span style="font-size:1.8rem;">🧛</span><br><strong>Dracula</strong><br><strong>Feeds the fear.</strong> The foreigner is the invader. He's also a rich lord who feeds on ordinary people: that's <strong>class</strong>.</td>
+    <td style="padding:12px;border:2px solid var(--accent);border-radius:10px;vertical-align:top;width:50%;"><span style="font-size:1.8rem;">🧟</span><br><strong>Frankenstein's creature</strong><br><strong>Flips the fear.</strong> You hear his side. The people who reject him start to look like the real monsters.</td>
+  </tr>
+</table>
+      <figcaption>Same Gothic move, two opposite effects.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q2.</strong> "I am malicious because I am miserable." Who does the creature blame for what he became?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. &quot;I am malicious because I am miserable.&quot; Who does the creature blame for what he became?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Victor alone">Victor alone</option>
+          <option value="himself">himself</option>
+          <option value="the people who rejected him for how he looks">the people who rejected him for how he looks</option>
+        </select></div>
+
+      <p><strong>This one has two good answers. Pick a side and back it out loud.</strong></p>
+
+      <p class="q"><strong>Q3.</strong> Were Gothic writers who used othering doing more harm than good?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. Were Gothic writers who used othering doing more harm than good?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="more harm: they taught readers who to fear">more harm: they taught readers who to fear</option>
+          <option value="more good: they made readers feel what it&#x27;s like to be shut out">more good: they made readers feel what it&#x27;s like to be shut out</option>
+          <option value="depends on the book">depends on the book</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked, and your Q3 side said out loud in one sentence.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="The house remembers">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The house remembers</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The house remembers</h2>
+
+      <p><strong>Toni Morrison, <em>Beloved</strong></em> (1987). Morrison was a Black American novelist, and she won the Nobel Prize in Literature.</p>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> Ohio, 1873, after slavery has ended. Sethe escaped slavery years ago. When slave-catchers came to take her family back, she killed her baby daughter rather than let her be enslaved. Now her house, number 124, is haunted by that baby's angry ghost. Then a young woman named Beloved shows up at the door.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> how the first line talks about the house.</p>
+</div>
+
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.4rem;line-height:1.75;max-width:30em;">
+  124 was spiteful. Full of a baby's venom.
+</div>
+
+      <figure class="dia">
+<svg viewBox="0 0 620 170" role="img" aria-label="The lens line, now with three stops. OUTSIDE: something comes for you, like Lenore's rider. INSIDE: a mind or a hunger, like Porphyria's lover. A new third stop, THE SYSTEM: a history or a whole society, like slavery in Beloved.">
+  <line x1="40" y1="70" x2="580" y2="70" stroke="var(--soft)" stroke-opacity=".6" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="70"  cy="70" r="16" fill="var(--accent)"/>
+  <rect   x="294" y="54" width="32" height="32" fill="var(--warn)"/>
+  <polygon points="550,54 572,92 528,92" fill="var(--calm)"/>
+  <text x="70"  y="28" text-anchor="middle" font-size="16" font-weight="700" fill="var(--accent)">OUTSIDE</text>
+  <text x="310" y="28" text-anchor="middle" font-size="16" font-weight="700" fill="var(--warn)">INSIDE</text>
+  <text x="550" y="28" text-anchor="middle" font-size="16" font-weight="700" fill="var(--calm)">THE SYSTEM</text>
+  <text x="550" y="44" text-anchor="middle" font-size="12" fill="var(--soft)">✦ new today</text>
+  <text x="70"  y="120" text-anchor="middle" font-size="14" fill="var(--ink)">something</text>
+  <text x="70"  y="138" text-anchor="middle" font-size="14" fill="var(--ink)">comes for you</text>
+  <text x="310" y="120" text-anchor="middle" font-size="14" fill="var(--ink)">a mind,</text>
+  <text x="310" y="138" text-anchor="middle" font-size="14" fill="var(--ink)">a hunger</text>
+  <text x="550" y="120" text-anchor="middle" font-size="14" fill="var(--ink)">a history,</text>
+  <text x="550" y="138" text-anchor="middle" font-size="14" fill="var(--ink)">a whole society</text>
+</svg>
+      <figcaption>Last lesson's line gets a third stop. Circle, square, triangle: the shapes match the colours.</figcaption>
+      </figure>
+
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:10px;border:2px solid var(--calm);border-radius:10px;vertical-align:top;width:33%;"><strong>1 · Who's telling it?</strong><br>Mostly Sethe and the people around her: the ones the history happened to. ✓</td>
+    <td style="padding:10px;border:2px dashed var(--field-line);border-radius:10px;vertical-align:top;width:33%;"><strong>2 · What's the ghost really?</strong><br>→ Q4</td>
+    <td style="padding:10px;border:2px dashed var(--field-line);border-radius:10px;vertical-align:top;width:33%;"><strong>3 · Where's the monster?</strong><br>→ Q5</td>
+  </tr>
+</table>
+
+      <p class="q"><strong>Q4.</strong> The house is haunted by a baby's ghost. What is really haunting it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. The house is haunted by a baby&#x27;s ghost. What is really haunting it?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="an evil spirit that wants revenge">an evil spirit that wants revenge</option>
+          <option value="slavery: the past that won&#x27;t stay buried">slavery: the past that won&#x27;t stay buried</option>
+          <option value="Sethe&#x27;s imagination">Sethe&#x27;s imagination</option>
+        </select></div>
+
+      <p class="q"><strong>Q5.</strong> Where's the monster in Beloved?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. Where&#x27;s the monster in Beloved?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="outside: the ghost">outside: the ghost</option>
+          <option value="inside: Sethe&#x27;s guilt">inside: Sethe&#x27;s guilt</option>
+          <option value="the system: slavery, which made her choice for her">the system: slavery, which made her choice for her</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Row 1 is done for you. Two dropdowns picked to finish the lens.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="guided" id="g2" data-title="Pulled back in time">
+    <button class="donebar" onclick="LL.toggle('g2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Pulled back in time</strong>
+      <span class="sum" id="sum-g2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Pulled back in time</h2>
+
+      <p><strong>Octavia Butler, <em>Kindred</strong></em> (1979). Butler was a Black American writer, best known for science fiction.</p>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> California, 1976. Dana is a Black writer, newly married. Without warning she gets pulled back in time to a plantation in Maryland in the early 1800s, again and again, to save the life of the white boy who will grow up to be her own ancestor. Every trip, she has to survive as an enslaved woman.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> what it costs her.</p>
+</div>
+
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.4rem;line-height:1.75;max-width:30em;">
+  I lost an arm on my last trip home.
+</div>
+
+      <figure class="dia">
+<svg viewBox="0 0 620 150" role="img" aria-label="Two timelines stacked. The top one is labelled 1976, California, Dana's home. The bottom one is labelled 1815, Maryland, a plantation. Jagged arrows yank down from the top line to the bottom line three times, labelled pulled back, and one arrow comes back up, labelled home, but not whole.">
+  <line x1="30" y1="40" x2="590" y2="40" stroke="var(--accent)" stroke-width="5"/>
+  <line x1="30" y1="115" x2="590" y2="115" stroke="var(--warn)" stroke-width="5"/>
+  <text x="30" y="26" font-size="15" font-weight="700" fill="var(--accent)">1976 · California · home</text>
+  <text x="30" y="142" font-size="15" font-weight="700" fill="var(--warn)">early 1800s · Maryland · a plantation</text>
+  <polyline points="130,44 120,70 140,80 130,110" fill="none" stroke="var(--ink)" stroke-width="3"/>
+  <polyline points="250,44 240,70 260,80 250,110" fill="none" stroke="var(--ink)" stroke-width="3"/>
+  <polyline points="370,44 360,70 380,80 370,110" fill="none" stroke="var(--ink)" stroke-width="3"/>
+  <line x1="470" y1="110" x2="470" y2="50" stroke="var(--ink)" stroke-width="3" stroke-dasharray="6 5"/>
+  <polygon points="470,44 462,58 478,58" fill="var(--ink)"/>
+  <text x="482" y="85" font-size="14" fill="var(--soft)">home, not whole</text>
+</svg>
+      <figcaption>Jagged lines: pulled back. The dashed line home costs her an arm.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q6.</strong> She comes "home" missing an arm. What is Butler saying with that?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. She comes &quot;home&quot; missing an arm. What is Butler saying with that?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="you can&#x27;t escape the past; it takes something from you">you can&#x27;t escape the past; it takes something from you</option>
+          <option value="time travel is dangerous">time travel is dangerous</option>
+          <option value="she should have stayed in 1976">she should have stayed in 1976</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> Say it out loud first. Then get it down in two sentences, typed or scribed. Don't worry about spelling.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Morrison and Butler both use the supernatural to show ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q7. Say it out loud first. Then get it down in two sentences, typed or scribed. Don&#x27;t worry about spelling." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked, then said out loud and captured in two sentences, typed or scribed.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="The polite monster">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The polite monster</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The polite monster</h2>
+
+      <p><strong>Jordan Peele, <em>Get Out</strong></em> (2017). A horror film, and one of the best-known Gothic stories of this century.</p>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> Chris, a young Black photographer, goes with his white girlfriend Rose to meet her rich parents at their big country house. Everyone is extremely friendly. Too friendly. They keep praising him for being Black. The Black people who work at the house act strangely, like someone else is inside them. The truth: the family lures Black people there and sells their bodies to rich white buyers, who take them over.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> how nice everyone is.</p>
+</div>
+
+      <figure class="dia">
+<svg viewBox="0 0 620 190" role="img" aria-label="Two panels. Left panel, What Chris sees: a big smiling face, with the labels friendly, polite, says all the right things. Right panel, What is really going on: the same smile drawn as a mask held up on a stick, with the label they want to own him. An arrow points from the first panel to the second.">
+  <rect x="10" y="10" width="280" height="170" rx="12" fill="none" stroke="var(--accent)" stroke-width="3"/>
+  <rect x="330" y="10" width="280" height="170" rx="12" fill="none" stroke="var(--warn)" stroke-width="3"/>
+  <text x="150" y="38" text-anchor="middle" font-size="16" font-weight="700" fill="var(--accent)">What Chris sees</text>
+  <circle cx="150" cy="100" r="38" fill="none" stroke="var(--ink)" stroke-width="3"/>
+  <circle cx="137" cy="90" r="4" fill="var(--ink)"/><circle cx="163" cy="90" r="4" fill="var(--ink)"/>
+  <path d="M128 108 Q150 128 172 108" fill="none" stroke="var(--ink)" stroke-width="3"/>
+  <text x="150" y="162" text-anchor="middle" font-size="14" fill="var(--ink)">friendly · polite · "the right things"</text>
+  <text x="470" y="38" text-anchor="middle" font-size="16" font-weight="700" fill="var(--warn)">What's really going on</text>
+  <circle cx="450" cy="100" r="38" fill="none" stroke="var(--ink)" stroke-width="3" stroke-dasharray="6 4"/>
+  <circle cx="437" cy="90" r="4" fill="var(--ink)"/><circle cx="463" cy="90" r="4" fill="var(--ink)"/>
+  <path d="M428 108 Q450 128 472 108" fill="none" stroke="var(--ink)" stroke-width="3"/>
+  <line x1="488" y1="100" x2="560" y2="150" stroke="var(--ink)" stroke-width="4"/>
+  <text x="470" y="170" text-anchor="middle" font-size="14" fill="var(--ink)">a mask: they want to own him</text>
+  <text x="310" y="104" text-anchor="middle" font-size="22" fill="var(--soft)">→</text>
+</svg>
+      <figcaption>Remember Porphyria's lover? The horror lives in the gap again. This time it's a whole family.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q8.</strong> 1 · Who's the monster in Get Out?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q8. 1 · Who&#x27;s the monster in Get Out?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="the polite, rich, white family">the polite, rich, white family</option>
+          <option value="a ghost in the house">a ghost in the house</option>
+          <option value="Chris">Chris</option>
+        </select></div>
+
+      <p class="q"><strong>Q9.</strong> 2 · Why make the villains so nice?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q9. 2 · Why make the villains so nice?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="so the twist is a surprise, nothing more">so the twist is a surprise, nothing more</option>
+          <option value="because nice people are boring">because nice people are boring</option>
+          <option value="to show racism can hide behind niceness and still treat people as property">to show racism can hide behind niceness and still treat people as property</option>
+        </select></div>
+
+      <p class="q"><strong>Q10.</strong> 3 · Where's the monster?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q10. 3 · Where&#x27;s the monster?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="outside: something comes for Chris">outside: something comes for Chris</option>
+          <option value="the system: a whole group of rich people who buy and sell Black bodies, like slavery">the system: a whole group of rich people who buy and sell Black bodies, like slavery</option>
+          <option value="inside: one family&#x27;s greed">inside: one family&#x27;s greed</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked. Nothing is filled in for you this time.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="mastery" id="m2" data-title="Line them up">
+    <button class="donebar" onclick="LL.toggle('m2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Line them up</strong>
+      <span class="sum" id="sum-m2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Line them up</h2>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:10px;border:2px solid var(--warn);border-radius:10px;vertical-align:top;width:25%;text-align:center;"><span style="font-size:1.6rem;">🧛</span><br><strong>Dracula</strong><br>1897<br>monster: <strong>the foreigner</strong></td>
+    <td style="padding:10px;border:2px solid var(--accent);border-radius:10px;vertical-align:top;width:25%;text-align:center;"><span style="font-size:1.6rem;">🧟</span><br><strong>Frankenstein</strong><br>1818<br>monster: <strong>the people who reject him</strong></td>
+    <td style="padding:10px;border:2px solid var(--calm);border-radius:10px;vertical-align:top;width:25%;text-align:center;"><span style="font-size:1.6rem;">🏚️</span><br><strong>Beloved</strong><br>1987<br>monster: <strong>slavery</strong></td>
+    <td style="padding:10px;border:2px dashed var(--field-line);border-radius:10px;vertical-align:top;width:25%;text-align:center;"><span style="font-size:1.6rem;">☕</span><br><strong>Get Out</strong><br>2017<br>monster: <strong>?</strong></td>
+  </tr>
+</table>
+      <figcaption>Three are filled in. You just did the fourth.</figcaption>
+      </figure>
+
+      <p><strong>This one's meant to be hard.</strong> There's more than one defensible answer. Pick a side and back it.</p>
+
+      <p class="q"><strong>Q11.</strong> "Get Out flips Dracula: the outsider is the hero now, and the people in the big house are the monsters."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q11. &quot;Get Out flips Dracula: the outsider is the hero now, and the people in the big house are the monsters.&quot;">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="agree">agree</option>
+          <option value="disagree">disagree</option>
+        </select></div>
+
+      <p class="q"><strong>Q12.</strong> Why? Two sentences, your own words. Use at least two of the four stories. Don't worry about spelling.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q12. Why? Two sentences, your own words. Use at least two of the four stories. Don&#x27;t worry about spelling." placeholder="Say it out loud first, then type it (or your teacher types exactly what you say)…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>One strong AGREE: Dracula wants you to fear the foreigner who moves in, but Get Out puts you inside the outsider's head, and the rich family in the big house are the ones feeding on people. One strong DISAGREE: Frankenstein already made the outsider the one you feel for back in 1818, so Get Out isn't new; it's the same flip with race made explicit. Either side is right if your reason comes from the stories.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked and two sentences in your own words. No starters on this one.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="Flip the monster">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Flip the monster</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Flip the monster</h2>
+
+      <p>Studios remake old monsters all the time. Pitch one where the audience ends up on the monster's side and the <strong>real</strong> monster is everyone else. You get a trailer tagline and one line on who the real monster is.</p>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:33%;text-align:center;"><span style="font-size:2rem;">🧛</span><br><strong>A · Dracula</strong><br>the foreigner</td>
+    <td style="padding:12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:33%;text-align:center;"><span style="font-size:2rem;">🧟</span><br><strong>B · The creature</strong><br>the one who looks wrong</td>
+    <td style="padding:12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:33%;text-align:center;"><span style="font-size:2rem;">👺</span><br><strong>C · The goblins</strong><br>from Goblin Market</td>
+  </tr>
+</table>
+      <figcaption>Pick the one you can flip hardest.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q13.</strong> Which monster are you remaking? (We do this one together.)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q13. Which monster are you remaking? (We do this one together.)">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="A · Dracula">A · Dracula</option>
+          <option value="B · The creature">B · The creature</option>
+          <option value="C · The goblins">C · The goblins</option>
+        </select></div>
+
+      <p class="q"><strong>Q14.</strong> Your trailer tagline: one sentence. (We start this together.)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q14. Your trailer tagline: one sentence. (We start this together.)" placeholder="e.g. They called him the monster. They never looked in a mirror." rows="3"></textarea></div>
+
+      <p class="q"><strong>Q15.</strong> In your remake, who is the real monster, and where does it live: outside, inside, or the system? One sentence. Don't worry about spelling.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q15. In your remake, who is the real monster, and where does it live: outside, inside, or the system? One sentence. Don&#x27;t worry about spelling." placeholder="The real monster is … and it lives …" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One monster picked and two one-sentence lines: a tagline and who the real monster is. The tagline we do together before class ends.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Who gets made the monster, and where it lives &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Othering</td><td>Making a group of people into 'them': strange, dangerous, not like 'us'. The Gothic does this all the time.</td></tr>
+      <tr><td class="h">It cuts both ways</td><td>The Gothic can feed the fear (the foreign invader) OR make you feel for the outsider (Frankenstein's creature).</td></tr>
+      <tr><td class="h">Class</td><td>Rich vs. poor. Often the monster is the powerful one feeding on everyone else, like an aristocrat vampire.</td></tr>
+      <tr><td class="h">Where's the monster? (now three answers)</td><td>OUTSIDE: something comes for you. INSIDE: a mind, a hunger. THE SYSTEM: a history, a family, a whole society.</td></tr>
+      <tr><td class="h">Black women writers</td><td>Toni Morrison (Beloved, 1987) and Octavia Butler (Kindred, 1979). The ghost and the time travel are real, and the real horror is slavery.</td></tr>
+      <tr><td class="h">21st century</td><td>Get Out (2017). The monster smiles, says the right things, and still treats people as property.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>Don't worry about spelling here.</strong></p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud and your teacher will type it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Gothic Literature · Lesson 2";
+const LESSON_ID = "GOTH12-L02";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Explain how Gothic writers use their stories to challenge social justice issues related to discrimination and class conflict.",
+  "O2": "Analyze the works of African American women writers who use the Gothic genre to explore racial injustice in society.",
+  "O3": "Analyze the way in which racism is depicted in twenty-first century Gothic fiction."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & bring one thing", mins:5 },
+  { label:"The monster is whoever we fear", mins:12, part:"intro" },
+  { label:"The house remembers", mins:13, part:"guided" },
+  { label:"The polite monster", mins:15, part:"mastery" },
+  { label:"Flip the monster", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Who the old Gothic made into monsters, and why that cuts both ways.", sheet: true, outcomes: ["O1"] },
+  guided: { title: "Guided Practice", sub: "Two Black women writers. The ghost is real, and it is history.", sheet: true, outcomes: ["O1", "O2"] },
+  mastery: { title: "Independent Mastery", sub: "A 21st-century horror film you may not have seen. Same three questions.", sheet: true, outcomes: ["O2", "O3"] },
+  homework: { title: "Homework", sub: "Pitch a remake where the real monster is everyone else.", sheet: true, outcomes: ["O1", "O3"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You named the oldest trick in the Gothic: make someone into \"them\"."},
+  i2:{star:"★",msg:"You found the twist: the same trick can make you feel for the monster."},
+  g1:{star:"★",msg:"You found a ghost whose real name is history."},
+  g2:{star:"★",msg:"Two writers, same move: the supernatural drags the past into the present."},
+  m1:{star:"★",msg:"New story, no help, and you found the monster wearing a smile."},
+  m2:{star:"★",msg:"Four monsters, two centuries, one claim you defended. That's all three outcomes."},
+  h1:{star:"★",msg:"Remake pitched. You just did what Morrison, Butler and Peele did."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/guide.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
