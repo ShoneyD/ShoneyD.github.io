@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOR1A-FINAL · Then and Now - Korean 1A Reflection</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">KOR1A-FINAL</p>
+  <h1 id="pagetitle">Korean 1A · Lesson KOR1A-FINAL</h1>
+  <p class="sub" id="pagesub">Then and Now - Korean 1A Reflection.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== COURSE ASSESSMENT - THEN AND NOW ===================== -->
+  <p class="partsep" data-partsep="final">Course Assessment - Then and Now</p>
+
+  <section class="stage" data-part="final" id="f1" data-title="The road so far">
+    <button class="donebar" onclick="LL.toggle('f1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The road so far</strong>
+      <span class="sum" id="sum-f1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The road so far</h2>
+
+      <p>On <strong>August 19th</strong> you started from zero. Here's the road since then.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 680 210" role="img" aria-label="Timeline from August 19 to November 16 with eight milestones: first 10 letters Aug 21; the whole alphabet Sep 2; greetings Sep 16; sound shifts Oct 19; Unit 2 project Oct 14; likes and dislikes Oct 28; past tense Nov 2; negatives and how often Nov 4 to 9.">
+  <line x1="30" y1="105" x2="650" y2="105" style="stroke:var(--accent);stroke-width:4"/>
+  <g font-size="13" text-anchor="middle" style="fill:var(--ink)">
+    <circle cx="40"  cy="105" r="9" style="fill:var(--calm)"/><text x="40"  y="78" font-weight="700">8/19</text><text x="40" y="60">Day 1</text>
+    <circle cx="115" cy="105" r="8" style="fill:var(--accent)"/><text x="115" y="135" font-weight="700">8/21</text><text x="115" y="153">first 10</text><text x="115" y="168">letters</text>
+    <circle cx="190" cy="105" r="8" style="fill:var(--accent)"/><text x="190" y="78" font-weight="700">9/2</text><text x="190" y="45">whole</text><text x="190" y="60">alphabet</text>
+    <circle cx="265" cy="105" r="8" style="fill:var(--accent)"/><text x="265" y="135" font-weight="700">9/16</text><text x="265" y="153">greetings</text>
+    <circle cx="340" cy="105" r="8" style="fill:var(--accent)"/><text x="340" y="78" font-weight="700">10/14</text><text x="340" y="45">Unit 2</text><text x="340" y="60">project</text>
+    <circle cx="415" cy="105" r="8" style="fill:var(--accent)"/><text x="415" y="135" font-weight="700">10/28</text><text x="415" y="153">likes &amp;</text><text x="415" y="168">dislikes</text>
+    <circle cx="490" cy="105" r="8" style="fill:var(--accent)"/><text x="490" y="78" font-weight="700">11/2</text><text x="490" y="45">past</text><text x="490" y="60">tense</text>
+    <circle cx="565" cy="105" r="8" style="fill:var(--accent)"/><text x="565" y="135" font-weight="700">11/4–9</text><text x="565" y="153">negatives,</text><text x="565" y="168">how often</text>
+    <circle cx="640" cy="105" r="11" style="fill:var(--warn)"/><text x="640" y="78" font-weight="700">11/16</text><text x="640" y="60">today 🎉</text>
+  </g>
+</svg>
+      <figcaption>Every dot is a lesson where something new became possible.</figcaption>
+      </figure>
+
+      <p>For each one, pick what's true: <strong>then</strong> (August 19th) → <strong>now</strong>.</p>
+
+      <p class="q"><strong>Q1.</strong> 📖 Read any Hangul word out loud, even one I don't know</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. 📖 Read any Hangul word out loud, even one I don&#x27;t know">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="couldn&#x27;t then → can now">couldn&#x27;t then → can now</option>
+          <option value="a little then → can now">a little then → can now</option>
+          <option value="could then too">could then too</option>
+          <option value="still working on it">still working on it</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> ✍️ Write down a word I hear, from the sound alone</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. ✍️ Write down a word I hear, from the sound alone">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="couldn&#x27;t then → can now">couldn&#x27;t then → can now</option>
+          <option value="a little then → can now">a little then → can now</option>
+          <option value="could then too">could then too</option>
+          <option value="still working on it">still working on it</option>
+        </select></div>
+
+      <p class="q"><strong>Q3.</strong> 👋 Greet someone and introduce myself</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. 👋 Greet someone and introduce myself">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="couldn&#x27;t then → can now">couldn&#x27;t then → can now</option>
+          <option value="a little then → can now">a little then → can now</option>
+          <option value="could then too">could then too</option>
+          <option value="still working on it">still working on it</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> 💚 Say what I like and don't like</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. 💚 Say what I like and don&#x27;t like">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="couldn&#x27;t then → can now">couldn&#x27;t then → can now</option>
+          <option value="a little then → can now">a little then → can now</option>
+          <option value="could then too">could then too</option>
+          <option value="still working on it">still working on it</option>
+        </select></div>
+
+      <p class="q"><strong>Q5.</strong> ⏪ Talk about yesterday</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. ⏪ Talk about yesterday">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="couldn&#x27;t then → can now">couldn&#x27;t then → can now</option>
+          <option value="a little then → can now">a little then → can now</option>
+          <option value="could then too">could then too</option>
+          <option value="still working on it">still working on it</option>
+        </select></div>
+
+      <p class="q"><strong>Q6.</strong> 🙅 Answer a negative question the Korean way</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. 🙅 Answer a negative question the Korean way">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="couldn&#x27;t then → can now">couldn&#x27;t then → can now</option>
+          <option value="a little then → can now">a little then → can now</option>
+          <option value="could then too">could then too</option>
+          <option value="still working on it">still working on it</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> 🗓️ Say how often I do something</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. 🗓️ Say how often I do something">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="couldn&#x27;t then → can now">couldn&#x27;t then → can now</option>
+          <option value="a little then → can now">a little then → can now</option>
+          <option value="could then too">could then too</option>
+          <option value="still working on it">still working on it</option>
+        </select></div>
+
+      <p class="q"><strong>Q8.</strong> 👂 Understand a short Korean sentence when I hear it</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q8. 👂 Understand a short Korean sentence when I hear it">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="couldn&#x27;t then → can now">couldn&#x27;t then → can now</option>
+          <option value="a little then → can now">a little then → can now</option>
+          <option value="could then too">could then too</option>
+          <option value="still working on it">still working on it</option>
+        </select></div>
+
+      <p class="q"><strong>Q9.</strong> Which one surprises you most? Why?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The one that surprises me most is … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q9. Which one surprises you most? Why?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Eight dropdowns picked and one reason written for the one that surprises you most.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('f1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="final" id="f2" data-title="Prove it">
+    <button class="donebar" onclick="LL.toggle('f2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Prove it</strong>
+      <span class="sum" id="sum-f2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Prove it</h2>
+
+      <p><strong>📖 Read it.</strong> No dictionary. Just read.</p>
+
+      <figure class="dia">
+<div style="border:2px solid var(--accent);border-radius:12px;padding:1rem 1.2rem;background:var(--accent-soft);font-size:1.25rem;line-height:1.9;max-width:640px">
+안녕하세요! 저는 민지예요. 저는 음악을 아주 좋아해요. 매일 음악을 들어요. 운동은 별로 안 좋아해요. 어제는 친구를 만났어요. 떡볶이를 먹었어요. 아주 재밌었어요!
+</div>
+      <figcaption>Every word here comes from your deck or your activities.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q10.</strong> What does 민지 do every day? <em>(Answer in English.)</em></p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q10. What does 민지 do every day? (Answer in English.)" placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q11.</strong> What did 민지 do yesterday? Give two things.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q11. What did 민지 do yesterday? Give two things." placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q12.</strong> 🪞 On August 19th, that box was just shapes. What's the hardest part of reading it <strong>now</strong>, and what's easy?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The easy part is … The hardest part is … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q12. 🪞 On August 19th, that box was just shapes. What&#x27;s the hardest part of reading it now, and what&#x27;s easy?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p><strong>👂 Hear it.</strong> Press play. You can play each one twice.</p>
+
+<p style="margin:.4rem 0"><strong>Clip 1</strong> &nbsp;<audio controls preload="none" src="https://shoneyd.github.io/assets/kor1a-final/voice/s-1cf31f81.mp3"></audio></p>
+
+      <p class="q"><strong>Q13.</strong> What did she say? <em>(English is fine.)</em></p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q13. What did she say? (English is fine.)" placeholder="Type here…"></div>
+
+<p style="margin:.4rem 0"><strong>Clip 2</strong> is a question for <em>you</em>. &nbsp;<audio controls preload="none" src="https://shoneyd.github.io/assets/kor1a-final/voice/s-3bd6a7a3.mp3"></audio></p>
+
+      <p class="q"><strong>Q14.</strong> Answer her, in Korean.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q14. Answer her, in Korean." placeholder="Type here…"></div>
+
+<p style="margin:.4rem 0"><strong>Clip 3</strong> is another question for you. Careful, it's a negative question. &nbsp;<audio controls preload="none" src="https://shoneyd.github.io/assets/kor1a-final/voice/s-f2f8a365.mp3"></audio></p>
+
+      <p class="q"><strong>Q15.</strong> Answer her truthfully, the Korean way.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q15. Answer her truthfully, the Korean way." placeholder="Type here…"></div>
+
+<details style="margin:.6rem 0"><summary style="cursor:pointer;font-weight:700">Check yourself (after you answer)</summary>
+<p style="margin:.4rem 0">Clip 1: 저는 커피를 거의 안 마셔요. 우유는 매일 마셔요. <em>(I hardly ever drink coffee. I drink milk every day.)</em><br>
+Clip 2: 어제 뭐 먹었어요? <em>(What did you eat yesterday?)</em><br>
+Clip 3: 게임 안 좋아해요? <em>(You don't like games?)</em></p>
+</details>
+
+      <p class="q"><strong>Q16.</strong> 🪞 In September, could you have understood any of those three? What changed in how you listen?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; In September I … Now when I listen, I ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q16. 🪞 In September, could you have understood any of those three? What changed in how you listen?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p><strong>🗣️ Say it.</strong> Your teacher will ask you three questions out loud. Answer in Korean. Then type what you said, as best you can.</p>
+
+      <p class="q"><strong>Q17.</strong> What I said</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q17. What I said" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p><strong>✍️ Write it.</strong> Three true sentences about you, in Korean.</p>
+
+      <p class="q"><strong>Q18.</strong> Something you <strong>like</strong>.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 저는 ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q18. Something you like." placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q19.</strong> Something you <strong>did yesterday</strong>.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 어제 ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q19. Something you did yesterday." placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q20.</strong> Something you do, and <strong>how often</strong>.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 저는 ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q20. Something you do, and how often." placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q21.</strong> 🪞 Out of everything in this part, which felt the most different from Day 1? Why?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The most different was … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q21. 🪞 Out of everything in this part, which felt the most different from Day 1? Why?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two reading answers, two listening answers, one spoken answer typed, three Korean sentences, and a reflection after each.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('f2')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="final" id="f3" data-title="Journal walk">
+    <button class="donebar" onclick="LL.toggle('f3')">
+      <span class="tick">&#10003;</span> <strong>Part 3 &mdash; Journal walk</strong>
+      <span class="sum" id="sum-f3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 &mdash; Journal walk</h2>
+
+      <p>Open your <strong>paper journal</strong>. Find your <strong>first</strong> entry and your <strong>latest</strong> one.</p>
+
+      <p class="q"><strong>Q22.</strong> Copy one line from your <strong>first</strong> entry, mistakes and all.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q22. Copy one line from your first entry, mistakes and all." placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q23.</strong> Copy one line from your <strong>latest</strong> entry.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q23. Copy one line from your latest entry." placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q24.</strong> 🪞 Put them side by side. Name <strong>two things</strong> that changed.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 1. In my first entry I … but now I … 2. ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q24. 🪞 Put them side by side. Name two things that changed." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q25.</strong> Proudest piece from <strong>Unit 1</strong> (Hangul)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q25. Proudest piece from Unit 1 (Hangul)">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Hangul Stage">Hangul Stage</option>
+          <option value="Hangul Stage 2">Hangul Stage 2</option>
+          <option value="Hangul Stage 3">Hangul Stage 3</option>
+          <option value="One Letter, Three Ways">One Letter, Three Ways</option>
+          <option value="Read the Lineup">Read the Lineup</option>
+          <option value="Combined Vowels Practice">Combined Vowels Practice</option>
+          <option value="Unit 1 Exam">Unit 1 Exam</option>
+        </select></div>
+
+      <p class="q"><strong>Q26.</strong> Proudest piece from <strong>Unit 2</strong> (Greetings)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q26. Proudest piece from Unit 2 (Greetings)">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Greetings Drag and Drop">Greetings Drag and Drop</option>
+          <option value="Greetings journal entry">Greetings journal entry</option>
+          <option value="Sound Shifts Practice">Sound Shifts Practice</option>
+          <option value="Language &amp; Culture Exploration Project">Language &amp; Culture Exploration Project</option>
+          <option value="Oral presentation">Oral presentation</option>
+        </select></div>
+
+      <p class="q"><strong>Q27.</strong> Proudest piece from <strong>Unit 3</strong> (Likes and Dislikes)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q27. Proudest piece from Unit 3 (Likes and Dislikes)">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Homework 10/26 (을/를 sentences)">Homework 10/26 (을/를 sentences)</option>
+          <option value="Order Up!">Order Up!</option>
+          <option value="Food journal (10/28)">Food journal (10/28)</option>
+          <option value="Yesterday Mode">Yesterday Mode</option>
+          <option value="How Often?">How Often?</option>
+          <option value="Unit 3 Check">Unit 3 Check</option>
+        </select></div>
+
+      <p class="q"><strong>Q28.</strong> 🪞 For each one, why that one? What did it teach you?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Unit 1: … because  Unit 2: … because  Unit 3: … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q28. 🪞 For each one, why that one? What did it teach you?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two journal lines copied, two changes named, three proudest pieces picked, and a reason for each.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('f3')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="final" id="f4" data-title="Looking back, looking ahead">
+    <button class="donebar" onclick="LL.toggle('f4')">
+      <span class="tick">&#10003;</span> <strong>Part 4 &mdash; Looking back, looking ahead</strong>
+      <span class="sum" id="sum-f4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 4 &mdash; Looking back, looking ahead</h2>
+
+      <p>On August 19th you wrote down why you wanted to learn Korean. Open it in Canvas and read it again: <strong><a href="https://fusion.instructure.com/courses/418705/assignments/36921214">✏️ Why do you want to learn Korean</a></strong>.</p>
+
+      <p class="q"><strong>Q29.</strong> 🪞 Is that still why you're learning Korean? What's the same, and what's changed?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; On Day 1 I said … Now I think ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q29. 🪞 Is that still why you&#x27;re learning Korean? What&#x27;s the same, and what&#x27;s changed?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q30.</strong> 🪞 What was the hardest thing this term? How did you get past it, or what's still in the way?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The hardest thing was … What helped was ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q30. 🪞 What was the hardest thing this term? How did you get past it, or what&#x27;s still in the way?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q31.</strong> 🪞 What helped you learn the most: Anki, your journal, the activities, talking in class, K-pop and K-dramas, or something else? Give an example.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; What helped most was … For example, ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q31. 🪞 What helped you learn the most: Anki, your journal, the activities, talking in class, K-pop and K-dramas, or something else? Give an example." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q32.</strong> 🎯 One goal for <strong>Korean 1B</strong>, and how you'll know you reached it.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; In Korean 1B I want to … I'll know I did it when ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q32. 🎯 One goal for Korean 1B, and how you&#x27;ll know you reached it." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q33.</strong> ✍️ Two sentences <strong>in Korean</strong> about you and Korean. (Ideas: 저는 한국어를 좋아해요. / 매일 한국어를 공부해요.)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q33. ✍️ Two sentences in Korean about you and Korean. (Ideas: 저는 한국어를 좋아해요. / 매일 한국어를 공부해요.)" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Four answers with a reason or an example in each, and two sentences in Korean.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('f4')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Korean 1A · Lesson KOR1A-FINAL";
+const LESSON_ID = "KOR1A-FINAL";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "F1": "Read and understand a short Korean paragraph.",
+  "F2": "Understand short spoken Korean and answer it.",
+  "F3": "Write true sentences about yourself in Korean.",
+  "F4": "Reflect on your progress, using your own work as evidence.",
+  "F5": "Set a goal for Korean 1B and say how you'll know you reached it."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:3 },
+  { label:"Finish the Unit 3 check + Say It Back", mins:22 },
+  { label:"Final, Part 2: Prove it (with your teacher)", mins:15, part:"final" },
+  { label:"Plan the rest: Parts 1, 3, 4 at home", mins:5 },
+  { label:"Before Wednesday: finish Parts 1, 3 and 4", mins:25, part:"final" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  final: { title: "Course Assessment - Then and Now", sub: "Four short parts about how far you've come since August 19th, with proof.", sheet: false, outcomes: ["F1", "F2", "F3", "F4", "F5"] }
+};
+
+const REWARDS = {
+  f1:{star:"★",msg:"Part 1 done. That's a lot of road."},
+  f2:{star:"★",msg:"Part 2 done. Read it, heard it, wrote it, said it. That's proof."},
+  f3:{star:"★",msg:"Part 3 done. Your notebook is the best proof there is."},
+  f4:{star:"★",msg:"Korean 1A: done. 수고했어요! See you in 1B."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/guide.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
