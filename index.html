@@ -282,12 +282,12 @@ const ITEMS = [
     type: 'activity',
     course: 'Korean 1A',
     file: 'activities/say-it-back.html',
-    engine: 'speak', variant: 'korean-1a-review', version: 2, updated: '2026-11-10',
+    engine: 'speak', variant: 'korean-1a-review', version: 2, updated: '2026-11-16',
     title: 'Say It Back',
     tag: 'listen, speak, check',
     desc: 'Speaking practice. Six short dialogues from greetings onward (first meeting, food likes, yesterday in the past tense, 배 안 고파요? and the 네/아니요 trap, how often, polite talk with a teacher). The partner line plays recorded audio; the student taps the mic and says her line, and the page marks every word heard, partly heard (missing syllables underlined) or missed, with what it heard underneath. Play B, then swap and play A. Optional "hide my lines" for a harder round.',
     skills: 'Korean speaking · greetings and introductions · 좋아해요 / 별로 안 · past tense · answering negative questions · 못, 아직 · frequency words · 드세요, 고마워요 · listening',
-    note: 'New engine: nothing on the hub did speaking. Uses the browser\u2019s built-in speech recognition (ko-KR, Chrome/Edge); the page records nothing and keeps only the recognized text. v2 (2026-11-10): the check compares sounds, not spelling. Blocks are split into letters, same-sounding vowels merge (\u3150/\u3154/\u3156/\u3152, \u3159/\u315a/\u315e) and final consonants fold to their seven sounds; syllables get partial credit (vowel > first consonant, with plain/aspirated/tense counted close > final) and are aligned by best total, so spacing and an extra or dropped syllable never derail the rest. Each syllable keeps its best score across tries on a line. Listening is continuous, so a pause between two sentences no longer ends the turn; it stops after ~1.3 s of silence or a second tap, and the button says Talk now only once the mic is actually open. It checks which words were said, not accent. A Move on button appears after two tries or when nothing is fully missing. Content-swappable: the JSON block id="content" (dialogues with roles, voices and lines; same[] for recognizer spellings like 아니오 \u2192 아니요). Change lang in listen() to reuse for another language. Audio: recorded ElevenLabs (scripts/voice/say-it-back.json), browser voice as fallback. In Canvas the iframe needs allow="microphone" (the hub embed now carries it); if Canvas strips it, the page shows an "open in its own tab" button.',
+    note: 'No-mic fallback (16 Nov): if the mic fails, an \u201cI said it to my teacher\u201d button logs the line as teacher-checked and moves on. New engine: nothing on the hub did speaking. Uses the browser\u2019s built-in speech recognition (ko-KR, Chrome/Edge); the page records nothing and keeps only the recognized text. v2 (2026-11-10): the check compares sounds, not spelling. Blocks are split into letters, same-sounding vowels merge (\u3150/\u3154/\u3156/\u3152, \u3159/\u315a/\u315e) and final consonants fold to their seven sounds; syllables get partial credit (vowel > first consonant, with plain/aspirated/tense counted close > final) and are aligned by best total, so spacing and an extra or dropped syllable never derail the rest. Each syllable keeps its best score across tries on a line. Listening is continuous, so a pause between two sentences no longer ends the turn; it stops after ~1.3 s of silence or a second tap, and the button says Talk now only once the mic is actually open. It checks which words were said, not accent. A Move on button appears after two tries or when nothing is fully missing. Content-swappable: the JSON block id="content" (dialogues with roles, voices and lines; same[] for recognizer spellings like 아니오 \u2192 아니요). Change lang in listen() to reuse for another language. Audio: recorded ElevenLabs (scripts/voice/say-it-back.json), browser voice as fallback. In Canvas the iframe needs allow="microphone" (the hub embed now carries it); if Canvas strips it, the page shows an "open in its own tab" button.',
     height: 1900,
     parts: [
       { file: 'activities/say-it-back.html', label: '📝🎤 Independent Mastery: Say It Back', height: 1900 }
@@ -297,12 +297,12 @@ const ITEMS = [
     type: 'activity',
     course: 'Korean 1A',
     file: 'activities/say-it-back-unit-3.html',
-    engine: 'speak', variant: 'korean-1a-unit-3-check', version: 2, updated: '2026-11-11',
+    engine: 'speak', variant: 'korean-1a-unit-3-check', version: 2, updated: '2026-11-16',
     title: 'Say It Back: Unit 3 Check',
     tag: 'speaking assessment',
     desc: 'The speaking part of the Korean 1A Unit 3 assessment. Four new short conversations (F1 likes and how often, disliking onions with \uc804\ud600 \uc548, answering a negative question about yesterday plus \uc544\uc9c1, likes and dislikes with a teacher using \ubabb and \ubcc4\ub85c \uc548). The partner line plays recorded audio. She sees only the English for her own line and has to say it in Korean; the Korean appears after her first try. She plays B only, one round.',
     skills: 'Korean speaking \u00b7 \uc88b\uc544\ud574\uc694 / \uc804\ud600 \uc548 \u00b7 answering negative questions \u00b7 \uc544\uc9c1 \u00b7 frequency words \u00b7 \ubabb \u00b7 listening',
-    note: 'Rejigger of Say It Back (same engine, same version). "assess": true in the content JSON veils her lines with no tap-to-reveal, removes hear-it-first on her lines and ends each dialogue after the B round. Without it the page behaves exactly like the practice version, so it can be reused for any later check by swapping dialogues[]. Audio: scripts/voice/say-it-back-unit-3.json, 13 partner clips in the shared assets/say-it-back/voice, all verified by transcription.',
+    note: 'No-mic fallback (16 Nov): if the mic fails, an \u201cI said it to my teacher\u201d button logs the line as teacher-checked and moves on. Rejigger of Say It Back (same engine, same version). "assess": true in the content JSON veils her lines with no tap-to-reveal, removes hear-it-first on her lines and ends each dialogue after the B round. Without it the page behaves exactly like the practice version, so it can be reused for any later check by swapping dialogues[]. Audio: scripts/voice/say-it-back-unit-3.json, 13 partner clips in the shared assets/say-it-back/voice, all verified by transcription.',
     height: 1500,
     parts: [
       { file: 'activities/say-it-back-unit-3.html', label: '📕🎤 Unit 3 Assessment: Say It Back', height: 1500 }
@@ -1027,7 +1027,7 @@ const ITEMS = [
     note: 'Replaces the Portfolio\u2019s three revisions and 2-page essay with reflection prompts tied to evidence. Built to be finished at home: student.js saves answers. Part 2 needs the teacher for the live questions; Parts 1, 3 and 4 work alone. The Day-1 link goes to the Canvas assignment, so no student writing is on the public page. Audio: scripts/voice/kor1a-final.json (3 clips, verified).',
     height: 1800,
     parts: [
-      { key: 'final', label: '📕🪞 Course Assessment: Then and Now' }
+      { key: 'final', label: '📝🪞 Course Assessment: Then and Now' }
     ]
   },
   {

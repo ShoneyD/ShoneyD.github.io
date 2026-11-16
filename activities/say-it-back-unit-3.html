@@ -843,7 +843,18 @@ function runDialogue(d){
         go.firstChild.onclick = () => pass('Moved on.', '', null);
       }
     }catch(err){
-      const [h, m] = micTrouble(err); sayIn('fb-' + d.id, 'hint', h, m);
+      /* No-mic fallback: the teacher is on the call and can be the ear. Without
+         this, a blocked or missing mic left her stuck on the line, because Move
+         on only appears after heard tries. Logged as teacher-checked. */
+      const [h, m] = micTrouble(err);
+      sayIn('fb-' + d.id, 'hint', h, m + '<br><strong>Still not working?</strong> Say the line out loud to your teacher instead, then press the button.');
+      go.innerHTML = '<button class="btn ghost" type="button">🧑‍🏫 I said it to my teacher →</button>';
+      go.firstChild.onclick = () => {
+        el.querySelector('.line').classList.remove('veiled');
+        lastHeard = '(no mic: said to the teacher)';
+        if (!tries) tries = 1;
+        pass('✓ Said to your teacher.', '', 'said to the teacher, no mic');
+      };
     }
     listening = false;
     if (b.isConnected){ b.textContent = '🎤 Say it again'; b.classList.remove('live'); }
