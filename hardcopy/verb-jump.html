@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<!--
+  VERB JUMP — engine: jumper · variant: transitive-6
+
+  A Doodle-Jump-style climb where the grammar is the steering. The climber
+  bounces automatically; the student only steers left and right. Platforms
+  are verbs. Floating bubbles are phrases: OBJECTS ("the ball") and TAILS
+  that look like objects but aren't ("to the field", "home", "after lunch").
+  The climber carries one bubble at a time. What happens on landing depends
+  on the verb and on what is being carried:
+
+      verb needs an object  + object  → SUPER bounce, sentence built
+      verb needs an object  + nothing → platform crumbles ("grabbed… what?")
+      verb needs an object  + tail    → platform crumbles (a fake object)
+      verb takes no object  + nothing → normal bounce, sentence built
+      verb takes no object  + tail    → big bounce, sentence built
+      verb takes no object  + object  → normal bounce, the object is knocked away
+      verb works both ways  + anything → it works (super with an object)
+
+  Falling is never game over: a cloud catches the climber and the fall is
+  counted. Each climb ends at a summit flag; "Next climb" is an explicit
+  button, never a timer.
+
+  CONTENT-SWAPPABLE. Everything grammar-specific lives in CLIMBS (verbs by
+  kind T / I / B, objects, tails, height goal, rule card, spawn weights) and
+  in the HTML learn cards. Every sentence is "Lena + verb + phrase", so use
+  verbs in one tense and objects that read naturally after most verbs.
+  T-only verbs must be truly object-only with a singular subject ("Lena
+  grabbed" ✗); I-only verbs must be truly object-less ("Lena arrived the
+  ball" ✗). Anything that can go either way belongs in B.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verb Jump</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem; margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold); animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+  kbd{ font-family:inherit; font-size:.8rem; border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 .3rem; background:#fff }
+
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left; background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px; padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem; color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+  .done-looks{ background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:8px; padding:.6rem .9rem; font-size:.92rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer; border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent); background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn.small{ font-size:.82rem; padding:.35rem .7rem }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .learn-card{ background:var(--card); border:1px solid var(--line); border-left:5px solid var(--accent); border-radius:10px; padding:.9rem 1.1rem; margin:0 0 1rem; font-size:.95rem }
+  .learn-card .lab{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; color:var(--accent) }
+  .learn-card p{ margin:.3rem 0 }
+  .learn-card .new{ background:var(--gold); color:#fff; border-radius:4px; padding:0 .35rem; font-size:.7rem; margin-left:.3rem }
+  table.pair{ border-collapse:collapse; width:100%; margin:.4rem 0; font-size:.92rem }
+  table.pair th, table.pair td{ border:1px solid var(--line); padding:.35rem .55rem; text-align:left; vertical-align:top }
+  table.pair th{ background:var(--accent-soft) }
+  .test{ background:var(--accent-soft); border-radius:6px; padding:.45rem .7rem }
+
+  /* ---------------- the game ---------------- */
+  #game{ position:relative; background:#16202c; border-radius:14px; padding:.5rem; margin:0 0 1rem;
+         display:flex; flex-direction:column; align-items:center }
+  #game .gbar{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:center; width:100%; margin:0 0 .4rem }
+  #game .gbar .btn.ghost{ color:#dfe9f2; border-color:#5d7286 }
+  #game .gbar .btn[aria-pressed="true"]{ background:#2f6f8f; color:#fff }
+  #cv{ display:block; width:100%; max-width:560px; aspect-ratio:540/760; height:auto; border-radius:10px;
+       touch-action:none; cursor:none; background:#9fd3f0 }
+  #game .ctl{ color:#b9c8d6; font-size:.8rem; margin:.35rem 0 0; text-align:center; line-height:1.5 }
+  #game .ctl kbd{ background:#24303d; color:#dfe9f2; border-color:#43566a }
+  #game:fullscreen{ border-radius:0; padding:.6rem; justify-content:center; height:100vh; width:100vw }
+  #game:fullscreen #cv{ width:auto; height:calc(100vh - 5.5rem); max-width:none }
+  #game:-webkit-full-screen{ border-radius:0; padding:.6rem; justify-content:center; height:100vh; width:100vw }
+  #game:-webkit-full-screen #cv{ width:auto; height:calc(100vh - 5.5rem); max-width:none }
+
+  .trail{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:0 0 1rem; font-size:.92rem }
+  .trail .lab{ margin:0 0 .3rem; font-weight:700; font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; color:var(--soft) }
+  .trail ol{ margin:0; padding-left:1.4rem; max-height:11rem; overflow:auto }
+  .trail li.bad{ color:var(--warn) }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff; padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem; font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px; padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px; padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace; font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+</head>
+<body><div style="font:15px/1.5 system-ui,sans-serif;background:#fff6d6;color:#3a2f00;border-bottom:2px solid #d9b84a;padding:.6rem 1rem;text-align:center"><strong>Downloadable hard copy</strong> of &ldquo;Verb Jump&rdquo;. Open it in Chrome or Edge, do the work here, then use the copy button at the end and paste into the assignment in Canvas. Audio and pictures still load from the class website when it is up.</div>
+<div class="wrap">
+
+  <h1>🦘 Verb Jump</h1>
+  <p class="sub">Climb as high as you can. Some verbs need something to carry across. Some don’t. The verbs decide how high you fly.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How to play</p>
+    <ol>
+      <li>You bounce by yourself. You only steer: <strong>move the mouse</strong> (or your finger) left and right, or use <kbd>←</kbd> <kbd>→</kbd>.</li>
+      <li>Fly through a <strong>phrase bubble</strong> to carry it. You can carry one at a time. <kbd>↓</kbd> drops it.</li>
+      <li>Every platform is a <strong>verb</strong>. Land on it and Lena makes a sentence: <em>Lena + verb + whatever you’re carrying</em>.</li>
+      <li>If the sentence works, you bounce. If it really works, you <strong>fly</strong>. If it doesn’t work, read the message to find out why.</li>
+      <li>Falling is fine. A cloud catches you.</li>
+      <li>Reach the 🚩 summit, then press the green button for the next climb. <kbd>P</kbd> pauses. ⛶ makes it full screen.</li>
+    </ol>
+  </div>
+
+  <!-- ============ CLIMB 1 ============ -->
+  <section class="stage active" id="s1" data-title="Climb 1 — Base Camp (needs an object or not?)">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Climb 1 — Base Camp</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Climb 1 — Base Camp</h2>
+      <div class="learn-card"><p class="lab">The What? test</p>
+        <p>Say the verb, then ask <strong>“… what?”</strong></p>
+        <table class="pair">
+          <tr><th>Needs an object (transitive)</th><th>Doesn’t take one (intransitive)</th></tr>
+          <tr><td>Lena grabbed… <strong>what?</strong> → <em>the ball</em>. Without it, the sentence is broken.</td>
+              <td>Lena laughed. <strong>Laughed what?</strong> Nothing. It’s already finished.</td></tr>
+          <tr><td>Land with a bubble → 🚀 you fly.<br>Land empty → it crumbles.</td>
+              <td>Land empty → you bounce.<br>Land with a bubble → you lose the bubble.</td></tr>
+        </table>
+        <p class="test">The platforms don’t tell you which kind they are. You have to decide before you land.</p></div>
+      <p class="done-looks"><strong>Done looks like:</strong> you reach the 🚩 summit. Try to fly 🚀 at least five times on the way.</p>
+      <div class="mount"></div>
+      <div class="fb" id="fb-s1" role="status" aria-live="polite"></div>
+      <div class="row" id="next-s1" style="display:none"><button class="btn go" onclick="finishClimb('s1')">Next climb →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ CLIMB 2 ============ -->
+  <section class="stage" id="s2" data-title="Climb 2 — Double Agents & Fake Objects">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Climb 2 — Double Agents &amp; Fake Objects</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Climb 2 — Double Agents &amp; Fake Objects</h2>
+      <div class="learn-card"><p class="lab">Two new things <span class="new">NEW</span></p>
+        <p><strong>1. Double agents.</strong> Some verbs work both ways: <em>Lena <strong>won</strong> the medal.</em> / <em>Lena <strong>won</strong>!</em> Land with an object and you fly. Land without one and you still bounce.</p>
+        <p><strong>2. Fake objects.</strong> Some bubbles look like objects, but they answer <strong>where, when</strong> or <strong>how</strong>, not <strong>what</strong>.</p>
+        <table class="pair">
+          <tr><th>Real object (answers what?)</th><th>Fake object (answers where / when / how?)</th></tr>
+          <tr><td>the gate · the flag · a medal</td><td>at the gate · after lunch · very fast · home</td></tr>
+        </table>
+        <p class="test">A fake object can’t hold up a verb that needs a real one. But a verb that takes no object is happy to carry one: <em>Lena arrived <strong>at the gate</strong>.</em></p></div>
+      <p class="done-looks"><strong>Done looks like:</strong> you reach the 🚩 summit. The platforms start sliding, so steer early.</p>
+      <div class="mount"></div>
+      <div class="fb" id="fb-s2" role="status" aria-live="polite"></div>
+      <div class="row" id="next-s2" style="display:none"><button class="btn go" onclick="finishClimb('s2')">Next climb →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ CLIMB 3 ============ -->
+  <section class="stage" id="s3" data-title="Climb 3 — Sneak Peek: Tricky Verbs">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Climb 3 — Sneak Peek: Tricky Verbs</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Climb 3 — Sneak Peek: Tricky Verbs</h2>
+      <div class="learn-card"><p class="lab">A sneak peek at next class <span class="new">PREVIEW</span></p>
+        <p>These verbs come in <strong>look-alike pairs</strong>: <em>raised / rose</em>, <em>set / sat</em>, <em>laid / lay</em>. In each pair, <strong>one</strong> needs an object and <strong>one</strong> doesn’t.</p>
+        <p class="test">Nobody expects you to know which is which yet. Experiment! Watch what each one does, and see if you can work out the pattern before the summit.</p></div>
+      <p class="done-looks"><strong>Done looks like:</strong> you reach the 🚩 summit, and you can say which verb in each pair needed an object.</p>
+      <div class="mount"></div>
+      <div class="fb" id="fb-s3" role="status" aria-live="polite"></div>
+      <div class="row" id="next-s3" style="display:none"><button class="btn go" onclick="finishClimb('s3')">On to the last step →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ WRITE ============ -->
+  <section class="stage" id="s4" data-title="Last step — In your own words">
+    <button class="donebar" onclick="LL.toggle('s4')">
+      <span class="tick">✓</span> <strong>Last step — In your own words</strong>
+      <span class="sum" id="sum-s4"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Last step — In your own words</h2>
+      <p class="q"><strong>Q1.</strong> In the game, “Lena ran <strong>to the field</strong>” worked, but “Lena grabbed <strong>to the field</strong>” crumbled. Use the What? test to explain why <em>to the field</em> isn’t an object.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q1. Use the What? test to explain why “to the field” isn’t an object (Lena ran to the field ✓ / Lena grabbed to the field ✗)." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q2.</strong> Pick one double-agent verb (one that worked both ways). Write two sentences about a sport: one where it <strong>carries an object</strong>, and one where it <strong>doesn’t</strong>. Label each one.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q2. One double-agent verb in two sports sentences: one with an object, one without. Label each." placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q3.</strong> Sneak peek: in each pair, which verb needed an object? <em>raised / rose · set / sat · laid / lay</em></p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. Sneak peek: which verb in each pair needed an object? raised/rose · set/sat · laid/lay" placeholder="Type here…" rows="2"></textarea></div>
+
+      <div class="stems"><p class="lab">Sentence starters, if you want them</p>
+        <p>• When I ask “ran what?”, the answer is … because “to the field” tells …<br>
+           • Object: Lena ____ the ____. &nbsp;/&nbsp; No object: Lena ____ .</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">Short answers are fine. Don’t worry about spelling.</p></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s4')">Done →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every climb and your answers, ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- the game itself, moved into whichever climb is active -->
+  <div id="parking" hidden>
+    <div id="game">
+      <div class="gbar">
+        <button class="btn ghost small" id="playBtn">▶ Start</button>
+        <button class="btn ghost small" id="slowBtn" aria-pressed="false">🐢 Slow: off</button>
+        <button class="btn ghost small" id="sndBtn" aria-pressed="false">🔇 Sound: off</button>
+        <button class="btn ghost small" id="fsBtn">⛶ Full screen</button>
+      </div>
+      <canvas id="cv" width="540" height="760" tabindex="0"
+        aria-label="Verb Jump game. Steer the climber left and right with the mouse, a finger, or the arrow keys. Platforms are verbs; bubbles are phrases you can carry. Press the down arrow to drop a phrase and P to pause."></canvas>
+      <p class="ctl">Steer: mouse / finger / <kbd>←</kbd><kbd>→</kbd> · Drop the bubble: <kbd>↓</kbd> · Pause: <kbd>P</kbd> · Start: <kbd>Space</kbd></p>
+    </div>
+    <div class="trail" id="trail"><p class="lab">Lena’s sentences this climb</p><ol id="trailList"></ol></div>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   CONTENT — swap CLIMBS to point the game at other verbs.
+   kind: T = needs an object, I = never takes one, B = works both ways.
+   ===================================================================== */
+const CLIMBS = {
+  s1: { name:'Climb 1', goal:3000, gap:[85,145], move:0, pickEvery:1.6, tailShare:0,
+        weights:{ T:.5, I:.5, B:0 },
+        T:['grabbed','found','carried','brought','borrowed','polished','needed','dragged','fixed','opened'],
+        I:['arrived','laughed','slept','fell','smiled','sneezed','yawned','shivered','giggled','frowned'],
+        B:[],
+        obj:['the ball','the flag','the bag','a medal','the trophy','her bow','the map','a snack'],
+        tail:[] },
+  s2: { name:'Climb 2', goal:3600, gap:[90,150], move:.35, pickEvery:1.4, tailShare:.45,
+        weights:{ T:.34, I:.3, B:.36 },
+        T:['grabbed','found','carried','brought','borrowed','polished','dragged','fixed'],
+        I:['arrived','laughed','slept','fell','smiled','sneezed','went','came'],
+        B:['won','moved','stopped','rolled','spun','waved','kicked','climbed','packed','hid'],
+        obj:['the ball','the flag','the bag','a medal','the trophy','the gate','her arrows','the wall'],
+        tail:['to the field','at the gate','after lunch','in the rain','very fast','home','all day','under the bench'] },
+  s3: { name:'Climb 3', goal:2800, gap:[90,150], move:.3, pickEvery:1.4, tailShare:.45,
+        weights:{ T:.5, I:.5, B:0 },
+        T:['raised','set','laid'],
+        I:['rose','sat','lay'],
+        B:[],
+        obj:['the flag','her bow','the trophy','the bag','the target','her hand'],
+        tail:['on the bench','at dawn','in the grass','by the river','very still','down'] }
+};
+const SUBJECT = 'Lena';
+
+/* =====================================================================
+   STAGE ENGINE (from the activity shell)
+   ===================================================================== */
+const ACTIVITY_TITLE = 'Verb Jump: Transitive & Intransitive Verbs';
+const ORDER = ['s1','s2','s3','s4'];
+const REWARDS = {
+  s1: { star:'🚩', msg:'Base Camp summit!' },
+  s2: { star:'🕵️', msg:'Double agents and fake objects: spotted.' },
+  s3: { star:'👀', msg:'Sneak peek done. You’re ready for Thursday.' },
+  s4: { star:'🏆', msg:'All done. Go turn it in.' }
+};
+function shuffle(a){ const o=a.slice(); for(let i=o.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [o[i],o[j]]=[o[j],o[i]]; } return o; }
+const pick = a => a[Math.floor(Math.random()*a.length)];
+
+const LL = {
+  extra:{}, summary:{}, done:new Set(),
+  finish(id, extraEvidence){
+    const stage=document.getElementById(id);
+    if(extraEvidence) LL.extra[id]=extraEvidence;
+    const first=!LL.done.has(id); LL.done.add(id);
+    stage.classList.remove('active','open'); stage.classList.add('done');
+    LL.refreshSummary(id);
+    if(first){ LL.award(id); LL.next(); }
+  },
+  collect(id){
+    const stage=document.getElementById(id), lines=[];
+    if(LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el=>{ const a=el.value.trim(); lines.push(el.dataset.q+'\n'+(a||'(not answered)')); });
+    return lines;
+  },
+  refreshSummary(id){
+    const sum=document.getElementById('sum-'+id); if(!sum) return;
+    const f=[...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks=f.filter(el=>!el.value.trim()).length;
+    if(blanks) sum.textContent=blanks+' left blank. Tap to finish';
+    else if(LL.summary[id]) sum.textContent=LL.summary[id];
+    else if(f.length) sum.textContent=f.length+' answers saved';
+    else sum.textContent='tap to see it again';
+  },
+  award(id){
+    const r=REWARDS[id]; if(!r) return;
+    const bar=document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m=>m.remove());
+    const s=document.createElement('span'); s.className='star'; s.textContent=r.star; s.title=r.msg; bar.appendChild(s);
+    const m=document.createElement('span'); m.className='msg'; m.textContent=r.msg; bar.appendChild(m);
+  },
+  next(){
+    const nextId=ORDER.find(x=>!LL.done.has(x));
+    const t=document.getElementById(nextId||'turnin');
+    t.classList.add('active');
+    setTimeout(()=>t.scrollIntoView({behavior:'smooth',block:'start'}),120);
+  },
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+document.addEventListener('input', e=>{
+  if(e.target.dataset && e.target.dataset.q!==undefined){ const st=e.target.closest('.stage'); if(st && LL.done.has(st.id)) LL.refreshSummary(st.id); }
+});
+
+/* =====================================================================
+   THE GAME
+   World units are canvas pixels; h is height above the ground (up = +).
+   ===================================================================== */
+const W=540, H=760, G=2100;
+const V_NORMAL=1000, V_TAIL=1200, V_SUPER=1700, V_WEAK=720;
+const PW=118, PH=30;                    /* platform size */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const gameEl=document.getElementById('game'), trailEl=document.getElementById('trail');
+const $=id=>document.getElementById(id);
+const reduceMotion=window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let G_=null;          /* current run */
+let running=false, paused=false, slow=false, sound=false, lastT=0;
+const keys={left:false,right:false};
+let pointerX=null, pointerSeen=0;
+
+function fitCanvas(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+fitCanvas();
+
+function newRun(id){
+  const C=CLIMBS[id];
+  G_={ id, C, plats:[], picks:[], parts:[], toasts:[], stars:[],
+       p:{ x:W/2, h:40, vx:0, vh:V_NORMAL, face:1, squash:0, carry:null },
+       cam:0, topH:0, best:0, lastLandH:0, progressT:0, nextH:0, lastKinds:[], lastLabels:[], sinceObj:9, sincePick:0,
+       summit:false, streak:0, bestStreak:0, score:0, trail:[],
+       stats:{ fly:0, bounce:0, tailOK:0, crumbleEmpty:0, fakeObj:0, lostObj:0, falls:0, mistakes:[], pairs:{} } };
+  /* the ground is a wide starting platform */
+  G_.plats.push({ x:0, w:W, h:0, kind:'ground', label:'', spent:true, ground:true });
+  G_.nextH=110;
+  while(G_.nextH < H+300) genPlatform();
+  $('trailList').innerHTML='';
+}
+
+function chooseKind(){
+  const w=G_.C.weights, r=Math.random()*(w.T+w.I+w.B);
+  let k = r<w.T ? 'T' : (r<w.T+w.I ? 'I' : 'B');
+  /* no more than two of the same kind in a row */
+  const L=G_.lastKinds; if(L.length>=2 && L[L.length-1]===k && L[L.length-2]===k){ k = k==='T' ? 'I' : 'T'; }
+  L.push(k); if(L.length>4) L.shift();
+  return k;
+}
+function chooseLabel(k){
+  const bank=G_.C[k]; let lab, tries=0;
+  do{ lab=pick(bank); tries++; } while(G_.lastLabels.includes(lab) && tries<12);
+  G_.lastLabels.push(lab); if(G_.lastLabels.length>Math.min(4,Math.max(1,bank.length*2-2))) G_.lastLabels.shift();
+  return lab;
+}
+function spawnPick(h, kind){
+  const C=G_.C;
+  const text = kind==='tail' ? pick(C.tail) : pick(C.obj);
+  G_.picks.push({ x:40+Math.random()*(W-80), h, kind, text, ph:Math.random()*6.28 });
+  if(kind==='obj') G_.sinceObj=0;
+}
+function genPlatform(){
+  const C=G_.C;
+  if(G_.nextH > C.goal){                      /* the summit platform */
+    if(!G_.summitMade){ G_.plats.push({ x:W/2-90, w:180, h:C.goal+60, kind:'summit', label:'🚩 SUMMIT', spent:false }); G_.summitMade=true; }
+    G_.nextH += 400; return;
+  }
+  const h=G_.nextH, k=chooseKind();
+  const pl={ x:10+Math.random()*(W-PW-20), w:PW, h, kind:k, label:chooseLabel(k), spent:false,
+             mv: Math.random()<C.move ? (40+Math.random()*70)*(Math.random()<.5?-1:1) : 0, crumble:0 };
+  /* a verb that needs an object always has an object reachable below it */
+  if(k==='T' && G_.sinceObj>2) spawnPick(h-55-Math.random()*20, 'obj');
+  G_.plats.push(pl);
+  G_.sincePick += 1; G_.sinceObj += 1;
+  if(G_.sincePick >= C.pickEvery*(0.7+Math.random()*0.6)){
+    G_.sincePick=0;
+    spawnPick(h + 45 + Math.random()*30, Math.random()<C.tailShare ? 'tail' : 'obj');
+  }
+  G_.nextH += C.gap[0] + Math.random()*(C.gap[1]-C.gap[0]);
+}
+
+/* ---------------- grammar of a landing ---------------- */
+function sentence(v, phrase){ return SUBJECT+' '+v+(phrase?' '+phrase:'')+'.'; }
+function land(pl){
+  const g=G_, p=g.p, c=p.carry, k=pl.kind, st=g.stats;
+  if(pl.ground || pl.kind==='rescue'){ p.vh=V_NORMAL; return; }
+  if(pl.kind==='summit'){ p.vh=V_NORMAL; reachSummit(); return; }
+  if(pl.spent){ p.vh=V_NORMAL; blip(330); return; }
+  const v=pl.label, phrase=c?c.text:'';
+  pl.spent=true;
+  const pairKey = v;
+  const track = ok => { if(g.C===CLIMBS.s3){ (st.pairs[pairKey]=st.pairs[pairKey]||{ok:0,bad:0})[ok?'ok':'bad']++; } };
+
+  if(k==='T' || k==='B'){
+    if(c && c.kind==='obj'){                        /* carried across: fly */
+      p.vh=V_SUPER; p.carry=null; st.fly++; good(sentence(v,phrase), '🚀 It carried across!', 30); burst(pl,'#f2c230'); blip(880,.12); track(true); return;
+    }
+    if(k==='B'){                                    /* double agent, no object: still fine */
+      p.vh = c ? V_TAIL : V_NORMAL;
+      if(c){ st.tailOK++; p.carry=null; good(sentence(v,phrase), '✓ '+cap(phrase)+' isn’t an object, and '+v+' doesn’t need one here.', 20); }
+      else { st.bounce++; good(sentence(v), '✓ Double agent: it works with no object too.', 10); }
+      blip(560); return;
+    }
+    /* T with nothing, or with a fake object: crumble */
+    pl.crumble=0.001; p.vh=V_WEAK; g.streak=0; track(false);
+    if(c){ st.fakeObj++; p.carry=null;
+      bad(sentence(v,phrase), '“'+cap(phrase)+'” answers where / when / how, not what. '+cap(v)+' WHAT?');
+      st.mistakes.push(v+' + “'+phrase+'” (fake object)');
+    } else { st.crumbleEmpty++;
+      bad(sentence(v), cap(v)+'… what? This verb needs an object to carry across.');
+      st.mistakes.push(v+' with nothing (needs an object)');
+    }
+    blip(160,.2); return;
+  }
+  /* k === 'I' */
+  if(c && c.kind==='obj'){                          /* object knocked away */
+    p.vh=V_NORMAL; g.streak=0; st.lostObj++; track(false);
+    loseCarry();
+    bad(sentence(v,phrase), cap(v)+' can’t carry an object. You lost “'+phrase+'”.');
+    st.mistakes.push(v+' + “'+phrase+'” (no object allowed)');
+    blip(220,.15); return;
+  }
+  if(c){ p.vh=V_TAIL; p.carry=null; st.tailOK++; track(true); good(sentence(v,phrase), '✓ No object, just extra detail. '+cap(v)+' is happy with that.', 20); blip(660); return; }
+  p.vh=V_NORMAL; st.bounce++; track(true); good(sentence(v), '✓ Finished already. No object needed.', 10); blip(520);
+}
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function good(sent, why, pts){
+  const g=G_; g.streak++; g.bestStreak=Math.max(g.bestStreak,g.streak); g.score+=pts+Math.min(g.streak,5)*2;
+  toast(sent, why, 'good'); addTrail(sent, true);
+}
+function bad(sent, why){ toast(sent+'  ✗', why, 'bad'); addTrail(sent+'  ✗', false); }
+function addTrail(s, ok){
+  G_.trail.push((ok?'':'✗ ')+s);
+  const li=document.createElement('li'); li.textContent=s; if(!ok) li.className='bad';
+  $('trailList').appendChild(li); $('trailList').scrollTop=1e6;
+}
+function loseCarry(){
+  const p=G_.p; if(!p.carry) return;
+  G_.parts.push({ x:p.x, h:p.h+60, vx:(Math.random()<.5?-1:1)*160, vh:300, text:p.carry.text, life:1.4, bubble:true });
+  p.carry=null;
+}
+function toast(head, body, kind){
+  G_.toasts.unshift({ head, body, kind, life: kind==='bad' ? 3.6 : 2.4 });
+  G_.toasts.length=Math.min(G_.toasts.length,2);
+}
+function burst(pl,col){ if(reduceMotion) return; for(let i=0;i<14;i++) G_.parts.push({ x:pl.x+pl.w/2, h:pl.h, vx:(Math.random()-.5)*420, vh:Math.random()*420, col, life:.8, dot:true }); }
+
+function reachSummit(){
+  const g=G_; if(g.summit) return; g.summit=true;
+  running=false; $('playBtn').textContent='▶ Play again';
+  const s=g.stats;
+  LL.extra[g.id]=evidence(g.id);
+  const fb=$('fb-'+g.id); fb.className='fb show good';
+  fb.innerHTML='<span class="fb-head">🚩 Summit! '+s.fly+' flights 🚀, best streak '+g.bestStreak+'.</span>'+
+    (s.mistakes.length ? 'Worth a second look: '+[...new Set(s.mistakes)].slice(0,4).join(' · ')+'.' : 'Not a single wrong landing. Wow.')+
+    ' Press the green button when you’re ready.';
+  $('next-'+g.id).style.display='flex';
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  setTimeout(()=>$('next-'+g.id).scrollIntoView({behavior:'smooth',block:'center'}),300);
+  for(let i=0;i<40 && !reduceMotion;i++) g.parts.push({ x:W/2, h:g.p.h, vx:(Math.random()-.5)*700, vh:200+Math.random()*700, col:pick(['#f2c230','#e04a3a','#3a8fd6','#2e7d5b']), life:1.6, dot:true });
+}
+
+function evidence(id){
+  const g=G_, s=g.stats;
+  let out = CLIMBS[id].name+': reached the summit (score '+g.score+', best streak '+g.bestStreak+').\n'+
+    'Flew with an object 🚀: '+s.fly+' · bounced with no object: '+s.bounce+' · extra detail on a no-object verb: '+s.tailOK+'\n'+
+    'Landed empty on a verb that needs an object: '+s.crumbleEmpty+' · used a fake object: '+s.fakeObj+' · object on a no-object verb: '+s.lostObj+' · falls: '+s.falls;
+  if(s.mistakes.length) out += '\nMistakes, by verb: '+s.mistakes.join('; ');
+  if(id==='s3'){
+    const pr=Object.keys(s.pairs).map(v=>v+' '+s.pairs[v].ok+'✓/'+s.pairs[v].bad+'✗');
+    if(pr.length) out += '\nTricky pairs: '+pr.join(' · ');
+  }
+  return out;
+}
+function finishClimb(id){
+  if(!LL.extra[id] && G_ && G_.id===id) LL.extra[id]=evidence(id);
+  running=false;
+  LL.finish(id, LL.extra[id]);
+}
+
+/* ---------------- the loop ---------------- */
+function step(dt){
+  const g=G_, p=g.p, C=g.C;
+  /* steering: pointer if used recently, else keys */
+  const now=performance.now();
+  let target=null;
+  if(pointerX!==null && now-pointerSeen<2500) target=pointerX;
+  if(keys.left||keys.right){ target=null; p.vx += ((keys.right?1:0)-(keys.left?1:0))*2600*dt; p.vx=Math.max(-430,Math.min(430,p.vx)); }
+  else if(target!==null){
+    let dx=target-p.x; if(dx>W/2) dx-=W; if(dx<-W/2) dx+=W;
+    p.vx = Math.max(-520,Math.min(520,dx*7));
+  } else p.vx*=Math.pow(.02,dt);
+  if(Math.abs(p.vx)>20) p.face=Math.sign(p.vx);
+  p.x += p.vx*dt; if(p.x<0) p.x+=W; if(p.x>W) p.x-=W;
+
+  const prevH=p.h;
+  p.vh -= G*dt; p.h += p.vh*dt;
+  p.squash = Math.max(0,p.squash-dt*4);
+
+  /* platforms: slide, crumble, landing */
+  for(const pl of g.plats){
+    if(pl.mv){ pl.x += pl.mv*dt; if(pl.x<6||pl.x>W-pl.w-6){ pl.mv*=-1; pl.x=Math.max(6,Math.min(W-pl.w-6,pl.x)); } }
+    if(pl.crumble) pl.crumble += dt;
+  }
+  if(p.vh<0){
+    for(const pl of g.plats){
+      if(pl.crumble) continue;
+      if(prevH>=pl.h && p.h<=pl.h && p.x>pl.x-14 && p.x<pl.x+pl.w+14){ p.h=pl.h; p.squash=1; g.lastLandH=pl.h; land(pl); break; }
+    }
+  }
+  g.plats = g.plats.filter(pl => !(pl.crumble>0.7) && pl.h > g.cam-80);
+
+  /* pickups */
+  for(const k of g.picks){ k.ph+=dt*2; }
+  for(let i=g.picks.length-1;i>=0;i--){
+    const k=g.picks[i], dx=Math.abs(k.x-p.x), dh=Math.abs(k.h-(p.h+30));
+    if(dx<62 && dh<34){
+      if(p.carry) loseCarry();
+      p.carry={ text:k.text, kind:k.kind }; g.picks.splice(i,1); blip(740,.06);
+    }
+  }
+  g.picks = g.picks.filter(k=>k.h > g.cam-60);
+
+  /* camera, generation, falling */
+  g.cam = Math.max(g.cam, p.h - H*0.42);
+  if(p.h > g.best + 1){ g.best = p.h; g.progressT = 0; } else g.progressT += dt;
+  /* a crumbled platform can leave a gap too tall to jump: after 4 s with no
+     new height, a cloud appears within reach, near the climber */
+  if(g.progressT > 4 && !g.summit){
+    g.progressT = 0;
+    g.plats.push({ x:Math.max(6,Math.min(W-PW-6,p.x-PW/2+(Math.random()-.5)*120)), w:PW, h:g.lastLandH+170, kind:'rescue', label:'☁', spent:true });
+    toast('☁ Here’s a lift.', 'Steer onto the cloud.', 'info');
+  }
+  while(g.nextH < g.cam + H + 300) genPlatform();
+  if(p.h < g.cam - 50 && !g.summit){
+    g.stats.falls++; g.streak=0;
+    const rh=g.cam+70;
+    g.plats.push({ x:Math.max(6,Math.min(W-PW-6,p.x-PW/2)), w:PW, h:rh, kind:'rescue', label:'☁', spent:true });
+    p.h=rh; p.vh=V_NORMAL; toast('☁ Caught you!', 'Keep climbing.', 'info'); blip(300);
+  }
+  /* particles and toasts */
+  for(const q of g.parts){ q.x+=q.vx*dt; q.vh-=G*0.6*dt; q.h+=q.vh*dt; q.life-=dt; }
+  g.parts=g.parts.filter(q=>q.life>0);
+  for(const t of g.toasts) t.life-=dt;
+  g.toasts=g.toasts.filter(t=>t.life>0);
+}
+
+function loop(t){
+  const raw=Math.min(0.033,(t-lastT)/1000||0); lastT=t;
+  if(running && !paused && G_) step(raw*(slow?0.6:1));
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ---------------- drawing ---------------- */
+const sy = h => H - (h - G_.cam);
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function draw(){
+  if(!G_){ ctx.fillStyle='#9fd3f0'; ctx.fillRect(0,0,W,H); return; }
+  const g=G_, p=g.p, C=g.C, frac=Math.min(1,g.cam/C.goal);
+  /* sky: day → golden → dusk as you climb */
+  const top=lerpCol([111,182,232],[64,52,120],frac), bot=lerpCol([196,232,250],[244,170,120],frac);
+  const sk=ctx.createLinearGradient(0,0,0,H); sk.addColorStop(0,top); sk.addColorStop(1,bot);
+  ctx.fillStyle=sk; ctx.fillRect(0,0,W,H);
+  /* stars appear near the top */
+  if(frac>.6){ ctx.fillStyle='rgba(255,255,255,'+((frac-.6)*1.6)+')'; for(let i=0;i<40;i++){ const x=(i*97)%W, y=((i*53 + g.cam*0.05)%H); ctx.fillRect(x,y,2,2);} }
+  /* parallax hills and clouds */
+  ctx.fillStyle='rgba(255,255,255,.75)';
+  for(let i=0;i<6;i++){ const cy=((i*230 + g.cam*0.3) % (H+200)) - 100, cx=(i*167)%W; cloud(cx, cy, 1+(i%3)*.3); }
+  const hillY=H+80 - (-g.cam*0.25);
+  if(hillY < H+200){
+    ctx.fillStyle='#7fb36a'; ctx.beginPath(); ctx.moveTo(0,hillY); for(let x=0;x<=W;x+=30) ctx.lineTo(x, hillY-60-30*Math.sin(x/70)); ctx.lineTo(W,H+200); ctx.lineTo(0,H+200); ctx.fill();
+  }
+  /* checkpoint marks every 1000 */
+  ctx.font='bold 13px Verdana'; ctx.textAlign='left';
+  for(let m=1000;m<C.goal;m+=1000){ const y=sy(m); if(y>-20&&y<H+20){ ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.setLineDash([6,8]); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fillText((m/10)+' m', 8, y-6); } }
+
+  /* platforms */
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(const pl of g.plats){
+    const y=sy(pl.h); if(y<-40||y>H+40) continue;
+    if(pl.ground){ ctx.fillStyle='#5d9b4c'; ctx.fillRect(0,y,W,H-y+40); continue; }
+    ctx.save();
+    if(pl.crumble){ ctx.globalAlpha=Math.max(0,1-pl.crumble/0.7); ctx.translate(0, pl.crumble*120); }
+    if(pl.kind==='summit'){
+      ctx.fillStyle='#c68a1a'; rr(pl.x,y,pl.w,PH,10); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='bold 17px Verdana'; ctx.fillText(pl.label, pl.x+pl.w/2, y+PH/2+1);
+      ctx.restore(); continue;
+    }
+    if(pl.kind==='rescue'){ ctx.fillStyle='rgba(255,255,255,.95)'; cloud(pl.x+pl.w/2, y+8, 1.1); ctx.restore(); continue; }
+    const spent=pl.spent;
+    ctx.fillStyle = spent ? '#b9a88c' : '#8a5a33'; rr(pl.x, y, pl.w, PH, 9); ctx.fill();
+    ctx.fillStyle = spent ? '#d8ccb8' : '#f6e7c8'; rr(pl.x+4, y+3, pl.w-8, PH-8, 7); ctx.fill();
+    if(pl.crumble){ ctx.strokeStyle='#5a3a1f'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(pl.x+pl.w*.3,y); ctx.lineTo(pl.x+pl.w*.45,y+PH); ctx.moveTo(pl.x+pl.w*.7,y); ctx.lineTo(pl.x+pl.w*.6,y+PH); ctx.stroke(); }
+    ctx.fillStyle = spent ? '#6d6455' : '#2b1c0e'; ctx.font='bold 17px Verdana';
+    ctx.fillText(pl.label, pl.x+pl.w/2, y+PH/2-1);
+    ctx.restore();
+  }
+  /* pickups */
+  for(const k of g.picks){
+    const y=sy(k.h)+(reduceMotion?0:Math.sin(k.ph)*5); if(y<-30||y>H+30) continue;
+    bubble(k.x, y, k.text, false);
+  }
+  /* particles */
+  for(const q of g.parts){
+    const y=sy(q.h); ctx.globalAlpha=Math.max(0,Math.min(1,q.life));
+    if(q.dot){ ctx.fillStyle=q.col; ctx.beginPath(); ctx.arc(q.x,y,4,0,6.28); ctx.fill(); }
+    else if(q.bubble){ bubble(q.x, y, q.text, false, true); }
+    ctx.globalAlpha=1;
+  }
+  /* the climber */
+  drawClimber(p.x, sy(p.h), p);
+  if(p.x<30) drawClimber(p.x+W, sy(p.h), p); if(p.x>W-30) drawClimber(p.x-W, sy(p.h), p);
+
+  /* HUD: height bar, carry, streak */
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillStyle='rgba(20,30,45,.55)'; rr(8,8,W-16,40,10); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 15px Verdana';
+  ctx.fillText(C.name+' · '+Math.floor(Math.max(0,g.best)/10)+' / '+(C.goal/10)+' m', 20, 33);
+  ctx.textAlign='right'; ctx.fillText('★ '+g.score+(g.streak>=3?'  🔥'+g.streak:''), W-20, 33);
+  /* progress line */
+  ctx.fillStyle='rgba(255,255,255,.25)'; ctx.fillRect(20,40,W-40,4);
+  ctx.fillStyle='#f2c230'; ctx.fillRect(20,40,(W-40)*Math.min(1,g.best/C.goal),4);
+  /* toasts */
+  let ty=62;
+  for(const t of g.toasts){
+    ctx.globalAlpha=Math.min(1,t.life*2);
+    const bg = t.kind==='good' ? 'rgba(230,243,236,.96)' : t.kind==='bad' ? 'rgba(251,240,226,.97)' : 'rgba(255,255,255,.92)';
+    const bd = t.kind==='good' ? '#2e7d5b' : t.kind==='bad' ? '#a8641b' : '#2f6f8f';
+    ctx.font='15px Verdana'; const lines=wrap(t.body, W-60);
+    const hgt=34+lines.length*20;
+    ctx.fillStyle=bg; rr(16,ty,W-32,hgt,10); ctx.fill(); ctx.strokeStyle=bd; ctx.lineWidth=2; ctx.stroke();
+    ctx.textAlign='left'; ctx.fillStyle='#22252a'; ctx.font='bold 17px Verdana'; ctx.fillText(t.head, 30, ty+24);
+    ctx.font='15px Verdana'; lines.forEach((ln,i)=>ctx.fillText(ln, 30, ty+46+i*20));
+    ctx.globalAlpha=1; ty+=hgt+8;
+  }
+  /* overlay when not running */
+  if(!running || paused){
+    ctx.fillStyle='rgba(15,25,40,.55)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center'; ctx.fillStyle='#fff';
+    ctx.font='bold 30px Verdana';
+    ctx.fillText(g.summit ? '🚩 Summit!' : paused ? 'Paused' : C.name, W/2, H/2-40);
+    ctx.font='18px Verdana';
+    ctx.fillText(g.summit ? 'Press the green button below.' : paused ? 'Press P or ▶ to keep going.' : 'Click here or press Space to start.', W/2, H/2);
+    if(!g.summit && !paused){ ctx.font='15px Verdana'; ctx.fillText('Read the card above first. The verbs won’t tell you their kind.', W/2, H/2+34); }
+  }
+}
+function lerpCol(a,b,t){ return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')'; }
+function cloud(x,y,s){ ctx.beginPath(); ctx.arc(x,y,18*s,0,6.28); ctx.arc(x+20*s,y-8*s,22*s,0,6.28); ctx.arc(x+44*s,y,18*s,0,6.28); ctx.rect(x,y,44*s,18*s); ctx.fill(); }
+function wrap(text, maxW){ const words=text.split(' '), out=[]; let line=''; for(const w of words){ const t=line?line+' '+w:w; if(ctx.measureText(t).width>maxW && line){ out.push(line); line=w; } else line=t; } if(line) out.push(line); return out.slice(0,3); }
+function bubble(x,y,text,carried,fading){
+  ctx.font='bold 15px Verdana'; const w=ctx.measureText(text).width+24, h=28;
+  ctx.fillStyle = carried ? '#fff7d6' : 'rgba(255,255,255,.93)';
+  ctx.strokeStyle = carried ? '#c68a1a' : '#2f6f8f'; ctx.lineWidth=2;
+  rr(x-w/2,y-h/2,w,h,14); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#22252a'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,x,y+1);
+  ctx.textBaseline='alphabetic';
+}
+function drawClimber(x,y,p){
+  const sq=p.squash, sw=1+sq*0.25, sh=1-sq*0.2;
+  ctx.save(); ctx.translate(x,y); ctx.scale(p.face*sw, sh);
+  /* legs */
+  ctx.strokeStyle='#2b3a55'; ctx.lineWidth=6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-6,-22); ctx.lineTo(-8,-3); ctx.moveTo(6,-22); ctx.lineTo(8,-3); ctx.stroke();
+  /* body (green tunic) */
+  ctx.fillStyle='#2e7d5b'; rr(-14,-50,28,32,9); ctx.fill();
+  /* quiver */
+  ctx.fillStyle='#8a5a33'; rr(-20,-56,8,26,3); ctx.fill();
+  ctx.strokeStyle='#e04a3a'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-17,-56); ctx.lineTo(-19,-64); ctx.moveTo(-13,-56); ctx.lineTo(-12,-65); ctx.stroke();
+  /* head, hair, ponytail */
+  ctx.fillStyle='#c98e62'; ctx.beginPath(); ctx.arc(0,-62,13,0,6.28); ctx.fill();
+  ctx.fillStyle='#3a2416'; ctx.beginPath(); ctx.arc(0,-66,13,Math.PI*1.05,Math.PI*2.05); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-15,-62,5,10,-.5,0,6.28); ctx.fill();
+  /* eye */
+  ctx.fillStyle='#22252a'; ctx.beginPath(); ctx.arc(6,-62,2.2,0,6.28); ctx.fill();
+  /* bow arm */
+  ctx.strokeStyle='#5a3a1f'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(16,-38,14,-1.2,1.2); ctx.stroke();
+  ctx.restore();
+  /* what she's carrying floats above her head */
+  if(p.carry){ ctx.strokeStyle='rgba(60,60,60,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(x,y-76); ctx.lineTo(x,y-90); ctx.stroke(); bubble(x, y-104, p.carry.text, true); }
+}
+
+/* ---------------- sound (opt-in) ---------------- */
+let actx=null;
+function blip(f,d){ if(!sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); const o=actx.createOscillator(), gn=actx.createGain(); o.frequency.value=f; o.type='triangle'; gn.gain.setValueAtTime(.08,actx.currentTime); gn.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+(d||.09)); o.connect(gn); gn.connect(actx.destination); o.start(); o.stop(actx.currentTime+(d||.09)); }catch(e){} }
+
+/* ---------------- controls ---------------- */
+function start(){
+  if(!G_ || G_.summit) newRun(currentStage());
+  running=true; paused=false; $('playBtn').textContent='⏸ Pause'; cv.focus({preventScroll:true});
+}
+function togglePause(){ if(!running){ start(); return; } paused=!paused; $('playBtn').textContent= paused?'▶ Resume':'⏸ Pause'; }
+$('playBtn').addEventListener('click', ()=>{ if(!running) start(); else togglePause(); });
+cv.addEventListener('click', ()=>{ if(!running) start(); else if(paused) togglePause(); });
+$('slowBtn').addEventListener('click', e=>{ slow=!slow; e.target.setAttribute('aria-pressed',slow); e.target.textContent= slow?'🐢 Slow: on':'🐢 Slow: off'; });
+$('sndBtn').addEventListener('click', e=>{ sound=!sound; e.target.setAttribute('aria-pressed',sound); e.target.textContent= sound?'🔊 Sound: on':'🔇 Sound: off'; });
+$('fsBtn').addEventListener('click', async ()=>{
+  const can = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if(document.fullscreenElement){ document.exitFullscreen().catch(()=>{}); return; }
+  if(can){
+    try{ await (gameEl.requestFullscreen ? gameEl.requestFullscreen() : gameEl.webkitRequestFullscreen()); cv.focus({preventScroll:true}); return; }catch(e){}
+  }
+  /* Canvas may block full screen inside its frame: open the game in its own tab instead */
+  window.open(location.href, '_blank');
+  const fb=$('fb-'+currentStage()); fb.className='fb show hint';
+  fb.innerHTML='<span class="fb-head">Opened in its own tab.</span>Full screen is blocked inside this page, so the game opened in a new tab. Press F11 there for full screen. Your progress saves.';
+});
+document.addEventListener('fullscreenchange', ()=>{ $('fsBtn').textContent = document.fullscreenElement ? '⛶ Exit full screen' : '⛶ Full screen'; });
+cv.addEventListener('pointermove', e=>{ const r=cv.getBoundingClientRect(); pointerX=(e.clientX-r.left)/r.width*W; pointerSeen=performance.now(); });
+cv.addEventListener('pointerdown', e=>{ const r=cv.getBoundingClientRect(); pointerX=(e.clientX-r.left)/r.width*W; pointerSeen=performance.now(); });
+cv.addEventListener('pointerleave', ()=>{ pointerSeen=0; });
+const gameKeys=['ArrowLeft','ArrowRight','ArrowDown','a','d','s','A','D','S',' ','p','P'];
+document.addEventListener('keydown', e=>{
+  if(!gameEl.closest('.stage.active') && !document.fullscreenElement) return;
+  if(e.target.tagName==='TEXTAREA' || e.target.tagName==='INPUT') return;
+  if(!gameKeys.includes(e.key)) return;
+  if(e.key===' '){ if(!running) start(); else if(paused) togglePause(); e.preventDefault(); return; }
+  if(e.key==='p'||e.key==='P'){ togglePause(); return; }
+  if(!running) return;
+  if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keys.left=true;
+  if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right=true;
+  if((e.key==='ArrowDown'||e.key==='s'||e.key==='S') && G_ && G_.p.carry){ loseCarry(); blip(260); }
+  e.preventDefault();
+});
+document.addEventListener('keyup', e=>{
+  if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keys.left=false;
+  if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right=false;
+});
+/* pause if the student scrolls away or switches tabs */
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && running && !paused) togglePause(); });
+
+/* ---------------- stage plumbing: the game follows the active climb ---------------- */
+function currentStage(){
+  const st=[...document.querySelectorAll('.stage.active')].find(s=>CLIMBS[s.id] && !LL.done.has(s.id));
+  return st ? st.id : null;
+}
+function mountGame(){
+  const id=currentStage();
+  if(!id){ running=false; $('parking').appendChild(gameEl); $('parking').appendChild(trailEl); return; }
+  const m=document.querySelector('#'+id+' .mount');
+  if(gameEl.parentNode!==m){ m.appendChild(gameEl); m.appendChild(trailEl); running=false; paused=false; newRun(id); $('playBtn').textContent='▶ Start'; }
+}
+const _next=LL.next.bind(LL);
+LL.next=function(){ _next(); mountGame(); };
+new MutationObserver(()=>mountGame()).observe(document.querySelector('.wrap'), { subtree:true, attributes:true, attributeFilter:['class'] });
+mountGame();
+requestAnimationFrame(loop);
+
+/* ---------------- evidence assembly ---------------- */
+function buildPlain(){
+  const parts=ORDER.filter(id=>LL.done.has(id)).map(id=>'── '+document.getElementById(id).dataset.title.toUpperCase()+' ──\n'+LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE+'\n'+'='.repeat(ACTIVITY_TITLE.length)+'\nCompleted '+LL.done.size+' of '+ORDER.length+' parts.\n\n'+parts.join('\n\n')+'\n';
+}
+function buildHtml(){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts=ORDER.filter(id=>LL.done.has(id)).map(id=>{
+    const body=LL.collect(id).map(block=>{ const [q,...rest]=block.split('\n'); const a=rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p><p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>'; }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+esc(document.getElementById(id).dataset.title)+'</h4>'+body; });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3><p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind,head,body){ const b=$('copyFb'); b.className='fb show '+kind; b.innerHTML='<span class="fb-head">'+head+'</span>'+body; }
+$('copyAll').addEventListener('click', async ()=>{
+  const plain=buildPlain(); $('previewText').value=plain;
+  let ok=false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){ await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([buildHtml()],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]); ok=true; }
+    else if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(plain); ok=true; }
+  }catch(e){ ok=false; }
+  if(!ok){ try{ const ta=$('previewText'); $('preview').classList.add('show'); ta.focus(); ta.select(); ok=document.execCommand('copy'); }catch(e){ ok=false; } }
+  if(ok) copyFeedback('good','✓ Copied.','Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.');
+  else { $('preview').classList.add('show'); copyFeedback('hint','Copy it by hand. It takes two seconds.','Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.'); }
+});
+$('showPrev').addEventListener('click', ()=>{ $('previewText').value=buildPlain(); $('preview').classList.toggle('show'); });
+</script>
+<script type="application/json" id="qsummary">
+[
+  { "title": "Climb 1 — Base Camp",
+    "questions": [ "Doodle-Jump climb to 300 m. Platforms are past-tense verbs: object-only (grabbed, found, carried, brought, polished…) or never-object (arrived, laughed, slept, fell, sneezed…), unlabelled. Carry a noun-phrase bubble (the ball, a medal) onto an object verb to fly; landing empty crumbles it; landing an object on a no-object verb knocks it away." ] },
+  { "title": "Climb 2 — Double Agents & Fake Objects",
+    "questions": [ "Climb to 360 m with sliding platforms. Adds both-way verbs (won, moved, stopped, rolled, kicked, climbed, packed, hid) and fake-object bubbles that answer where/when/how (to the field, at the gate, after lunch, very fast, home): they crumble an object-only verb but give a no-object verb a big bounce." ] },
+  { "title": "Climb 3 — Sneak Peek: Tricky Verbs",
+    "questions": [ "Discovery climb with the look-alike pairs raised/rose, set/sat, laid/lay (preview of the next lesson). Evidence records right/wrong landings per verb." ] },
+  { "title": "Last step — In your own words",
+    "questions": [ "Q1. Use the What? test to explain why “to the field” isn’t an object.",
+                   "Q2. One double-agent verb in two sports sentences, one with an object and one without, labelled.",
+                   "Q3. Which verb in each tricky pair needed an object?" ] }
+]
+</script>
+<script>/* inlined: assets/student.js */
+/* ===========================================================================
+   student.js — two behaviours layered over the LL engine. Linked by every
+   hosted lesson page AND every activity, and loaded LAST, after the engine
+   (the shared lesson.js, or an activity's own inline copy).
+
+     1. SAVE / RESTORE — a student who closes the tab gets their answers and
+        their finished parts back, and lands on the part they were on.
+     2. CELEBRATION    — finishing a part shows a card where the student is
+        actually looking, which then flies up and docks as the star in
+        #earned. The old top-bar star sat above the instructions, in the
+        region students never read.
+
+   It touches no page markup: it injects its own CSS and WRAPS LL.finish and
+   LL.award rather than replacing them. Every storage call is wrapped — a
+   browser that blocks storage loses the save quietly and everything else on
+   the page still works.
+   =========================================================================== */
+(function () {
+  'use strict';
+
+  if (typeof LL === 'undefined' || !LL || !LL.done) return;   /* no engine here */
+
+  var REDUCED = !!(window.matchMedia &&
+                   window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var STAGES  = (typeof ORDER !== 'undefined' && ORDER && ORDER.length) ? ORDER : [];
+  if (!STAGES.length) return;
+
+  /* ------------------------------------------------ storage, defensively */
+  var PART    = new URLSearchParams(location.search).get('part') || '';
+  var KEY     = 'll:' + location.pathname + ':' + PART;
+  var MAX_AGE = 45 * 24 * 60 * 60 * 1000;          /* 45 days */
+
+  var S = (function () {
+    try {
+      var s = window.localStorage;
+      s.setItem('__llprobe', '1'); s.removeItem('__llprobe');
+      return s;
+    } catch (e) { return null; }                   /* blocked: feature is simply off */
+  })();
+
+  function read()   { if (!S) return null;
+                      try { return JSON.parse(S.getItem(KEY) || 'null'); } catch (e) { return null; } }
+  function write(o) { if (!S) return;
+                      try { S.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
+  function drop()   { if (!S) return;
+                      try { S.removeItem(KEY); } catch (e) {} }
+
+  /* ------------------------------------------------------ page identity
+     Two guards, because activities SHUFFLE their content on every load, so
+     question text is not stable there and cannot identify the page.
+
+       FP (page level)  — the stage list and how many answer boxes each stage
+                          holds. Changes when the lesson gains or loses a
+                          question, which is when a whole save is worthless.
+       per-field check  — each answer is stored next to its own question text
+                          and only restored if that question is still in that
+                          slot. A shuffled activity therefore restores the
+                          student's PROGRESS without ever pasting an answer
+                          underneath a different question. */
+  function fields(id) {
+    var st = document.getElementById(id);
+    return st ? [].slice.call(st.querySelectorAll('[data-q]')) : [];
+  }
+  var FP = (function () {
+    var s = STAGES.map(function (id) { return id + ':' + fields(id).length; }).join('|');
+    var h = 5381, i;
+    for (i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  })();
+
+  /* ------------------------------------------------------------- saving */
+  function snapshot() {
+    var f = {};
+    STAGES.forEach(function (id) {
+      f[id] = fields(id).map(function (el) { return [el.dataset.q || '', el.value]; });
+    });
+    return { v: FP, t: Date.now(), f: f,
+             d: STAGES.filter(function (id) { return LL.done.has(id); }),
+             x: LL.extra || {}, s: LL.summary || {} };
+  }
+  function worthKeeping(o) {
+    if (o.d && o.d.length) return true;
+    for (var k in o.f) {
+      for (var i = 0; i < o.f[k].length; i++) {
+        if (o.f[k][i] && String(o.f[k][i][1]).trim()) return true;
+      }
+    }
+    return false;
+  }
+  var timer = null;
+  function save() {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      var snap = snapshot();
+      if (worthKeeping(snap)) write(snap); else drop();
+    }, 400);
+  }
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.dataset && e.target.dataset.q !== undefined) save();
+  });
+
+  /* ----------------------------------------------------------- restoring */
+  var origAward  = LL.award.bind(LL);
+  var origFinish = LL.finish.bind(LL);
+  var origNext   = LL.next.bind(LL);
+
+  /* LL.finish() calls award() and then next(), and next() scrolls 120ms later
+     — which drags the viewport away from the celebration while it is still
+     animating in. Hold the advance until the card has finished, then let it
+     run. The student reads the card, THEN the page moves. */
+  var celebrating = false, pendingNext = false;
+  LL.next = function () {
+    if (celebrating) { pendingNext = true; return; }
+    origNext();
+  };
+  function releaseNext() {
+    celebrating = false;
+    if (pendingNext) { pendingNext = false; origNext(); }
+  }
+
+  /* Where was the student looking when they finished? Measured BEFORE the
+     engine collapses the part: once it collapses, everything they were reading
+     shrinks to a one-line bar far above them, and a card placed over that bar
+     lands off screen. Viewport-relative, so it survives the page shrinking. */
+  var lookAt = null;
+  function eyeLine(id) {
+    var st = document.getElementById(id);
+    var el = document.activeElement;
+    if (!el || !st || !st.contains(el) || el === document.body)
+      el = st ? [].slice.call(st.querySelectorAll('button.go')).pop() : null;
+    if (!el) return null;
+    var r = el.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if (r.bottom < 0 || r.top > vh) return null;    /* not on screen: no use */
+    return r.top + r.height / 2;
+  }
+  LL.finish = function (id, extraEvidence) {
+    lookAt = eyeLine(id);
+    origFinish(id, extraEvidence);
+    lookAt = null;
+    save();
+  };
+
+  function silentComplete(id) {
+    var st = document.getElementById(id);
+    if (!st) return;
+    LL.done.add(id);
+    st.classList.remove('active', 'open');
+    st.classList.add('done');
+    if (LL.refreshSummary) LL.refreshSummary(id);
+    origAward(id);                                  /* dock the star, no fanfare */
+  }
+
+  function restore(saved) {
+    var skipped = 0;
+    STAGES.forEach(function (id) {
+      var vals = saved.f[id] || [];
+      fields(id).forEach(function (el, i) {
+        var pair = vals[i];
+        if (!pair) return;
+        if (pair[0] !== (el.dataset.q || '')) { skipped++; return; }   /* shuffled away */
+        el.value = pair[1];
+      });
+    });
+    if (skipped) console.info('[student.js] ' + skipped +
+      ' answer(s) not restored: their question is no longer in that slot.');
+    LL.extra   = saved.x || {};
+    LL.summary = saved.s || {};
+    STAGES.forEach(function (id) {
+      if (saved.d && saved.d.indexOf(id) !== -1) silentComplete(id);
+    });
+    celebrating = false; pendingNext = false;
+    origNext();                                     /* lands them on the part they were on */
+  }
+
+  function whenWord(t) {
+    var d = new Date(t), now = new Date();
+    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var h = d.getHours(), m = ('0' + d.getMinutes()).slice(-2);
+    var ap = h >= 12 ? 'pm' : 'am'; h = (h % 12) || 12;
+    var when = (d.toDateString() === now.toDateString()) ? 'earlier today' : 'on ' + days[d.getDay()];
+    return when + ' at ' + h + ':' + m + ap;
+  }
+
+  function offerRestore(saved) {
+    var n = (saved.d || []).length;
+    var bar = document.createElement('div');
+    bar.className = 'll-restore';
+    bar.setAttribute('role', 'status');
+    bar.innerHTML =
+      '<span class="ll-restore-t"></span>' +
+      '<button type="button" class="ll-btn ll-go">Pick up where I left off</button>' +
+      '<button type="button" class="ll-btn ll-fresh">Start fresh</button>';
+    bar.querySelector('.ll-restore-t').textContent =
+      'You have work saved from ' + whenWord(saved.t) +
+      (n ? ' — ' + n + (n === 1 ? ' part' : ' parts') + ' already finished.' : '.');
+    document.body.insertBefore(bar, document.body.firstChild);
+    bar.querySelector('.ll-go').addEventListener('click', function () {
+      restore(saved); bar.parentNode.removeChild(bar);
+    });
+    bar.querySelector('.ll-fresh').addEventListener('click', function () {
+      drop(); bar.parentNode.removeChild(bar);
+    });
+  }
+
+  /* -------------------------------------- the "are you sure" on tab close */
+  var submitted = false;
+  function hasText() {
+    var els = document.querySelectorAll('[data-q]');
+    for (var i = 0; i < els.length; i++) if (els[i].value.trim()) return true;
+    return false;
+  }
+  window.addEventListener('beforeunload', function (e) {
+    if (submitted || (!hasText() && !LL.done.size)) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+  var copyBtn = document.getElementById('copyAll');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    setTimeout(function () { submitted = true; }, 0);   /* copied: stop nagging */
+  });
+
+  /* --------------------------------------------------------- celebration */
+  LL.award = function (id) {
+    var r = (typeof REWARDS !== 'undefined') ? REWARDS[id] : null;
+    if (!r) return;
+    var msg = (STAGES[STAGES.length - 1] === id) ? 'All done — go turn it in.' : r.msg;
+    celebrate(r.star, msg, id, function () { origAward(id); });
+  };
+
+  function celebrate(star, msg, stageId, dock) {
+    var card = document.createElement('div');
+    card.className = 'll-cel';
+    card.setAttribute('aria-hidden', 'true');       /* #earned is the aria-live region */
+    card.innerHTML = '<span class="ll-cel-star"></span><span class="ll-cel-msg"></span>';
+    card.querySelector('.ll-cel-star').textContent = star;
+    card.querySelector('.ll-cel-msg').textContent  = msg;
+    document.body.appendChild(card);
+
+    /* Placed over the part they just finished, in document coordinates.
+       position:fixed would centre on the IFRAME's viewport, which inside a
+       Canvas page can be scrolled off screen entirely. */
+    var st = document.getElementById(stageId);
+    var r  = st ? st.getBoundingClientRect()
+                : { left: 0, top: 0, width: document.documentElement.clientWidth, height: 240 };
+    var cw = card.offsetWidth, ch = card.offsetHeight;
+    var x  = window.scrollX + r.left + r.width / 2 - cw / 2;
+    var y;
+    if (lookAt !== null) {
+      /* just ABOVE the button they pressed — the button was on screen, so
+         the space above it is too, even when an iframe is taller than the
+         screen. Only if there's no room above does it go just below. */
+      var vy = lookAt - ch - 28;
+      if (vy < 8) vy = lookAt + 28;
+      y = window.scrollY + vy;
+    } else {
+      y = window.scrollY + r.top + Math.min(r.height / 2, 170) - ch / 2;
+    }
+    card.style.left = Math.max(8, x) + 'px';
+    card.style.top  = Math.max(8, y) + 'px';
+
+    celebrating = true;
+    requestAnimationFrame(function () { card.classList.add('in'); });
+
+    setTimeout(function () {
+      var bar = document.getElementById('earned');
+      if (REDUCED || !bar) {
+        card.classList.add('out');
+      } else {
+        var br = bar.getBoundingClientRect();
+        var dx = (window.scrollX + br.left + 14) - (parseFloat(card.style.left) + cw / 2);
+        var dy = (window.scrollY + br.top + br.height / 2) - (parseFloat(card.style.top) + ch / 2);
+        card.classList.add('fly');
+        card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.18)';
+        card.style.opacity   = '0';
+      }
+      setTimeout(function () {
+        dock();                                     /* the star appears in #earned */
+        if (card.parentNode) card.parentNode.removeChild(card);
+        releaseNext();                              /* now the page may move */
+      }, REDUCED ? 420 : 560);
+    }, REDUCED ? 1900 : 1600);
+  }
+
+  /* ---------------------------------------------------------------- CSS
+     Injected rather than added to lesson.css, because activities are
+     self-contained and carry no shared stylesheet. Tokens where they exist,
+     fallbacks where they don't. */
+  var css = document.createElement('style');
+  css.textContent = [
+    '.ll-restore{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;gap:.6rem;',
+      'align-items:center;padding:.7rem 1rem;margin:0 0 1rem;border-radius:10px;',
+      'border:1px solid var(--warn-line,#6b5124);background:var(--warn-soft,#38290f);',
+      'color:var(--ink,#f3f5f8);font-size:.95rem;font-family:inherit}',
+    '.ll-restore-t{flex:1 1 15rem;font-weight:600}',
+    '.ll-btn{font:inherit;font-weight:700;cursor:pointer;border-radius:8px;padding:.45rem .9rem;',
+      'border:1px solid var(--accent-line,#2b5a72);background:var(--accent,#6fbde3);',
+      'color:var(--on-accent,#0f1216)}',
+    '.ll-btn.ll-fresh{background:transparent;color:var(--soft,#c5cdd8);',
+      'border-color:var(--line,#2e343d)}',
+    '.ll-cel{position:absolute;z-index:80;pointer-events:none;display:flex;',
+      'flex-direction:column;align-items:center;gap:.45rem;padding:1.15rem 1.7rem;',
+      'border-radius:16px;background:var(--card,#1d2128);border:2px solid var(--gold,#f2c75c);',
+      'box-shadow:0 14px 38px rgba(0,0,0,.45);opacity:0;transform:scale(.4);',
+      'transition:opacity .3s ease,transform .42s cubic-bezier(.2,1.5,.4,1)}',
+    '.ll-cel.in{opacity:1;transform:scale(1)}',
+    '.ll-cel.fly{transition:opacity .5s ease,transform .55s cubic-bezier(.5,0,.75,.4)}',
+    '.ll-cel.out{opacity:0;transition:opacity .36s ease}',
+    '.ll-cel-star{font-size:2.7rem;line-height:1;color:var(--gold,#f2c75c)}',
+    '.ll-cel-msg{font-size:1.05rem;font-weight:800;line-height:1.3;text-align:center;',
+      'max-width:17rem;color:var(--gold,#f2c75c)}',
+    '@media (prefers-reduced-motion:reduce){',
+      '.ll-cel{transition:opacity .3s ease}.ll-cel.in{transform:none}}'
+  ].join('');
+  document.head.appendChild(css);
+
+  /* ------------------------------------------------------------ on load */
+  var saved = read();
+  if (saved && saved.v !== FP)                  drop();      /* lesson was edited */
+  else if (saved && (Date.now() - saved.t) > MAX_AGE) drop();
+  else if (saved && worthKeeping(saved))        offerRestore(saved);
+})();
+
+</script>
+</body>
+</html>
