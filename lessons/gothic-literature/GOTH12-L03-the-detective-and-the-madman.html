@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GOTH12-L03 · The Detective and the Madman</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">GOTH12-L03</p>
+  <h1 id="pagetitle">Gothic Literature · Lesson 3</h1>
+  <p class="sub" id="pagesub">The Detective and the Madman.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Fog, a curse, and a detective">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Fog, a curse, and a detective</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Fog, a curse, and a detective</h2>
+
+      <p>You've spent this course in the Gothic: curses, ghosts, monsters that might be real. Around 1900, a new kind of story moved into the same haunted house. It brought <strong>a detective</strong>.</p>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> Arthur Conan Doyle, <strong>The Hound of the Baskervilles</strong> (1902). A rich man dies of fright at the edge of a lonely moor. His family has a legend: a giant hound from hell hunts every Baskerville. Now the heir is moving into the old hall. Sherlock Holmes, the most famous detective ever written, takes the case.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> the line about what was found beside the body.</p>
+</div>
+
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.4rem;line-height:1.75;max-width:30em;">
+  Mr. Holmes, they were the footprints of a gigantic hound!
+</div>
+
+      <figure class="photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Houn-29.jpg?width=760"
+             alt="A Victorian ink illustration: a man in a dark room stands at a tall window, staring out into the blackness of the moor at night.">
+        <figcaption>Sidney Paget for The Strand Magazine, 1901. Original caption: "He stared out into the blackness." <a href="https://commons.wikimedia.org/wiki/File:Houn-29.jpg">via Wikimedia Commons</a>.</figcaption>
+      </figure>
+
+      <figure class="dia">
+<svg viewBox="0 0 640 230" role="img" aria-label="Two toolboxes side by side. The Gothic toolbox holds a curse, a foggy moor, an old hall and a candle in the window. The detective story's toolbox holds all of the same things, plus one new tool, highlighted: a magnifying glass, meaning clues and reason. An arrow labelled plus one tool runs from the first box to the second.">
+  <rect x="10" y="20" width="270" height="200" rx="12" fill="none" stroke="var(--warn)" stroke-width="3"/>
+  <rect x="360" y="20" width="270" height="200" rx="12" fill="none" stroke="var(--accent)" stroke-width="3"/>
+  <text x="145" y="50" text-anchor="middle" font-size="17" font-weight="700" fill="var(--warn)">The Gothic</text>
+  <text x="495" y="50" text-anchor="middle" font-size="17" font-weight="700" fill="var(--accent)">The detective story</text>
+  <text x="34" y="88"  font-size="16" fill="var(--ink)">💀 a curse</text>
+  <text x="34" y="118" font-size="16" fill="var(--ink)">🌫️ a foggy moor</text>
+  <text x="34" y="148" font-size="16" fill="var(--ink)">🏚️ an old hall</text>
+  <text x="34" y="178" font-size="16" fill="var(--ink)">🕯️ a candle in a window</text>
+  <text x="384" y="88"  font-size="15" fill="var(--soft)">💀 🌫️ 🏚️ 🕯️  all of it, plus:</text>
+  <rect x="384" y="112" width="222" height="64" rx="10" fill="none" stroke="var(--calm)" stroke-width="3"/>
+  <text x="400" y="140" font-size="18" font-weight="700" fill="var(--calm)">🔎 a detective</text>
+  <text x="400" y="163" font-size="14" fill="var(--ink)">clues + reason</text>
+  <line x1="290" y1="120" x2="348" y2="120" stroke="var(--ink)" stroke-width="3"/>
+  <polygon points="352,120 340,113 340,127" fill="var(--ink)"/>
+  <text x="320" y="108" text-anchor="middle" font-size="13" fill="var(--soft)">+1 tool</text>
+</svg>
+      <figcaption>The detective story keeps the whole Gothic set and adds one tool.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q1.</strong> Which of these belongs to the DETECTIVE, not the Gothic?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. Which of these belongs to the DETECTIVE, not the Gothic?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a family curse">a family curse</option>
+          <option value="a fog-covered moor at night">a fog-covered moor at night</option>
+          <option value="a footprint, measured and studied">a footprint, measured and studied</option>
+          <option value="a candle in a dark window">a candle in a dark window</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> A Gothic story says: "It was the curse." What does a detective do with that?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. A Gothic story says: &quot;It was the curse.&quot; What does a detective do with that?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="proves the curse is real">proves the curse is real</option>
+          <option value="explains it away with clues and reason">explains it away with clues and reason</option>
+          <option value="runs from the hall">runs from the hall</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked, and one Gothic thing in the picture named out loud.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="The madman tells it">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The madman tells it</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The madman tells it</h2>
+
+      <p>Detective stories ask <strong>who did it?</strong> Decades before Holmes, Edgar Allan Poe wrote a story where you know who did it from the first line. The question is <strong>what's wrong with him</strong>.</p>
+
+<div style="border:2px solid var(--line);border-radius:12px;padding:14px 18px;max-width:34em;line-height:1.7;font-size:1.08rem;">
+  <p><strong>What happens.</strong> Edgar Allan Poe, <strong>"The Tell-Tale Heart"</strong> (1843). A man lives with an old man he says he loves. But the old man has one pale, filmy eye, and the narrator can't stand it. For a week he creeps into the old man's room at midnight. On the eighth night he kills him and hides the body under the floorboards. The police come to check on a scream. He invites them in, totally calm, until he starts to hear a heartbeat getting louder and louder.</p>
+  <p style="margin-top:.6rem;"><strong>Listen for:</strong> how hard he tries to convince you he's sane.</p>
+</div>
+
+      <figure class="photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Clarke-TellTaleHeart.jpeg?width=760"
+             alt="A dark, detailed black-and-white illustration: a gaunt man crouches over a bed in the dark, listening.">
+        <figcaption>Harry Clarke, for Poe's Tales of Mystery and Imagination (1919). <a href="https://commons.wikimedia.org/wiki/File:Clarke-TellTaleHeart.jpeg">via Wikimedia Commons</a>.</figcaption>
+      </figure>
+
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  True!—nervous—very, very dreadfully nervous I had been and am; but why will you say that I am mad?
+</div>
+<div style="border-left:6px solid var(--accent);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  I loved the old man. He had never wronged me.
+</div>
+<div style="border-left:6px solid var(--warn);padding:12px 18px;margin:14px 0;font-size:1.35rem;line-height:1.75;max-width:30em;">
+  I admit the deed!—tear up the planks!—here, here!—it is the beating of his hideous heart!
+</div>
+<details style="max-width:30em;margin:-4px 0 14px;padding:8px 14px;border:2px dashed var(--field-line);border-radius:10px;font-size:1.05rem;line-height:1.6;"><summary style="cursor:pointer;color:var(--soft);"><strong>Stuck? Tap for plain English</strong> (read the real lines first)</summary><p style="margin-top:.5rem;">1: Yes, I'm nervous, really nervous. But why do you say I'm crazy? 2: I loved the old man. He never did anything to me. 3: I did it! Rip up the floor, it's right here! I can hear his heart beating!</p></details>
+
+      <p class="q"><strong>Q3.</strong> 1 · Who's telling it? Can you trust him?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. 1 · Who&#x27;s telling it? Can you trust him?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="no: he keeps saying he&#x27;s sane while describing a murder">no: he keeps saying he&#x27;s sane while describing a murder</option>
+          <option value="yes: he explains every step so carefully">yes: he explains every step so carefully</option>
+          <option value="yes: the police believed him at first">yes: the police believed him at first</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> 2 · The heartbeat. Where's the monster?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. 2 · The heartbeat. Where&#x27;s the monster?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="outside: the old man&#x27;s ghost">outside: the old man&#x27;s ghost</option>
+          <option value="the system: the police">the system: the police</option>
+          <option value="inside: his own guilt, inside his head">inside: his own guilt, inside his head</option>
+        </select></div>
+
+      <p class="q"><strong>Q5.</strong> 3 · Who solves this crime?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. 3 · Who solves this crime?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="the police, using clues">the police, using clues</option>
+          <option value="nobody: he confesses, because his own mind breaks">nobody: he confesses, because his own mind breaks</option>
+          <option value="a detective who arrives at the end">a detective who arrives at the end</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked. Nothing is filled in for you this time.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="mastery" id="m2" data-title="The madman&#x27;s great-grandchildren">
+    <button class="donebar" onclick="LL.toggle('m2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; The madman's great-grandchildren</strong>
+      <span class="sum" id="sum-m2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; The madman's great-grandchildren</h2>
+
+      <p>The Gothic split into two branches, and both are still alive.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 640 250" role="img" aria-label="A family tree. At the bottom, the trunk: The Gothic. It splits into two branches. The left branch, The detective, labelled monster explained away: The Hound of the Baskervilles, 1902, then Knives Out, 2019. The right branch, The madman, labelled monster inside: The Tell-Tale Heart, 1843, then Shutter Island and Gone Girl, marked with question marks for you to place.">
+  <rect x="270" y="200" width="100" height="40" rx="8" fill="none" stroke="var(--warn)" stroke-width="3"/>
+  <text x="320" y="226" text-anchor="middle" font-size="16" font-weight="700" fill="var(--warn)">The Gothic</text>
+  <path d="M320 200 C 320 160, 170 160, 170 120" fill="none" stroke="var(--soft)" stroke-width="5"/>
+  <path d="M320 200 C 320 160, 470 160, 470 120" fill="none" stroke="var(--soft)" stroke-width="5"/>
+  <text x="170" y="22" text-anchor="middle" font-size="17" font-weight="700" fill="var(--accent)">🔎 The detective</text>
+  <text x="170" y="42" text-anchor="middle" font-size="13" fill="var(--soft)">monster explained away</text>
+  <text x="470" y="22" text-anchor="middle" font-size="17" font-weight="700" fill="var(--calm)">🧠 The madman</text>
+  <text x="470" y="42" text-anchor="middle" font-size="13" fill="var(--soft)">monster inside</text>
+  <text x="170" y="78" text-anchor="middle" font-size="15" fill="var(--ink)">The Hound (1902)</text>
+  <text x="170" y="102" text-anchor="middle" font-size="15" fill="var(--ink)">Knives Out (2019)</text>
+  <text x="470" y="78" text-anchor="middle" font-size="15" fill="var(--ink)">Tell-Tale Heart (1843)</text>
+  <text x="470" y="102" text-anchor="middle" font-size="15" fill="var(--ink)">? &#160; ? &#160; ?</text>
+</svg>
+      <figcaption>Two branches from one trunk. Where do today's thrillers go?</figcaption>
+      </figure>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:50%;"><span style="font-size:1.8rem;">🏝️</span><br><strong>Shutter Island</strong> (novel 2003, film 2010)<br>A U.S. Marshal investigates a missing patient at an island hospital for the criminally insane, in a storm. The more he digs, the less he trusts his own memory.</td>
+    <td style="padding:12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:50%;"><span style="font-size:1.8rem;">💍</span><br><strong>Gone Girl</strong> (novel 2012, film 2014)<br>A wife vanishes on her anniversary. Husband and wife take turns telling the story, and both of them are lying to you.</td>
+  </tr>
+</table>
+      <figcaption>Two modern psychological thrillers. You don't need to have seen them.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q6.</strong> Shutter Island goes on which branch?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q6. Shutter Island goes on which branch?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="🔎 the detective: the monster gets explained away">🔎 the detective: the monster gets explained away</option>
+          <option value="🧠 the madman: you can&#x27;t trust the mind telling it">🧠 the madman: you can&#x27;t trust the mind telling it</option>
+        </select></div>
+
+      <p class="q"><strong>Q7.</strong> Gone Girl goes on which branch?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. Gone Girl goes on which branch?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="🔎 the detective: the monster gets explained away">🔎 the detective: the monster gets explained away</option>
+          <option value="🧠 the madman: you can&#x27;t trust the mind telling it">🧠 the madman: you can&#x27;t trust the mind telling it</option>
+        </select></div>
+
+      <p><strong>This one's meant to be hard.</strong> There's more than one defensible answer. Pick a side and back it.</p>
+
+      <p class="q"><strong>Q8.</strong> "The psychological thriller is the detective story turned inside out."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q8. &quot;The psychological thriller is the detective story turned inside out.&quot;">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="agree">agree</option>
+          <option value="disagree">disagree</option>
+        </select></div>
+
+      <p class="q"><strong>Q9.</strong> Why? Two sentences, your own words. Use at least one story from today. Don't worry about spelling.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q9. Why? Two sentences, your own words. Use at least one story from today. Don&#x27;t worry about spelling." placeholder="Say it out loud first, then type it (or your teacher types exactly what you say)…" rows="3"></textarea></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>One strong AGREE: in The Hound the detective stands outside the mystery and explains the monster away, but in The Tell-Tale Heart we're stuck inside the killer's head and nobody explains anything; he breaks himself. One strong DISAGREE: both keep the Gothic toolbox (night, a body, dread) and both build to a reveal; Shutter Island even has a detective, and he turns out to be the one who can't be trusted. Either side is right if your reason comes from a story.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked, one stand taken, and two sentences in your own words.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="I am not mad">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; I am not mad</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; I am not mad</h2>
+
+      <p>You're writing the first two lines of a psychological thriller. Your narrator swears everything is fine. <strong>One detail should tell the reader it isn't.</strong></p>
+
+      <figure class="dia">
+<table style="width:100%;max-width:40em;border-collapse:separate;border-spacing:6px;font-size:1.02rem;line-height:1.55;">
+  <tr>
+    <td style="padding:12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:33%;text-align:center;"><span style="font-size:2rem;">🏄</span><br><strong>A · The last surfer</strong><br>alone on the beach at dawn</td>
+    <td style="padding:12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:33%;text-align:center;"><span style="font-size:2rem;">🏂</span><br><strong>B · The empty lodge</strong><br>snowed in at a ski resort</td>
+    <td style="padding:12px;border:2px solid var(--line);border-radius:10px;vertical-align:top;width:33%;text-align:center;"><span style="font-size:2rem;">📱</span><br><strong>C · The account</strong><br>someone keeps posting as you</td>
+  </tr>
+</table>
+      <figcaption>Pick a setting. Your narrator is fine. Totally fine.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q10.</strong> Which setting? (We pick together.)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q10. Which setting? (We pick together.)">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="A · The last surfer">A · The last surfer</option>
+          <option value="B · The empty lodge">B · The empty lodge</option>
+          <option value="C · The account">C · The account</option>
+        </select></div>
+
+      <p class="q"><strong>Q11.</strong> Line 1: your narrator insists he's fine. (We write this one together.)</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q11. Line 1: your narrator insists he&#x27;s fine. (We write this one together.)" placeholder="e.g. I want to be clear: I am calm. I have been calm since Tuesday." rows="3"></textarea></div>
+
+      <p class="q"><strong>Q12.</strong> Line 2: keep him calm, but slip in one detail that gives him away. Don't worry about spelling.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q12. Line 2: keep him calm, but slip in one detail that gives him away. Don&#x27;t worry about spelling." placeholder="One calm sentence with one wrong detail…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One setting picked and two lines in the voice of a narrator who swears he's fine. Line 1 we write together before class ends.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Two ways the Gothic grew up &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">The Gothic toolbox</td><td>A curse, a fog-covered moor, an old hall, a candle in a window, something that might be supernatural.</td></tr>
+      <tr><td class="h">The detective story</td><td>Same toolbox, plus a detective who uses clues and reason to explain the 'supernatural' away. The monster turns out to be a person.</td></tr>
+      <tr><td class="h">Red herring</td><td>A clue that looks guilty and isn't. It keeps you guessing.</td></tr>
+      <tr><td class="h">The psychological thriller</td><td>No detective needed. The story lives inside one mind, often an unreliable narrator. The monster is inside.</td></tr>
+      <tr><td class="h">Unreliable narrator</td><td>The person telling the story can't be trusted, and often doesn't know it. The horror is the gap between what he says and what we see.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>Don't worry about spelling here.</strong></p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud and your teacher will type it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Gothic Literature · Lesson 3";
+const LESSON_ID = "GOTH12-L03";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Apply the Gothic style of writing to mystery and detective stories.",
+  "O2": "Connect the Gothic genre to novels and films that are categorized as psychological thrillers."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & bring one thing", mins:5 },
+  { label:"Fog, a curse, and a detective", mins:10, part:"intro" },
+  { label:"The Hound on the Moor", mins:15 },
+  { label:"The madman tells it", mins:15, part:"mastery" },
+  { label:"I am not mad", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "What happens when you drop a detective into a Gothic story.", sheet: true, outcomes: ["O1"] },
+  mastery: { title: "Independent Mastery", sub: "No detective this time. The killer tells the story, and his own head is the trap.", sheet: true, outcomes: ["O1", "O2"] },
+  homework: { title: "Homework", sub: "Write a narrator who swears he's sane.", sheet: true, outcomes: ["O2"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You spotted the switch: same Gothic toolbox, new owner."},
+  m1:{star:"★",msg:"No detective, no ghost. You found the monster inside his head."},
+  m2:{star:"★",msg:"Two branches of the Gothic, traced to today. That's both outcomes."},
+  h1:{star:"★",msg:"You wrote an unreliable narrator. Poe would approve."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/guide.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>

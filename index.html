@@ -481,6 +481,18 @@ const ITEMS = [
   },
   {
     type: 'activity',
+    course: 'Gothic Literature',
+    file: 'activities/hound-on-the-moor.html',
+    engine: 'case', variant: 'hound', version: 1, updated: '2026-11-17',
+    title: '🐕 The Hound on the Moor',
+    tag: 'commit under uncertainty',
+    desc: 'Play detective in The Hound of the Baskervilles. Four answers (the family curse, the escaped convict, the butler, a person using a real dog), five clues released one at a time, and the student calls it whenever they like. Calling early scores more; calling wrong is diagnosed, not punished. Then name the clue that cracked it, find the red herring, and decide which is scarier: a curse or a person.',
+    skills: 'Gothic detective story \u00b7 inference \u00b7 evidence and elimination \u00b7 red herring \u00b7 reason vs. the supernatural',
+    note: 'Rejigger of Cold Open (same case engine): CASE at the top of the script, the page header, the inline moor SVG and the Part 2/3 prompts are the only changes. Clue 3 (the stolen boots) is the one that kills the curse; clue 4 (Barrymore\u2019s candle) is the deliberate red herring. Dark theme, taps only, suspect order shuffles, clue order fixed. Used as Guided Practice in GOTH12-L03.',
+    height: 1400
+  },
+  {
+    type: 'activity',
     course: 'English',
     file: 'activities/sixty-seconds.html',
     engine: 'sprint', variant: 'mixed-v1', version: 1, updated: '2026-09-01',
@@ -868,6 +880,25 @@ const ITEMS = [
       { key: 'guided', label: '⭐🏚️ Guided Practice: The house remembers' },
       { key: 'mastery', label: '📝☕ Independent Mastery: The polite monster' },
       { key: 'homework', label: '📝🎬 Homework: Flip the monster' }
+    ]
+  },
+  {
+    type: 'lesson',
+    id:   'GOTH12-L03',
+    course: 'Gothic Literature',
+    file: 'lessons/gothic-literature/GOTH12-L03-the-detective-and-the-madman.html',
+    updated: '2026-11-17',
+    title: '🔎 The Detective and the Madman',
+    tag: 'lesson',
+    desc: 'Course Lesson 17/20 in one session: how the Gothic grew into the detective story (The Hound of the Baskervilles) and the psychological thriller (Poe\u2019s \u201cThe Tell-Tale Heart\u201d, then Shutter Island and Gone Girl). Guided Practice is a play-the-detective case, The Hound on the Moor.',
+    skills: 'Gothic detective story \u00b7 psychological thriller \u00b7 unreliable narrator \u00b7 red herring \u00b7 where the monster lives',
+    note: 'Both texts summarised (what happens / exact quotes / what to listen for). Two Commons images (Paget 1901, Harry Clarke 1919) and two inline SVGs (two toolboxes, the detective/madman family tree). Q8\u2013Q9 are the deliberately arguable stretch item. Homework: two lines of an unreliable narrator in a setting he picks (surf, snow, social media).',
+    height: 1400,
+    parts: [
+      { key: 'intro', label: '⭐🌫️ Introduce the Concept: Fog, a curse, and a detective' },
+      { file: 'activities/hound-on-the-moor.html', label: '⭐🐕 Guided Practice: The Hound on the Moor', height: 1400 },
+      { key: 'mastery', label: '✏️🫀 Independent Mastery: The madman tells it' },
+      { key: 'homework', label: '✏️🧠 Homework: I am not mad' }
     ]
   },
   {
