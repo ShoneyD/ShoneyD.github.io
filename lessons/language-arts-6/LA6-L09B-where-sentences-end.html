@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LA6-L09B · Where Sentences End</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">LA6-L09B</p>
+  <h1 id="pagetitle">Language Arts 6 · Lesson 9B</h1>
+  <p class="sub" id="pagesub">Where Sentences End.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Two-minute warm-up">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Two-minute warm-up</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Two-minute warm-up</h2>
+
+      <p>Find the <strong>helper</strong> first. It's the clock.</p>
+
+      <p class="q"><strong>Q1.</strong> "We were practicing when it started to rain." <strong>were practicing</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. &quot;We were practicing when it started to rain.&quot; were practicing is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="present progressive">present progressive</option>
+          <option value="past progressive">past progressive</option>
+          <option value="simple future">simple future</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> "Next week the team will be traveling to the coast." Which word tells you the time?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. &quot;Next week the team will be traveling to the coast.&quot; Which word tells you the time?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="traveling">traveling</option>
+          <option value="be">be</option>
+          <option value="will">will</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="Where does a sentence end?">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Where does a sentence end?</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Where does a sentence end?</h2>
+
+      <p>Every sentence has to be able to <strong>stand alone</strong>. Cover everything else, read the piece by itself, and ask: would a person say <em>just that</em> and stop?</p>
+
+      <p>That one test finds <strong>two</strong> different problems:</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 700 240" width="100%" style="max-width:44rem;display:block;margin:1rem auto" role="img" aria-label="Three rows of train cars. Row one, marked with a cross and labelled run-on: two full cars, The crowd went quiet and everyone watched, joined only by a comma, drawn as a broken link. Row two, marked with a cross and labelled fragment: a small car, After that, standing alone with a period and no engine. Row three, marked with a tick and labelled correct: the small car After that coupled with a comma to a full car, her arrows hit the gold.">
+  <g font-family="Verdana,sans-serif" text-anchor="middle">
+    <text x="22" y="46" font-size="24" fill="var(--warn)">✗</text>
+    <rect x="44" y="20" width="230" height="44" rx="8" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="159" y="48" font-size="14" fill="var(--ink)">The crowd went quiet</text>
+    <text x="292" y="50" font-size="22" font-weight="bold" fill="var(--warn)">,</text>
+    <path d="M276 42 H286 M300 42 H310" stroke="var(--warn)" stroke-width="3" stroke-dasharray="4 4"/>
+    <rect x="312" y="20" width="230" height="44" rx="8" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="427" y="48" font-size="14" fill="var(--ink)">everyone watched</text>
+    <text x="620" y="40" font-size="13" font-weight="bold" fill="var(--warn)">RUN-ON</text>
+    <text x="620" y="58" font-size="11" fill="var(--soft)">two that stand alone</text>
+
+    <text x="22" y="126" font-size="24" fill="var(--warn)">✗</text>
+    <rect x="44" y="100" width="130" height="44" rx="8" fill="var(--card)" stroke="var(--line)" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="109" y="128" font-size="14" fill="var(--ink)">After that.</text>
+    <text x="300" y="128" font-size="12" fill="var(--soft)">← no engine: it can't go anywhere alone</text>
+    <text x="620" y="120" font-size="13" font-weight="bold" fill="var(--warn)">FRAGMENT</text>
+    <text x="620" y="138" font-size="11" fill="var(--soft)">can't stand alone</text>
+
+    <text x="22" y="206" font-size="24" fill="var(--calm)">✓</text>
+    <rect x="44" y="180" width="130" height="44" rx="8" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="109" y="208" font-size="14" fill="var(--ink)">After that</text>
+    <rect x="178" y="192" width="22" height="20" rx="4" fill="var(--calm-soft)" stroke="var(--calm)" stroke-width="2"/>
+    <text x="189" y="207" font-size="14" font-weight="bold" fill="var(--ink)">,</text>
+    <rect x="204" y="180" width="250" height="44" rx="8" fill="var(--card)" stroke="var(--calm)" stroke-width="2"/>
+    <text x="329" y="208" font-size="14" fill="var(--ink)">her arrows hit the gold.</text>
+    <text x="620" y="200" font-size="13" font-weight="bold" fill="var(--calm)">CORRECT</text>
+    <text x="620" y="218" font-size="11" fill="var(--soft)">small car + comma + train</text>
+  </g>
+</svg>
+      <figcaption>A run-on is two trains crashed together. A fragment is a car with no engine. An opening phrase is a small car: it rides with a <strong>comma</strong>, never alone.</figcaption>
+      </figure>
+
+      <p>Read across each row. Cover the piece and ask: <strong>can it stand alone?</strong></p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.92rem">
+<tr><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">The sentence</th><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">Stand-alone test</th><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">Fixed</th></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">The wind was strong, the arrows drifted.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Both halves stand alone → <b>run-on</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">The wind was strong<b>, so</b> the arrows drifted.</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">Sami missed the first shot he hit the second.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Both halves stand alone → <b>run-on</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Sami missed the first shot<b>. He</b> hit the second.</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">Before the final round. Lena stretched.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">"Before the final round" can't → <b>fragment</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Before the final round<b>,</b> Lena stretched.</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">Freezing and muddy. The field was a mess.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">"Freezing and muddy" can't → <b>fragment</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">The field was freezing, muddy<b>,</b> and a mess.</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">When the whistle blew. The runners took off.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">"When…" is <b>waiting</b> for more → <b>fragment</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">When the whistle blew<b>,</b> the runners took off.</td></tr>
+<tr><td style="padding:.45rem">In the first half, the Eagles scored.</td><td style="padding:.45rem">Small car + comma + train → <b>already correct</b></td><td style="padding:.45rem">Leave it alone ✓</td></tr>
+</table>
+      <figcaption>Words like <em>when, because, after, if</em> make a piece <strong>wait</strong> for the rest. Waiting pieces can't stand alone.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q3.</strong> "After the final whistle." This is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. &quot;After the final whistle.&quot; This is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a correct sentence">a correct sentence</option>
+          <option value="a run-on">a run-on</option>
+          <option value="a fragment">a fragment</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> "The crowd went quiet, everyone watched the last arrow." This is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q4. &quot;The crowd went quiet, everyone watched the last arrow.&quot; This is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a fragment">a fragment</option>
+          <option value="a run-on">a run-on</option>
+          <option value="a correct sentence">a correct sentence</option>
+        </select></div>
+
+      <p class="q"><strong>Q5.</strong> "By the second half, the field was muddy." This is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. &quot;By the second half, the field was muddy.&quot; This is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="a run-on">a run-on</option>
+          <option value="a correct sentence">a correct sentence</option>
+          <option value="a fragment">a fragment</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>Correct already. <em>By the second half</em> is a small car riding with a comma, and <em>the field was muddy</em> stands alone. Leave it!</p>
+      </details>
+
+      <p class="q"><strong>Q6.</strong> Fix it: "In the first half. The Eagles scored two goals."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q6. Fix it: &quot;In the first half. The Eagles scored two goals.&quot;" placeholder="Attach the small car…"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Three dropdowns picked and one fragment attached with a comma.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="The editor&#x27;s desk">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The editor's desk</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The editor's desk</h2>
+
+      <p><strong>Fix it, or type OK.</strong> Some of these are already correct. An editor who changes everything isn't editing.</p>
+
+      <p class="q"><strong>Q7.</strong> "Maya grabbed her bow she ran to the line."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q7. &quot;Maya grabbed her bow she ran to the line.&quot;" placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q8.</strong> "After lunch, the team stretched."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q8. &quot;After lunch, the team stretched.&quot;" placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q9.</strong> "Before the last round. Lena checked the wind."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q9. &quot;Before the last round. Lena checked the wind.&quot;" placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q10.</strong> "The wind was strong, the arrows drifted left."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q10. &quot;The wind was strong, the arrows drifted left.&quot;" placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q11.</strong> "When the whistle blew, the runners took off."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q11. &quot;When the whistle blew, the runners took off.&quot;" placeholder="Type here…"></div>
+
+      <p class="q"><strong>Q12.</strong> "Last Saturday we drove to the lake. Freezing cold."</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q12. &quot;Last Saturday we drove to the lake. Freezing cold.&quot;" placeholder="Type here…"></div>
+
+      <p>Now one of your own.</p>
+
+      <p class="q"><strong>Q13.</strong> Write one sentence about archery (or any sport) that <strong>starts with an opening phrase</strong> (<em>After…, Before…, In the…, By the…</em>). Put the comma in the right place.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q13. Write one sentence about archery (or any sport) that starts with an opening phrase (After…, Before…, In the…, By the…). Put the comma in the right place." placeholder="Before my first competition, …"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Six sentences, each fixed or marked OK, and one sentence of your own with an opening phrase.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="The Final Round, part 1">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The Final Round, part 1</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The Final Round, part 1</h2>
+
+      <p>Today you write the first part of <strong>The Final Round</strong>: a story about the last round of a competition. You or a character you invent, any sport.</p>
+
+      <p><strong>Before you write a single word</strong>, tell me what the finished story will look like.</p>
+
+      <p class="q"><strong>Q14.</strong> Say it back: what will the finished story look like?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; It will have … paragraphs. Paragraph 1 is about … Paragraph 2 is about … Paragraph 3 is about … It will be about … words long, in the … tense.____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q14. Say it back: what will the finished story look like?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p>Here's what that <strong>shape</strong> looks like on a different topic: a spelling bee.</p>
+
+      <figure class="dia">
+<div style="border:2px solid var(--line);border-radius:12px;padding:1rem 1.25rem;margin:1rem 0;background:var(--card);font-family:Georgia,serif;line-height:1.75;font-size:.98rem">
+<p style="margin:0 0 .3rem;font-family:Verdana,sans-serif;font-size:.75rem;letter-spacing:.08em;color:var(--soft)">⏪ BEFORE</p>
+<p style="margin:0 0 .8rem">My hands were shaking. Before my turn, I whispered the alphabet to myself.</p>
+<p style="margin:0 0 .3rem;font-family:Verdana,sans-serif;font-size:.75rem;letter-spacing:.08em;color:var(--soft)">🎯 DURING</p>
+<p style="margin:0 0 .8rem">The judge read my word. I closed my eyes, and I spelled it one letter at a time.</p>
+<p style="margin:0 0 .3rem;font-family:Verdana,sans-serif;font-size:.75rem;letter-spacing:.08em;color:var(--soft)">⏩ AFTER</p>
+<p style="margin:0">The bell rang. Everyone clapped, and I finally breathed.</p>
+</div>
+      <figcaption>The <strong>shape</strong>: three short paragraphs, before → during → after, all in the past. Yours will be longer, about your own competition.</figcaption>
+      </figure>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.95rem">
+<tr><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">✅ The three checks</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">How to check</th></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">✂️ Clean edges</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">Read it out loud. Every sentence <b>stands alone</b>; opening phrases get a comma.</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">⏪ One time</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">Every verb is in the <b>past</b>, except words inside "quotation marks".</td></tr>
+<tr><td style="padding:.5rem">🎯 Right shape</td><td style="padding:.5rem">Paragraph 1 = before, paragraph 2 = during.</td></tr>
+</table>
+      <figcaption>Three checks, not a long list. If all three pass, it's done.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q15.</strong> The Final Round: paragraph 1 (before) and paragraph 2 (during). About 80–100 words.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q15. The Final Round: paragraph 1 (before) and paragraph 2 (during). About 80–100 words." placeholder="Before the last round, …" rows="3"></textarea></div>
+
+      <p>Now be your own editor. Read it out loud and run the three checks.</p>
+
+      <p class="q"><strong>Q16.</strong> Find one sentence you changed while checking. Write it before → after, and name which check caught it.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Before: …  After: …  The check that caught it: ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q16. Find one sentence you changed while checking. Write it before → after, and name which check caught it." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>The finished shape said back in your own words, paragraphs 1 and 2 written (about 80–100 words), and one sentence you fixed, before → after.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="The Final Round, part 2">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The Final Round, part 2</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The Final Round, part 2</h2>
+
+      <p>Finish <strong>The Final Round</strong> with paragraph 3: <strong>after</strong>. What happened next, and how did it feel?</p>
+
+      <p class="q"><strong>Q17.</strong> Paragraph 3 (after). About 40–50 words, in the past tense.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q17. Paragraph 3 (after). About 40–50 words, in the past tense." placeholder="When it was over, …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q18.</strong> List every verb in paragraph 3. Is each one in the past? Fix any that aren't.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q18. List every verb in paragraph 3. Is each one in the past? Fix any that aren&#x27;t." placeholder="felt ✓ · cheered ✓ · …" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Paragraph 3 (after), about 40–50 words, and every verb in it listed and checked against the past.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>The stand-alone test, the two problems, and the fixes &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">The stand-alone test</td><td>Cover everything else. Can this piece <strong>stand alone</strong> and make sense, the way a person would say it and stop? Yes → it's a sentence.</td></tr>
+      <tr><td class="h">Run-on</td><td><strong>Two</strong> stand-alone pieces glued with nothing, or with only a comma. Fix: a <strong>period</strong>, or <strong>, and / , but / , so</strong>.</td></tr>
+      <tr><td class="h">Fragment</td><td>A piece that <strong>can't</strong> stand alone, sitting there with a period. Fix: <strong>attach it</strong> to the sentence next to it.</td></tr>
+      <tr><td class="h">Opening phrases</td><td><em>After that, · In the first half, · Before the last round,</em> can't stand alone. They get a <strong>comma</strong>, never a period.</td></tr>
+      <tr><td class="h">Waiting words</td><td><em>when, because, after, if, before</em> make a piece <strong>wait</strong> for more: <em>When the whistle blew,</em> ← waiting… <em>the runners took off.</em></td></tr>
+      <tr><td class="h">Time stamp (L08)</td><td>Find the <strong>helper</strong> first: <em>was/were</em> = then, <em>am/is/are</em> = now, <em>will</em> = next.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;">Run-ons and fragments are the <strong>same question</strong>: where does one sentence end?</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud instead of typing it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Language Arts 6 · Lesson 9B";
+const LESSON_ID = "LA6-L09B";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Tell a complete sentence from a run-on and from a fragment, using the stand-alone test.",
+  "O2": "Fix a run-on two ways, and attach an opening phrase with a comma.",
+  "O3": "Say back what a finished writing task looks like before starting, and check the writing against it.",
+  "O4": "Keep a whole story in one tense (review)."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:5 },
+  { label:"Where does a sentence end?", mins:12, part:"intro" },
+  { label:"The editor's desk", mins:8, part:"guided" },
+  { label:"The Final Round, part 1", mins:20, part:"mastery" },
+  { label:"Start part 2 together", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "A two-minute warm-up, then the one test that finds run-ons AND fragments.", sheet: true, outcomes: ["O1", "O2"] },
+  guided: { title: "Guided Practice", sub: "Fix it, or leave it alone. Some of these are already right.", sheet: true, outcomes: ["O1", "O2"] },
+  mastery: { title: "Independent Mastery", sub: "Say what done looks like, then write the first two paragraphs of The Final Round.", sheet: true, outcomes: ["O1", "O2", "O3", "O4"] },
+  homework: { title: "Homework", sub: "The last paragraph, and one check of every verb.", sheet: true, outcomes: ["O1", "O3", "O4"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"You read the clock from the helper. That's the shortcut."},
+  i2:{star:"★",msg:"One test, two problems found. You don't need two rules anymore."},
+  g1:{star:"★",msg:"You knew when to fix AND when to leave it alone. That's what real editors do."},
+  m1:{star:"★",msg:"You knew what done looked like before you started, and your sentences ended where they should. That's the whole job."},
+  h1:{star:"★",msg:"A whole story, start to finish, and every sentence knew where to stop."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* Puzzle pictures for guide.js, one per part in turn. */
+const PUZZLE = [{"src": "../../assets/puzzles/archery-meadow.svg", "alt": "A storybook archery meadow"}];
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/guide.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>
