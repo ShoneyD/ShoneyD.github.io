@@ -140,7 +140,7 @@
 <div class="wrap">
 
   <h1>🦘 Verb Jump</h1>
-  <p class="sub">Climb as high as you can. Some verbs need something to carry across. Some don’t. The verbs decide how high you fly.</p>
+  <p class="sub">Climb to the summit. Some verbs need something to carry across. Some don’t. The verbs decide how high you fly.</p>
 
   <div class="earned" id="earned" role="status" aria-live="polite"></div>
 
@@ -149,7 +149,7 @@
     <ol>
       <li>You bounce by yourself. You only steer: <strong>move the mouse</strong> (or your finger) left and right, or use <kbd>←</kbd> <kbd>→</kbd>.</li>
       <li>Fly through a <strong>phrase bubble</strong> to carry it. You can carry one at a time. <kbd>↓</kbd> drops it.</li>
-      <li>Every platform is a <strong>verb</strong>. Land on it and Lena makes a sentence: <em>Lena + verb + whatever you’re carrying</em>.</li>
+      <li>Wooden platforms with a word are <strong>verbs</strong>. Land on one and Lena makes a sentence: <em>Lena + verb + whatever you’re carrying</em>. Green planks are just for bouncing.</li>
       <li>If the sentence works, you bounce. If it really works, you <strong>fly</strong>. If it doesn’t work, read the message to find out why.</li>
       <li>Falling is fine. A cloud catches you.</li>
       <li>Reach the 🚩 summit, then press the green button for the next climb. <kbd>P</kbd> pauses. ⛶ makes it full screen.</li>
@@ -293,21 +293,21 @@
    kind: T = needs an object, I = never takes one, B = works both ways.
    ===================================================================== */
 const CLIMBS = {
-  s1: { name:'Climb 1', goal:3000, gap:[85,145], move:0, pickEvery:1.6, tailShare:0,
+  s1: { name:'Climb 1', goal:2600, verbShare:.55, gap:[85,145], move:0, pickEvery:1.6, tailShare:0,
         weights:{ T:.5, I:.5, B:0 },
         T:['grabbed','found','carried','brought','borrowed','polished','needed','dragged','fixed','opened'],
         I:['arrived','laughed','slept','fell','smiled','sneezed','yawned','shivered','giggled','frowned'],
         B:[],
         obj:['the ball','the flag','the bag','a medal','the trophy','her bow','the map','a snack'],
         tail:[] },
-  s2: { name:'Climb 2', goal:3600, gap:[90,150], move:.35, pickEvery:1.4, tailShare:.45,
+  s2: { name:'Climb 2', goal:3000, verbShare:.6, gap:[90,150], move:.35, pickEvery:1.4, tailShare:.45,
         weights:{ T:.34, I:.3, B:.36 },
         T:['grabbed','found','carried','brought','borrowed','polished','dragged','fixed'],
         I:['arrived','laughed','slept','fell','smiled','sneezed','went','came'],
         B:['won','moved','stopped','rolled','spun','waved','kicked','climbed','packed','hid'],
         obj:['the ball','the flag','the bag','a medal','the trophy','the gate','her arrows','the wall'],
         tail:['to the field','at the gate','after lunch','in the rain','very fast','home','all day','under the bench'] },
-  s3: { name:'Climb 3', goal:2800, gap:[90,150], move:.3, pickEvery:1.4, tailShare:.45,
+  s3: { name:'Climb 3', goal:2400, verbShare:.6, gap:[90,150], move:.3, pickEvery:1.4, tailShare:.45,
         weights:{ T:.5, I:.5, B:0 },
         T:['raised','set','laid'],
         I:['rose','sat','lay'],
@@ -379,8 +379,8 @@ document.addEventListener('input', e=>{
    THE GAME
    World units are canvas pixels; h is height above the ground (up = +).
    ===================================================================== */
-const W=540, H=760, G=2100;
-const V_NORMAL=1000, V_TAIL=1200, V_SUPER=1700, V_WEAK=720;
+const W=540, H=760, G=1150;          /* slowed 17 Nov after the first class: same jump heights, ~35% more air time */
+const V_NORMAL=730, V_TAIL=890, V_SUPER=1230, V_WEAK=520;
 const PW=118, PH=30;                    /* platform size */
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 const gameEl=document.getElementById('game'), trailEl=document.getElementById('trail');
@@ -434,11 +434,23 @@ function spawnPick(h, kind){
 }
 function genPlatform(){
   const C=G_.C;
-  if(G_.nextH > C.goal){                      /* the summit platform */
-    if(!G_.summitMade){ G_.plats.push({ x:W/2-90, w:180, h:C.goal+60, kind:'summit', label:'🚩 SUMMIT', spent:false }); G_.summitMade=true; }
-    G_.nextH += 400; return;
+  if(G_.nextH > C.goal - 40){                 /* the summit: a wide platform AT the goal height */
+    if(!G_.summitMade){ G_.plats.push({ x:W/2-110, w:220, h:C.goal, kind:'summit', label:'🚩 SUMMIT', spent:false }); G_.summitMade=true; }
+    G_.nextH = Infinity; return;               /* nothing is ever generated above the summit */
   }
-  const h=G_.nextH, k=chooseKind();
+  const h=G_.nextH;
+  /* plain planks between verbs keep the reading load down: a verb never
+     follows a verb, and after a plain plank only some platforms are verbs */
+  const verb = !G_.lastWasVerb && Math.random() < C.verbShare;
+  G_.lastWasVerb = verb;
+  if(!verb){
+    G_.plats.push({ x:10+Math.random()*(W-PW-20), w:PW, h, kind:'plain', label:'', spent:true,
+                    mv: Math.random()<C.move ? (40+Math.random()*70)*(Math.random()<.5?-1:1) : 0, crumble:0 });
+    G_.sincePick += 1; G_.sinceObj += 1;
+    G_.nextH += C.gap[0] + Math.random()*(C.gap[1]-C.gap[0]);
+    return;
+  }
+  const k=chooseKind();
   const pl={ x:10+Math.random()*(W-PW-20), w:PW, h, kind:k, label:chooseLabel(k), spent:false,
              mv: Math.random()<C.move ? (40+Math.random()*70)*(Math.random()<.5?-1:1) : 0, crumble:0 };
   /* a verb that needs an object always has an object reachable below it */
@@ -456,7 +468,7 @@ function genPlatform(){
 function sentence(v, phrase){ return SUBJECT+' '+v+(phrase?' '+phrase:'')+'.'; }
 function land(pl){
   const g=G_, p=g.p, c=p.carry, k=pl.kind, st=g.stats;
-  if(pl.ground || pl.kind==='rescue'){ p.vh=V_NORMAL; return; }
+  if(pl.ground || pl.kind==='rescue' || pl.kind==='plain'){ p.vh=V_NORMAL; return; }
   if(pl.kind==='summit'){ p.vh=V_NORMAL; reachSummit(); return; }
   if(pl.spent){ p.vh=V_NORMAL; blip(330); return; }
   const v=pl.label, phrase=c?c.text:'';
@@ -552,16 +564,16 @@ function finishClimb(id){
 }
 
 /* ---------------- the loop ---------------- */
-function step(dt){
+function step(dt, realDt){
   const g=G_, p=g.p, C=g.C;
   /* steering: pointer if used recently, else keys */
   const now=performance.now();
   let target=null;
   if(pointerX!==null && now-pointerSeen<2500) target=pointerX;
-  if(keys.left||keys.right){ target=null; p.vx += ((keys.right?1:0)-(keys.left?1:0))*2600*dt; p.vx=Math.max(-430,Math.min(430,p.vx)); }
+  if(keys.left||keys.right){ target=null; p.vx += ((keys.right?1:0)-(keys.left?1:0))*1900*dt; p.vx=Math.max(-330,Math.min(330,p.vx)); }
   else if(target!==null){
     let dx=target-p.x; if(dx>W/2) dx-=W; if(dx<-W/2) dx+=W;
-    p.vx = Math.max(-520,Math.min(520,dx*7));
+    p.vx = Math.max(-380,Math.min(380,dx*5));
   } else p.vx*=Math.pow(.02,dt);
   if(Math.abs(p.vx)>20) p.face=Math.sign(p.vx);
   p.x += p.vx*dt; if(p.x<0) p.x+=W; if(p.x>W) p.x-=W;
@@ -596,7 +608,7 @@ function step(dt){
 
   /* camera, generation, falling */
   g.cam = Math.max(g.cam, p.h - H*0.42);
-  if(p.h > g.best + 1){ g.best = p.h; g.progressT = 0; } else g.progressT += dt;
+  if(p.h > g.best + 1){ g.best = p.h; g.progressT = 0; } else g.progressT += realDt;
   /* a crumbled platform can leave a gap too tall to jump: after 4 s with no
      new height, a cloud appears within reach, near the climber */
   if(g.progressT > 4 && !g.summit){
@@ -604,7 +616,9 @@ function step(dt){
     g.plats.push({ x:Math.max(6,Math.min(W-PW-6,p.x-PW/2+(Math.random()-.5)*120)), w:PW, h:g.lastLandH+170, kind:'rescue', label:'☁', spent:true });
     toast('☁ Here’s a lift.', 'Steer onto the cloud.', 'info');
   }
-  while(g.nextH < g.cam + H + 300) genPlatform();
+  while(g.nextH < g.cam + H + 300 && isFinite(g.nextH)) genPlatform();
+  /* reaching the goal height finishes the climb, landing or not */
+  if(!g.summit && p.h >= C.goal){ reachSummit(); return; }
   if(p.h < g.cam - 50 && !g.summit){
     g.stats.falls++; g.streak=0;
     const rh=g.cam+70;
@@ -620,7 +634,7 @@ function step(dt){
 
 function loop(t){
   const raw=Math.min(0.033,(t-lastT)/1000||0); lastT=t;
-  if(running && !paused && G_) step(raw*(slow?0.6:1));
+  if(running && !paused && G_) step(raw*(slow?0.6:1), raw);
   draw();
   requestAnimationFrame(loop);
 }
@@ -661,6 +675,7 @@ function draw(){
       ctx.restore(); continue;
     }
     if(pl.kind==='rescue'){ ctx.fillStyle='rgba(255,255,255,.95)'; cloud(pl.x+pl.w/2, y+8, 1.1); ctx.restore(); continue; }
+    if(pl.kind==='plain'){ ctx.fillStyle='#6f9a52'; rr(pl.x, y+6, pl.w, PH-12, 8); ctx.fill(); ctx.fillStyle='#93bf72'; rr(pl.x+4, y+8, pl.w-8, 6, 3); ctx.fill(); ctx.restore(); continue; }
     const spent=pl.spent;
     ctx.fillStyle = spent ? '#b9a88c' : '#8a5a33'; rr(pl.x, y, pl.w, PH, 9); ctx.fill();
     ctx.fillStyle = spent ? '#d8ccb8' : '#f6e7c8'; rr(pl.x+4, y+3, pl.w-8, PH-8, 7); ctx.fill();
@@ -850,9 +865,9 @@ $('showPrev').addEventListener('click', ()=>{ $('previewText').value=buildPlain(
 <script type="application/json" id="qsummary">
 [
   { "title": "Climb 1 — Base Camp",
-    "questions": [ "Doodle-Jump climb to 300 m. Platforms are past-tense verbs: object-only (grabbed, found, carried, brought, polished…) or never-object (arrived, laughed, slept, fell, sneezed…), unlabelled. Carry a noun-phrase bubble (the ball, a medal) onto an object verb to fly; landing empty crumbles it; landing an object on a no-object verb knocks it away." ] },
+    "questions": [ "Doodle-Jump climb to 260 m. About half the platforms are past-tense verbs (the rest are plain green planks): object-only (grabbed, found, carried, brought, polished…) or never-object (arrived, laughed, slept, fell, sneezed…), unlabelled. Carry a noun-phrase bubble (the ball, a medal) onto an object verb to fly; landing empty crumbles it; landing an object on a no-object verb knocks it away." ] },
   { "title": "Climb 2 — Double Agents & Fake Objects",
-    "questions": [ "Climb to 360 m with sliding platforms. Adds both-way verbs (won, moved, stopped, rolled, kicked, climbed, packed, hid) and fake-object bubbles that answer where/when/how (to the field, at the gate, after lunch, very fast, home): they crumble an object-only verb but give a no-object verb a big bounce." ] },
+    "questions": [ "Climb to 300 m with sliding platforms. Adds both-way verbs (won, moved, stopped, rolled, kicked, climbed, packed, hid) and fake-object bubbles that answer where/when/how (to the field, at the gate, after lunch, very fast, home): they crumble an object-only verb but give a no-object verb a big bounce." ] },
   { "title": "Climb 3 — Sneak Peek: Tricky Verbs",
     "questions": [ "Discovery climb with the look-alike pairs raised/rose, set/sat, laid/lay (preview of the next lesson). Evidence records right/wrong landings per verb." ] },
   { "title": "Last step — In your own words",
