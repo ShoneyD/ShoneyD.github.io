@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<!--
+  THE MONSTER MUSEUM — engine: museum3d · variant: gothic-monsters · version 1
+
+  A walkable first-person gallery the student curates: four empty frames in
+  facing pairs (old vampire / new vampire, first zombies / new zombies) and a
+  curator's lectern at the end of the hall. Each exhibit takes a picture
+  (museum archive, upload, or link) plus a placard written one step at a time,
+  mostly with taps. Export: .docx with the pictures embedded, print/PDF, and
+  plain text for Canvas. Save file (.json) carries the work between computers.
+
+  CONTENT-SWAPPABLE: everything course-specific is window.MUSEUM below. The
+  engine is ../assets/museum3d/museum3d.js + museum3d.css (Three.js r128 from
+  ../assets/vendor). To make a new museum for another class, copy this file
+  and rewrite window.MUSEUM: give it a NEW id (the save key), then exhibits.
+
+  Field types: text · textarea (stem = "Start me off" button) · select (one
+  tap) · tags (min/max taps) · suggest: [...] adds one-tap answers to a text
+  field. placard: [fieldIds] is what shows on the 3D placard; the first one
+  is the placard's headline. starter pre-makes the first move.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="ll-format" content="one-page">
+<title>The Monster Museum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/museum3d/museum3d.css">
+</head>
+<body>
+<div id="museum"></div>
+
+<script type="application/json" id="qsummary">
+[
+  { "title": "The Old Blood (a 19th-century vampire)",
+    "questions": ["Hang a picture from the museum archive (Dracula, Carmilla).", "Which vampire is it?", "In one sentence: who is the vampire and what do they do?", "Which Gothic elements are in it? (tap 2 to 4)", "What fear of its own time does it show? (tap one)", "Why? One sentence."] },
+  { "title": "The New Blood (a 21st-century vampire)",
+    "questions": ["Hang a picture (upload or link) and say where it is from.", "Which vampire story?", "One sentence: who is the vampire and what do they do?", "Which Gothic elements survived? (tap 2 to 4)", "How is it different from the Old Blood? (tap 1 to 3)", "What stayed the same? One sentence.", "What fear of our time does it show? (tap one) + why, one sentence."] },
+  { "title": "The First Dead (Night of the Living Dead, 1968)",
+    "questions": ["Hang a picture from the archive.", "One sentence: what are the zombies, and what do they do to the people in the house?", "Which Gothic elements are in it? (tap 2 to 4)", "What were people afraid of in 1968? (tap one) + why, one sentence."] },
+  { "title": "The New Dead (a 21st-century zombie story)",
+    "questions": ["Hang a picture (upload or link) and say where it is from.", "Which zombie story?", "One sentence: what happens?", "How are these zombies different from 1968? (tap 1 to 3)", "What fear of our time does it show? (tap one) + why, one sentence."] },
+  { "title": "The Curator's Statement",
+    "questions": ["Name your museum.", "Gothic survivors: which 3 elements appear in all four exhibits?", "Why did they survive 200 years?", "Old blood vs. new blood: how did the vampire change, and what does that say about us?", "Zombies are a mirror: what do zombie stories show about what a society fears? Use one exhibit."] }
+]
+</script>
+
+<script>
+const GOTHIC = ['a castle, mansion or old house', 'night and darkness', 'the supernatural', 'a monster who looks human',
+  'a curse or ancient evil', 'isolation: cut off from help', 'forbidden desire', 'blood, disease or decay',
+  'fear of outsiders', 'a helpless victim', 'the past coming back', "a mind you can't trust", 'a group trapped together'];
+
+window.MUSEUM = {
+  id: 'gothic-monsters-v1',
+  title: 'The Monster Museum',
+  subtitle: 'Two hundred years of Gothic monsters. You are the curator.',
+  exportTitle: 'The Monster Museum',
+  exportSubtitle: 'Gothic Literature · Unit 4 assessment: two hundred years of vampires and zombies',
+  exportFile: 'Monster Museum',
+  introLede: 'Four empty frames and one empty book. By the end, every candle in this hall is lit, and the museum is yours.',
+  introSteps: [
+    '<strong>Walk</strong> with W A S D or the arrow keys, or the ▲ ◀ ▼ ▶ pad. Drag to look around. Or just press <strong>Next exhibit ▶</strong>.',
+    '<strong>Click an empty frame.</strong> Hang a picture, then write the placard one step at a time. Most steps are taps.',
+    'Pairs face each other on purpose: <strong>old vampire ↔ new vampire</strong>, <strong>old zombies ↔ new zombies</strong>.',
+    'The <strong>Curator\'s Statement</strong> is the book at the end of the hall. Do it last.',
+    'Then <strong>Download the document</strong> (below the hall) and upload it to Canvas. Saving a museum file lets you finish on another computer.'
+  ],
+  firstToast: 'The first frame is half-done for you. Click it.',
+  theme: { },
+  exhibits: [
+    {
+      id: 'old-blood', wing: 'The Old Blood', wingSub: 'a 19th-century vampire',
+      title: 'A vampire from the 1800s',
+      prompt: 'Victorian readers met the vampire first. <strong>We picked the picture and the vampire to get you started.</strong> Finish the placard.',
+      shelf: [
+        { title: 'Dracula, 1899 cover', src: 'https://upload.wikimedia.org/wikipedia/commons/1/1e/Dracamer99.jpg',
+          alt: 'An 1899 book cover for Dracula showing a dark castle.', credit: 'Dracula, first American edition cover (Doubleday & McClure, 1899). Public domain, via Wikimedia Commons.' },
+        { title: 'Carmilla, 1872', src: 'https://upload.wikimedia.org/wikipedia/commons/8/80/Carmilla.jpg',
+          alt: 'A Victorian engraving of the vampire Carmilla leaning over a sleeping young woman.', credit: 'Carmilla, illustration by D. H. Friston for The Dark Blue (1872). Public domain, via Wikimedia Commons.' },
+        { title: 'Dracula, 1897 first edition', src: 'https://upload.wikimedia.org/wikipedia/commons/b/ba/Dracula1st.jpeg',
+          alt: 'The plain yellow cover of the first edition of Dracula.', credit: 'Dracula, first edition cover design (Archibald Constable, 1897), reproduction. Public domain, via Wikimedia Commons.' }
+      ],
+      starter: { image: 0, fields: { work: 'Dracula, by Bram Stoker (1897)', tags: ['a monster who looks human'] } },
+      placard: ['work', 'what', 'tags', 'fear'],
+      fields: [
+        { id: 'work', short: 'The vampire', label: 'Which vampire is it?', type: 'select',
+          options: ['Dracula, by Bram Stoker (1897)', 'Carmilla, by Sheridan Le Fanu (1872)', 'Varney the Vampire (1845–47)', 'The Vampyre, by John Polidori (1819)'] },
+        { id: 'what', short: 'Who and what', label: 'In one sentence: who is the vampire, and what do they do?', type: 'textarea', rows: 3,
+          stem: 'This vampire is … who …', hint: 'Dracula: a rich count from Eastern Europe who moves to London. Carmilla: a beautiful young woman who visits a lonely girl at night.' },
+        { id: 'tags', short: 'Gothic elements', placardLabel: 'Gothic elements', label: 'Which Gothic elements are in it? Tap 2 to 4.', type: 'tags', min: 2, max: 4, options: GOTHIC,
+          hint: 'One is already picked for you.' },
+        { id: 'fear', short: 'Fear of its time', placardLabel: 'The fear it shows', label: 'What fear of its own time does it show?', type: 'select',
+          options: ['fear of foreigners and outsiders arriving', 'fear of desire that society called forbidden', 'fear of disease and "bad blood"', 'fear of the old rich (aristocrats) feeding on everyone else'] },
+        { id: 'because', short: 'Why', label: 'Why? One sentence.', type: 'textarea', rows: 2, stem: 'You can see that fear when …' }
+      ]
+    },
+    {
+      id: 'new-blood', wing: 'The New Blood', wingSub: 'a 21st-century vampire',
+      title: 'A vampire from this century',
+      prompt: 'Face the Old Blood across the hall. <strong>You pick the vampire</strong>: a book, film, show or game from 2000 on.',
+      imageHint: 'Upload a picture (a poster or a screenshot), or paste a link. Then say where it is from.',
+      placard: ['work', 'what', 'changes', 'fear'],
+      fields: [
+        { id: 'work', short: 'The vampire story', label: 'Which vampire story?', type: 'text', max: 100,
+          placeholder: 'Type it, or tap one below',
+          suggest: ['Twilight (2005 novel / 2008 film)', 'What We Do in the Shadows (2014 film / 2019 show)', 'Interview with the Vampire (2022 show)', 'Sinners (2025 film)', 'Let the Right One In (2004 novel / 2008 film)', 'The Vampire Diaries (2009 show)'] },
+        { id: 'what', short: 'Who and what', label: 'In one sentence: who is the vampire, and what do they do?', type: 'textarea', rows: 3, stem: 'This vampire is … who …' },
+        { id: 'tags', short: 'Gothic elements that survived', placardLabel: 'Gothic elements', label: 'Which Gothic elements survived into this one? Tap 2 to 4.', type: 'tags', min: 2, max: 4, options: GOTHIC },
+        { id: 'changes', short: 'What changed', placardLabel: 'What changed', label: 'Look across the hall. How is this vampire DIFFERENT from the Old Blood? Tap 1 to 3.', type: 'tags', min: 1, max: 3,
+          options: ["you're meant to like or root for them", 'romantic or attractive, not ugly', 'lives among normal people', 'fights against being a monster', 'funny, not only scary', 'a whole family or community of vampires', 'the humans are the bigger threat'] },
+        { id: 'same', short: 'What stayed the same', label: 'What stayed the SAME? One sentence.', type: 'textarea', rows: 2, stem: 'Like the old vampire, this one still …' },
+        { id: 'fear', short: 'Fear of our time', placardLabel: 'The fear it shows', label: 'What fear of OUR time does it show?', type: 'select',
+          options: ['fear of being an outsider, of not fitting in', "fear of a hunger or addiction you can't control", 'fear of the rich and powerful using everyone else', 'fear of the past (like racism) still feeding on the present'] },
+        { id: 'because', short: 'Why', label: 'Why? One sentence.', type: 'textarea', rows: 2, stem: 'You can see that fear when …' }
+      ]
+    },
+    {
+      id: 'first-dead', wing: 'The First Dead', wingSub: 'Night of the Living Dead (1968)',
+      title: 'The zombie movie that started it all',
+      prompt: '<strong>What happens:</strong> strangers trapped in a Pennsylvania farmhouse fight off the slow, hungry dead, and argue more than they help each other. Ben, the hero, a Black man, survives the night. In the morning a posse of armed white men shoots him, mistaking him for a zombie. <em>This film is in the public domain.</em>',
+      shelf: [
+        { title: 'The farmhouse', src: '../assets/museum3d/gothic/museum-farmhouse.jpg', alt: 'A boarded-up farmhouse at night while shambling figures cross a moonlit field toward it.',
+          credit: 'Museum archive art: the farmhouse siege (illustration made for this museum, 2026).' },
+        { title: 'The drive-in, 1968', src: '../assets/museum3d/gothic/museum-drivein.jpg', alt: 'A family in a car at a 1968 drive-in theater watching a black-and-white zombie film.',
+          credit: 'Museum archive art: a 1968 drive-in audience (illustration made for this museum, 2026).' }
+      ],
+      placard: ['work', 'what', 'tags', 'fear'],
+      fields: [
+        { id: 'work', short: 'The film', label: 'Placard title', type: 'text', max: 100, suggest: ['Night of the Living Dead (George A. Romero, 1968)'],
+          hint: 'Tap the title to use it.' },
+        { id: 'what', short: 'What the zombies do', label: 'In one sentence: what are the zombies, and what do they do to the people in the house?', type: 'textarea', rows: 3, stem: 'The zombies are … and they …' },
+        { id: 'tags', short: 'Gothic elements', placardLabel: 'Gothic elements', label: 'Which Gothic elements are in it? Tap 2 to 4.', type: 'tags', min: 2, max: 4, options: GOTHIC },
+        { id: 'fear', short: 'Fear of 1968', placardLabel: 'The fear it shows', label: 'What were Americans afraid of in 1968?', type: 'select',
+          hint: 'All four were real. Pick the one you can back up.',
+          options: ['the Vietnam War, and real violence on the TV news every night', 'racism and the civil rights struggle (look at what happens to Ben)', 'nuclear war and radiation (the film blames a space probe)', 'a country coming apart: neighbours who would not help each other'] },
+        { id: 'because', short: 'Why', label: 'Why? One sentence.', type: 'textarea', rows: 2, stem: 'You can see that fear when …' }
+      ]
+    },
+    {
+      id: 'new-dead', wing: 'The New Dead', wingSub: 'a 21st-century zombie story',
+      title: 'A zombie story from this century',
+      prompt: 'Face the First Dead across the hall. <strong>You pick the zombies</strong>: a film, show, book or game from 2000 on.',
+      imageHint: 'Upload a picture (a poster or a screenshot), or paste a link. Then say where it is from.',
+      placard: ['work', 'what', 'changes', 'fear'],
+      fields: [
+        { id: 'work', short: 'The zombie story', label: 'Which zombie story?', type: 'text', max: 100, placeholder: 'Type it, or tap one below',
+          suggest: ['Train to Busan (2016 film)', 'The Last of Us (2013 game / 2023 show)', '28 Days Later (2002 film)', 'Kingdom (2019 show)', 'World War Z (2006 novel / 2013 film)', 'The Walking Dead (2003 comic / 2010 show)'] },
+        { id: 'what', short: 'What happens', label: 'In one sentence: what happens?', type: 'textarea', rows: 3, stem: 'In this story, …' },
+        { id: 'changes', short: 'What changed since 1968', placardLabel: 'What changed', label: 'How are these zombies DIFFERENT from 1968? Tap 1 to 3.', type: 'tags', min: 1, max: 3,
+          options: ['fast, not slow', 'caused by a virus or fungus, explained by science', 'the whole world falls, not one house', 'the scariest people are the survivors', "it's really about a family or a kid", 'somewhere new: a train, a city, a palace'] },
+        { id: 'fear', short: 'Fear of our time', placardLabel: 'The fear it shows', label: 'What fear of OUR time does it show?', type: 'select',
+          options: ['pandemics and disease spreading', 'society collapsing when the systems break', 'people turning on each other to survive', 'who gets saved: the rich or the poor'] },
+        { id: 'because', short: 'Why', label: 'Why? One sentence.', type: 'textarea', rows: 2, stem: 'You can see that fear when …' }
+      ]
+    }
+  ],
+  hall: {
+    id: 'statement', wing: "The Curator's Statement", title: "The Curator's Statement",
+    prompt: 'You have walked two hundred years of monsters. Now say what you found. <strong>Short answers are fine. Say them out loud first.</strong>',
+    fields: [
+      { id: 'name', short: 'Museum name', label: 'Name your museum.', type: 'text', max: 60, placeholder: 'e.g. The Hall of Hungry Things' },
+      { id: 'survivors', short: 'Gothic survivors', label: 'Gothic survivors: which 3 elements show up in ALL FOUR exhibits? Tap 3.', type: 'tags', min: 3, max: 3, options: GOTHIC },
+      { id: 'why', short: 'Why they survived', label: 'Why do you think those elements survived 200 years? One or two sentences.', type: 'textarea', rows: 3, stem: 'They survived because …' },
+      { id: 'vampires', short: 'Old blood vs. new blood', label: 'Old blood vs. new blood: how did the vampire change, and what does that change say about us? Two sentences.', type: 'textarea', rows: 4,
+        stem: 'In the 1800s the vampire was … Now it is … That shows …' },
+      { id: 'zombies', short: 'Zombies are a mirror', label: 'Zombies are a mirror. What do zombie stories show about what a society is afraid of? Use one exhibit. Two sentences.', type: 'textarea', rows: 4,
+        stem: 'Zombie stories show … For example, in …' }
+    ]
+  }
+};
+</script>
+<script src="../assets/vendor/three-r128.min.js"></script>
+<script src="../assets/museum3d/museum3d.js"></script>
+</body>
+</html>

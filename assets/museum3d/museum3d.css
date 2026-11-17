@@ -1,0 +1,109 @@
+/* museum3d — shared styles for walkable first-person gallery activities.
+   Pages set their palette with --m-* custom properties in GALLERY.theme (the
+   engine writes them onto #museum); everything here reads those tokens. */
+#museum{ --m-bg:#121016; --m-card:#1c1820; --m-field:#241f29; --m-ink:#f4efe8; --m-soft:#c9bfb3;
+  --m-line:#3a3240; --m-accent:#d4a64a; --m-accent-ink:#1a1408; --m-good:#6fcf97; --m-warn:#f0b35a;
+  --m-bad:#ef7a6b;
+  font-family:'Atkinson Hyperlegible',system-ui,sans-serif; color:var(--m-ink); background:var(--m-bg);
+  max-width:1100px; margin:0 auto; padding:14px 12px 40px; line-height:1.55; }
+#museum *{ box-sizing:border-box }
+body{ margin:0; background:#121016 }
+.m-head{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:10px; margin-bottom:10px }
+.m-head h1{ margin:0; font-size:1.7rem; letter-spacing:.02em }
+.m-head p{ margin:2px 0 0; color:var(--m-soft) }
+.m-candles{ font-size:1.35rem; letter-spacing:.15em; white-space:nowrap }
+.m-stagewrap{ position:relative; border:2px solid var(--m-line); border-radius:14px; overflow:hidden;
+  height:clamp(440px,72vh,720px); background:#000 }
+.m-stagewrap canvas{ display:block; width:100%; height:100%; touch-action:none; cursor:grab }
+.m-stagewrap canvas:active{ cursor:grabbing }
+.m-hud{ position:absolute; left:10px; right:10px; bottom:10px; display:flex; justify-content:space-between;
+  align-items:flex-end; gap:10px; pointer-events:none }
+.m-hud > *{ pointer-events:auto }
+.m-pad{ display:grid; grid-template-columns:repeat(3,46px); grid-template-rows:repeat(2,46px); gap:5px }
+.m-pad button{ font-size:1.25rem; padding:0 }
+.m-pad .up{ grid-column:2 } .m-pad .left{ grid-column:1; grid-row:2 } .m-pad .down{ grid-column:2; grid-row:2 } .m-pad .right{ grid-column:3; grid-row:2 }
+.m-tip{ position:absolute; top:10px; left:50%; transform:translateX(-50%); background:rgba(10,8,12,.78);
+  border:1px solid var(--m-line); border-radius:999px; padding:6px 14px; font-size:.92rem; color:var(--m-soft);
+  white-space:nowrap; max-width:94%; overflow:hidden; text-overflow:ellipsis; pointer-events:none }
+.m-nav{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end }
+#museum button, .m-btn{ font:inherit; font-weight:700; border:2px solid var(--m-line); background:var(--m-card);
+  color:var(--m-ink); border-radius:10px; padding:9px 14px; cursor:pointer; line-height:1.2 }
+#museum button:hover{ border-color:var(--m-accent) }
+#museum button:focus-visible{ outline:3px solid var(--m-accent); outline-offset:2px }
+#museum button.go{ background:var(--m-accent); color:var(--m-accent-ink); border-color:var(--m-accent) }
+#museum button.ghost{ background:transparent }
+#museum button[disabled]{ opacity:.45; cursor:default }
+/* ---------- editor panel ---------- */
+.m-panel{ position:absolute; top:0; right:0; bottom:0; width:min(470px,100%); background:var(--m-card);
+  border-left:2px solid var(--m-line); display:none; flex-direction:column; z-index:5 }
+.m-panel.open{ display:flex }
+.m-ph{ padding:14px 16px 10px; border-bottom:1px solid var(--m-line) }
+.m-ph .wing{ text-transform:uppercase; letter-spacing:.12em; font-size:.78rem; color:var(--m-accent); font-weight:700 }
+.m-ph h2{ margin:2px 0 4px; font-size:1.3rem }
+.m-ph .prompt{ margin:0; color:var(--m-soft); font-size:.98rem }
+.m-dots{ display:flex; gap:6px; margin-top:10px; flex-wrap:wrap }
+.m-dots button{ width:30px; height:30px; padding:0 !important; border-radius:50% !important; font-size:.8rem !important }
+.m-dots button.cur{ border-color:var(--m-accent) !important; background:var(--m-field) !important }
+.m-dots button.ok{ background:var(--m-good) !important; color:#0c1a12 !important; border-color:var(--m-good) !important }
+.m-pb{ flex:1; overflow:auto; padding:14px 16px }
+.m-step h3{ margin:0 0 4px; font-size:1.22rem; line-height:1.35 }
+.m-step .hint{ margin:0 0 10px; color:var(--m-soft); font-size:.95rem }
+.m-step textarea, .m-step input[type=text], .m-step input[type=url], .m-step select{ width:100%; font:inherit; font-size:1.08rem;
+  color:var(--m-ink); background:var(--m-field); border:2px dashed var(--m-line); border-radius:10px; padding:10px 12px }
+.m-step textarea{ min-height:96px; resize:vertical; line-height:1.5 }
+.m-step select{ border-style:solid }
+.m-step textarea:focus, .m-step input:focus, .m-step select:focus{ outline:none; border-color:var(--m-accent); border-style:solid }
+.m-starter{ margin-top:8px; font-size:.9rem !important; padding:6px 10px !important }
+.m-tags{ display:flex; flex-wrap:wrap; gap:8px }
+.m-tags button{ font-weight:400 !important; border-radius:999px !important; padding:7px 13px !important; font-size:.98rem }
+.m-tags button.on{ background:var(--m-accent) !important; color:var(--m-accent-ink) !important; border-color:var(--m-accent) !important; font-weight:700 !important }
+.m-count{ font-size:.88rem; color:var(--m-soft); margin-top:6px }
+.m-pf{ padding:10px 16px 14px; border-top:1px solid var(--m-line); display:flex; gap:8px; justify-content:space-between; align-items:center; flex-wrap:wrap }
+.m-pf .note{ width:100%; margin:0; font-size:.84rem; color:var(--m-soft) }
+.m-msg{ margin-top:10px; padding:9px 12px; border-radius:10px; font-size:.95rem; display:none }
+.m-msg.show{ display:block }
+.m-msg.good{ background:rgba(111,207,151,.13); border:1px solid var(--m-good) }
+.m-msg.warn{ background:rgba(240,179,90,.13); border:1px solid var(--m-warn) }
+.m-msg.bad{ background:rgba(239,122,107,.13); border:1px solid var(--m-bad) }
+/* image step */
+.m-preview{ aspect-ratio:4/3; background:#0b0a0d; border:2px solid var(--m-line); border-radius:10px; display:flex;
+  align-items:center; justify-content:center; overflow:hidden; margin-bottom:10px; color:var(--m-soft); text-align:center; padding:8px }
+.m-preview img{ max-width:100%; max-height:100%; object-fit:contain }
+.m-tabs{ display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap }
+.m-tabs button.on{ border-color:var(--m-accent) !important; background:var(--m-field) !important }
+.m-shelf{ display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px }
+.m-shelf button{ padding:6px !important; font-weight:400 !important; font-size:.85rem !important; text-align:left }
+.m-shelf img{ width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:6px; display:block; margin-bottom:4px; background:#000 }
+.m-shelf button.on{ border-color:var(--m-accent) !important; box-shadow:0 0 0 2px var(--m-accent) }
+.m-credit{ margin-top:10px }
+.m-credit label{ font-weight:700; font-size:.95rem }
+/* below the stage */
+.m-below{ display:grid; grid-template-columns:1fr; gap:14px; margin-top:14px }
+.m-card{ background:var(--m-card); border:1px solid var(--m-line); border-radius:12px; padding:14px 16px }
+.m-card h2{ margin:0 0 8px; font-size:1.15rem }
+.m-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px }
+.m-list button{ text-align:left; font-weight:400 !important }
+.m-list button b{ display:block }
+.m-list .st{ font-size:.85rem; color:var(--m-soft) }
+.m-list .st.ok{ color:var(--m-good) }
+.m-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+.m-overlay{ position:absolute; inset:0; background:rgba(8,6,10,.86); display:none; align-items:center; justify-content:center; z-index:8; padding:16px }
+.m-overlay.open{ display:flex }
+.m-overlay .box{ background:var(--m-card); border:2px solid var(--m-line); border-radius:14px; padding:18px 20px; max-width:560px; width:100%; max-height:100%; overflow:auto }
+.m-overlay h2{ margin:0 0 6px; font-size:1.5rem }
+.m-overlay ol{ padding-left:1.3em; margin:8px 0 12px }
+.m-overlay li{ margin:4px 0 }
+.m-overlay input[type=text]{ width:100%; font:inherit; color:var(--m-ink); background:var(--m-field); border:2px dashed var(--m-line); border-radius:10px; padding:9px 12px; margin:4px 0 12px }
+.m-toast{ position:absolute; left:50%; top:54px; transform:translateX(-50%); background:var(--m-good); color:#0c1a12; font-weight:700;
+  padding:8px 16px; border-radius:999px; display:none; z-index:9 }
+.m-toast.show{ display:block }
+/* print view */
+#m-print{ display:none }
+@media print{
+  body > *:not(#m-print){ display:none !important }
+  #m-print{ display:block !important; color:#000; background:#fff; font-family:Georgia,serif; padding:0 }
+  #m-print h1{ font-size:24pt; margin:0 0 4pt } #m-print h2{ font-size:16pt; margin:18pt 0 2pt; color:#6b1d1d; page-break-after:avoid }
+  #m-print h3{ font-size:13pt; margin:0 0 6pt } #m-print img{ max-width:5.5in; max-height:4in; display:block; margin:6pt 0 }
+  #m-print p{ margin:3pt 0; font-size:11.5pt } #m-print .ex{ page-break-inside:avoid }
+}
+@media (max-width:700px){ .m-pad{ grid-template-columns:repeat(3,40px); grid-template-rows:repeat(2,40px) } .m-tip{ display:none } }

@@ -482,6 +482,18 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'Gothic Literature',
+    file: 'activities/monster-museum.html',
+    engine: 'museum3d', variant: 'gothic-monsters', version: 1, updated: '2026-11-17',
+    title: '🏛️ The Monster Museum',
+    tag: 'assessment · walkable 3D',
+    desc: 'A first-person 3D museum hall the student curates. Four empty frames face each other in pairs (19th-century vampire \u2194 21st-century vampire; Night of the Living Dead \u2194 a modern zombie story) and a curator\u2019s book waits at the end. Each frame takes a picture (museum archive, upload or link) and a placard written one step at a time, mostly by tapping. Exports a .docx with the pictures embedded, a print/PDF view, and text for Canvas.',
+    skills: 'Gothic elements across two centuries \u00b7 compare/contrast old and new vampires \u00b7 zombies as a mirror of societal fears \u00b7 visual curation \u00b7 citing image sources',
+    note: 'Reusable engine: everything course-specific is window.MUSEUM at the top of the page (exhibits, archive pictures, fields, theme, export title). Copy the page and give it a new id to build a museum for any class. Saves to the browser (pictures in IndexedDB) plus a downloadable museum file to move between computers. Walk with WASD/arrows/drag/on-screen pad/Next buttons; the exhibit list below the hall works even without 3D. Dracula/Carmilla archive pictures hotlink Wikimedia Commons; the 1968 archive art is original. Unit 4 assessment for GOTH12, rubric in rubrics/.',
+    height: 1500
+  },
+  {
+    type: 'activity',
+    course: 'Gothic Literature',
     file: 'activities/hound-on-the-moor.html',
     engine: 'case', variant: 'hound', version: 1, updated: '2026-11-17',
     title: '🐕 The Hound on the Moor',
@@ -1323,6 +1335,7 @@ const ENGINES = {
   'poem-builder':  'Build a poem from chosen lines and devices',
   'speak':         'Listen, say it aloud, check it',
   'swing3d':       'Swing through a 3D world by choosing the right sentence',
+  'museum3d':      'Walk a 3D gallery and curate it: pictures, placards, exported to .docx',
   'jumper':        'Climb by steering: the grammar decides how high you bounce'
 };
 
