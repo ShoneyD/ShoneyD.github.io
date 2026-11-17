@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LA6-L09 · Carry It Across</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">LA6-L09</p>
+  <h1 id="pagetitle">Language Arts 6 · Lesson 9</h1>
+  <p class="sub" id="pagesub">Carry It Across.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Two shots from last time">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Two shots from last time</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Two shots from last time</h2>
+
+      <p>Two quick ones from last lesson. Read the clock, then clap at every subject + verb.</p>
+
+      <p class="q"><strong>Q1.</strong> "Right now, the twins ___ arrows into the hay bale." Pick the verb.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. &quot;Right now, the twins ___ arrows into the hay bale.&quot; Pick the verb.">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="were shooting">were shooting</option>
+          <option value="is shooting">is shooting</option>
+          <option value="are shooting">are shooting</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> "Last Saturday we drive to the lake, the water was freezing." There are <strong>two</strong> problems. Fix both.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q2. &quot;Last Saturday we drive to the lake, the water was freezing.&quot; There are two problems. Fix both." placeholder="One is about time, one is about where the sentence ends…"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked and one sentence fixed.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="Does it carry across?">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Does it carry across?</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Does it carry across?</h2>
+
+      <p><em>Trans</em> means <strong>across</strong>, like <em>transport</em>. A <strong>transitive</strong> verb carries its action across to something: an <strong>object</strong>. An <strong>intransitive</strong> verb doesn't carry anything. The action stops right there.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 700 200" width="100%" style="max-width:44rem;display:block;margin:1rem auto" role="img" aria-label="Two rows. Top row, transitive: the word Lena, then a verb box grabbed, then a long arrow carrying across to a box labelled her bow, marked object. Bottom row, intransitive: the word Lena, then a verb box laughed, then a short bar where the action stops, with nothing after it.">
+  <g font-family="Verdana,sans-serif" text-anchor="middle">
+    <text x="70" y="40" font-size="13" font-weight="bold" fill="var(--accent)">CARRIES ACROSS</text>
+    <text x="70" y="58" font-size="11" fill="var(--soft)">transitive</text>
+    <text x="175" y="54" font-size="18" fill="var(--ink)">Lena</text>
+    <rect x="220" y="28" width="120" height="40" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+    <text x="280" y="54" font-size="18" font-weight="bold" fill="var(--ink)">grabbed</text>
+    <path d="M345 48 H500" stroke="var(--accent)" stroke-width="4" fill="none"/>
+    <path d="M500 38 L518 48 L500 58 z" fill="var(--accent)"/>
+    <text x="425" y="38" font-size="12" fill="var(--soft)">grabbed WHAT?</text>
+    <rect x="522" y="26" width="150" height="44" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="597" y="54" font-size="18" fill="var(--ink)">her bow</text>
+    <text x="597" y="88" font-size="11" fill="var(--soft)">↑ direct object</text>
+
+    <text x="70" y="146" font-size="13" font-weight="bold" fill="var(--warn)">STOPS</text>
+    <text x="70" y="164" font-size="11" fill="var(--soft)">intransitive</text>
+    <text x="175" y="160" font-size="18" fill="var(--ink)">Lena</text>
+    <rect x="220" y="134" width="120" height="40" rx="8" fill="var(--card)" stroke="var(--warn)" stroke-width="3"/>
+    <text x="280" y="160" font-size="18" font-weight="bold" fill="var(--ink)">laughed</text>
+    <path d="M345 154 H380" stroke="var(--warn)" stroke-width="4"/>
+    <path d="M384 136 V172" stroke="var(--warn)" stroke-width="6"/>
+    <text x="520" y="150" font-size="12" fill="var(--soft)">laughed WHAT?</text>
+    <text x="520" y="170" font-size="12" fill="var(--soft)">Nothing. It's already finished.</text>
+  </g>
+</svg>
+      <figcaption>The What? test: say the verb, then ask <strong>what?</strong> If the sentence answers, that answer is the <strong>direct object</strong>, and the verb is transitive.</figcaption>
+      </figure>
+
+      <p>Watch the middle column. That question does all the work.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.92rem">
+<tr><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">Sentence</th><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">Ask it</th><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">Kind</th></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">Coach Diaz blew <b>the whistle</b>.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">blew what? → <b>the whistle</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">➡️ transitive</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">The crowd cheered.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">cheered what? → (nothing)</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">🛑 intransitive</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">Sami found <b>a feather</b> in the grass.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">found what? → <b>a feather</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">➡️ transitive</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">Lena ran to the field.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">ran what? → (nothing). <i>To the field</i> tells <b>where</b>.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">🛑 intransitive</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)">The team arrived late.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">arrived what? → (nothing). <i>Late</i> tells <b>when</b>.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">🛑 intransitive</td></tr>
+<tr><td style="padding:.45rem">The goalie caught <b>the ball</b> with one hand.</td><td style="padding:.45rem">caught what? → <b>the ball</b></td><td style="padding:.45rem">➡️ transitive</td></tr>
+</table>
+      <figcaption>Phrases like <em>to the field</em> and <em>late</em> sit after the verb but answer <strong>where</strong> or <strong>when</strong>, not <strong>what</strong>. They're fake objects.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q3.</strong> "The archers waited by the fence." <strong>waited</strong> is…</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. &quot;The archers waited by the fence.&quot; waited is…">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="transitive">transitive</option>
+          <option value="intransitive">intransitive</option>
+        </select></div>
+
+      <p class="q"><strong>Q4.</strong> "After practice, Maya packed her arrows into the case." Type <strong>only</strong> the direct object.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q4. &quot;After practice, Maya packed her arrows into the case.&quot; Type only the direct object." placeholder="packed WHAT?"></div>
+
+      <p class="q"><strong>Q5.</strong> "Lena ran home." Is <strong>home</strong> a direct object?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q5. &quot;Lena ran home.&quot; Is home a direct object?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Yes. It answers “ran what?”">Yes. It answers “ran what?”</option>
+          <option value="No. It tells where she ran.">No. It tells where she ran.</option>
+        </select></div>
+      <details class="check">
+        <summary>Check my answer &mdash; after you've written yours</summary>
+        <p>No. <em>Home</em> looks like a noun, but ask <em>ran what?</em> Nothing answers. <em>Home</em> answers <strong>where</strong>, like <em>to the field</em>. So <em>ran</em> is intransitive here.</p>
+      </details>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two dropdowns picked and one direct object typed, with nothing extra.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i3" data-title="Double agents">
+    <button class="donebar" onclick="LL.toggle('i3')">
+      <span class="tick">&#10003;</span> <strong>Part 3 &mdash; Double agents</strong>
+      <span class="sum" id="sum-i3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 &mdash; Double agents</h2>
+
+      <p>Some verbs are <strong>double agents</strong>. They can carry an object <em>or</em> stop, and the sentence tells you which job they're doing.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.92rem">
+<tr><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">Verb</th><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">➡️ Carries an object</th><th style="text-align:left;padding:.45rem;border-bottom:2px solid var(--line)">🛑 Stops</th></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)"><b>won</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Lena won <b>the medal</b>.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Lena won!</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)"><b>ran</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Sami ran <b>the relay</b>.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Sami ran fast.</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)"><b>kicked</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Maya kicked <b>the ball</b>.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">Maya kicked hard in the pool.</td></tr>
+<tr><td style="padding:.45rem;border-bottom:1px solid var(--line)"><b>practiced</b></td><td style="padding:.45rem;border-bottom:1px solid var(--line)">We practiced <b>our serves</b>.</td><td style="padding:.45rem;border-bottom:1px solid var(--line)">We practiced after school.</td></tr>
+<tr><td style="padding:.45rem"><b>moved</b></td><td style="padding:.45rem">Coach moved <b>the targets</b>.</td><td style="padding:.45rem">The targets moved in the wind.</td></tr>
+</table>
+      <figcaption>Same verb, two jobs. Ask <em>what?</em> every time. The sentence decides, not the word.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q6.</strong> Pick one verb from the table (or your own double agent). Write one sentence where it <strong>carries an object</strong> and one where it <strong>stops</strong>. Label each one.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Carries: …  Stops: ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q6. Pick one verb from the table (or your own double agent). Write one sentence where it carries an object and one where it stops. Label each one." placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Two sentences written with the same verb, one with an object and one without, each labelled.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i3')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Write the scene">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Write the scene</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Write the scene</h2>
+
+      <p>Write the <strong>last minute of a competition</strong>: the final arrow, the last shot, the winning goal, or the moment it slipped away. <strong>You choose</strong> the sport, and whether it's real or made up.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.95rem">
+<tr><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">📋 Rule</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">What it means</th></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">1. Length</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">6–8 sentences</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">2. One time</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">all in the <b>past</b>, with no time-jumpers</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">3. Carry across</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">at least <b>3 transitive</b> verbs, each with its object</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">4. Stop</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">at least <b>2 intransitive</b> verbs</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">5. Double agent</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">one verb used <b>both ways</b> (in two different sentences)</td></tr>
+<tr><td style="padding:.5rem">6. Train + edges</td><td style="padding:.5rem">one <b>was/were + -ing</b> verb, and <b>zero run-ons</b></td></tr>
+</table>
+      <figcaption>Six rules. Read your scene out loud when you finish. Clap at every subject + verb.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q7.</strong> Your scene: the last minute of a competition, 6–8 sentences.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q7. Your scene: the last minute of a competition, 6–8 sentences." placeholder="Type your scene here…" rows="3"></textarea></div>
+
+      <p>Now be your own editor. Go back through your scene and find the verbs.</p>
+
+      <p class="q"><strong>Q8.</strong> Verb audit: list <strong>3 transitive</strong> verbs with their objects, and <strong>2 intransitive</strong> verbs. Label each one.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q8. Verb audit: list 3 transitive verbs with their objects, and 2 intransitive verbs. Label each one." placeholder="grabbed → her bow (T) …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q9.</strong> Which sentence in your scene are you proudest of? What is its verb doing?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; My best sentence is “…” The verb … is ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q9. Which sentence in your scene are you proudest of? What is its verb doing?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>A 6–8 sentence scene that follows all six rules, a verb audit with five verbs labelled, and one sentence about your best line.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="The Final Round">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The Final Round</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The Final Round</h2>
+
+      <p>Write <strong>The Final Round</strong>: a story about the last round of a competition, told in three paragraphs:</p>
+
+      <ol>
+        <li><strong>Before:</strong> the nerves, the warm-up, the crowd.</li>
+        <li><strong>During:</strong> the round itself, moment by moment.</li>
+        <li><strong>After:</strong> what happened next and how it felt.</li>
+      </ol>
+
+      <p>It can be you or a character you invent, in any sport. <strong>You choose.</strong> <strong>Length:</strong> 200–250 words, in the past tense.</p>
+
+      <figure class="dia">
+<table style="width:100%;border-collapse:collapse;margin:1rem 0;font-family:Verdana,sans-serif;font-size:.95rem">
+<tr><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">🏅 Achievement</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">How to unlock it</th></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">➡️ Carry It Across</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">4 transitive verbs. Put each <b>object</b> in [square brackets]</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🛑 Full Stop</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">3 intransitive verbs (no fake objects in brackets!)</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🕵️ Double Agent</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 verb used both ways</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">🚂 Live Train</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 <b>was/were + -ing</b> verb</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">⚡ Rule-Breaker</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">2 past verbs that don't end in -ed (<i>threw, won, caught</i>)</td></tr>
+<tr><td style="padding:.5rem;border-bottom:1px solid var(--line)">💬 In Their Words</td><td style="padding:.5rem;border-bottom:1px solid var(--line)">1 line of dialogue in quotation marks (it keeps its own time!)</td></tr>
+<tr><td style="padding:.5rem">🧱 Clean Edges</td><td style="padding:.5rem">zero run-ons. Read it out loud before you turn it in</td></tr>
+</table>
+      <figcaption>Unlock at least five. All seven earns the full badge.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q10.</strong> The Final Round: three paragraphs (before, during, after), with the objects of your transitive verbs in [brackets].</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q10. The Final Round: three paragraphs (before, during, after), with the objects of your transitive verbs in [brackets]." placeholder="Before the last round, …" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q11.</strong> Pick one verb you chose on purpose. Does it carry an object or stop? Why did it fit that moment?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; I chose “…” It … because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q11. Pick one verb you chose on purpose. Does it carry an object or stop? Why did it fit that moment?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>200–250 words in three paragraphs (before, during, after), at least 5 of the 7 achievements unlocked, and two sentences about one verb choice.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Carry across or stop, the What? test, and fake objects &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Transitive (carries across)</td><td>The action carries across to an <strong>object</strong>. Lena grabbed <strong>her bow</strong>. Without the object, the sentence is broken.</td></tr>
+      <tr><td class="h">Intransitive (stops)</td><td>The action stops at the verb. Lena <strong>laughed</strong>. Nothing needs to come after.</td></tr>
+      <tr><td class="h">The <strong>What?</strong> test</td><td>Say the verb + <strong>what?</strong> (or <strong>whom?</strong>). If the sentence answers, that answer is the <strong>direct object</strong>.</td></tr>
+      <tr><td class="h">Fake objects</td><td>Phrases that answer <strong>where, when</strong> or <strong>how</strong>: <em>to the field, at noon, home, very fast</em>. They are never objects.</td></tr>
+      <tr><td class="h">Double agents</td><td>Some verbs work both ways: Lena <strong>won the medal</strong> / Lena <strong>won</strong>. Lena <strong>ran a race</strong> / Lena <strong>ran fast</strong>.</td></tr>
+      <tr><td class="h">Linking verbs (L07)</td><td><em>was, seemed, looked</em>: what follows <strong>describes</strong> the subject (= test). It's not an object.</td></tr>
+      <tr><td class="h">Run-on (L07–L08)</td><td>A new subject + verb with no period. Fix: a period, or <strong>, and / , but / , so</strong>.</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><em>Trans</em> means <strong>across</strong>, as in <em>transport</em>: the action is carried across to something.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">You can say any answer out loud instead of typing it.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Language Arts 6 · Lesson 9";
+const LESSON_ID = "LA6-L09";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "O1": "Tell transitive and intransitive verbs apart using the What? test.",
+  "O2": "Find the direct object, and tell it apart from a phrase that answers where, when or how.",
+  "O3": "Use the same verb both ways on purpose (double agents).",
+  "O4": "Write a scene in complete sentences, in one tense, with no run-ons (review)."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:5 },
+  { label:"Carry it across", mins:12, part:"intro" },
+  { label:"Verb Jump", mins:13 },
+  { label:"Write the scene", mins:15, part:"mastery" },
+  { label:"Start The Final Round", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Two shots from last time, then the verbs that carry across and the ones that stop.", sheet: true, outcomes: ["O1", "O2", "O3"] },
+  mastery: { title: "Independent Mastery", sub: "Write a scene by the rules, then check your own verbs.", sheet: false, outcomes: ["O1", "O2", "O3", "O4"] },
+  homework: { title: "Homework", sub: "The Final Round, due Thursday.", sheet: true, outcomes: ["O1", "O2", "O3", "O4"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"Two clean shots. The tenses are sticking."},
+  i2:{star:"★",msg:"You asked “what?” and the sentence answered. That's the whole test."},
+  i3:{star:"★",msg:"Same verb, two jobs, both on purpose. That's a writer's move."},
+  m1:{star:"★",msg:"You wrote by the rules and then checked your own work, like a real editor. No one handed you the sentences this time."},
+  h1:{star:"★",msg:"A whole story, and every verb knew whether it needed to carry something."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* Puzzle pictures for guide.js, one per part in turn. */
+const PUZZLE = [{"src": "../../assets/puzzles/archery-meadow.svg", "alt": "A storybook archery meadow"}];
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/guide.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>

@@ -374,6 +374,18 @@ const ITEMS = [
   {
     type: 'activity',
     course: 'English',
+    file: 'activities/verb-jump.html',
+    engine: 'jumper', variant: 'transitive-6', version: 1, updated: '2026-11-17',
+    title: 'Verb Jump',
+    tag: 'full-screen climbing game',
+    desc: 'A Doodle-Jump-style climb where the grammar is the steering, with no question pop-ups. Lena bounces on her own; the student steers, flies through phrase bubbles to carry one, and lands on unlabelled verb platforms. Verb that needs an object + an object: launches her (and builds the sentence). Same verb landed on empty, or with a fake object like “to the field”: crumbles. An object on a no-object verb: knocked away. Three climbs: object-only vs. never-object verbs; double agents and fake objects (at the gate vs. the gate, home, after lunch) on sliding platforms; a sneak-peek climb with raised/rose, set/sat, laid/lay. Ends with three short written items.',
+    skills: 'Transitive / intransitive verbs · direct objects · prepositional phrases and adverbs vs. objects · double-agent verbs · lie/lay, sit/set, rise/raise (preview) · grade 6',
+    note: 'New engine: nothing on the hub was a platformer, and Sean asked for a full-screen game that does not feel like a quiz. Content-swappable: CLIMBS (per climb: goal height, gap range, sliding share, pickup rate, fake-object share, kind weights, and the T / I / B verb banks, objects and tails), plus the HTML learn cards. Every sentence is “Lena + verb + phrase”, so T-only verbs must be truly object-only with a singular subject, I-only truly object-less; anything either way goes in B. A verb that needs an object always has an object bubble spawned within reach below it. Falling is never game over (a cloud catches her; falls are counted), and if a crumbled platform leaves an unjumpable gap, a cloud appears within reach after 4 s with no new height. ⛶ uses the Fullscreen API on the game box; if the frame blocks it, the page opens in its own tab (student.js save carries over). 🐢 Slow (×0.6), opt-in sound, pauses on tab switch, mouse/finger follow or ←/→, ↓ drops a bubble, P pauses. Evidence per climb: flights, plain bounces, extra-detail landings, crumbles (empty vs. fake object), objects lost, falls, every mistake by verb + phrase; Climb 3 adds right/wrong counts per tricky verb. Roughly 8–12 minutes for all three climbs.',
+    height: 1500
+  },
+  {
+    type: 'activity',
+    course: 'English',
     file: 'activities/time-archer.html',
     engine: 'archery', variant: 'verb-tenses-6', version: 3, updated: '2026-11-12',
     title: 'Time Archer',
@@ -543,6 +555,25 @@ const ITEMS = [
       { key: 'guided', label: '⭐🎯 Guided Practice: Mixed range' },
       { key: 'mastery', label: '📝📰 Independent Mastery: The reporter\'s rush job' },
       { key: 'homework', label: '📝🏅 Homework: Your Match Report' }
+    ]
+  },
+  {
+    type: 'lesson',
+    id:   'LA6-L09',
+    course: 'Language Arts 6',
+    file: 'lessons/language-arts-6/LA6-L09-carry-it-across.html',
+    updated: '2026-11-17',
+    title: '➡️ Carry It Across',
+    tag: 'lesson 9',
+    desc: 'Transitive vs. intransitive verbs through the What? test (verb + what? → if the sentence answers, that is the direct object), a carries-across/stops diagram, a six-row worked-example table, fake objects that answer where/when/how (to the field, late, home), and double agents (won, ran, kicked, practiced, moved). Opens with two L08 review shots (tense + agreement, a time-jumper and a run-on together). Guided practice is Verb Jump. Mastery is an in-class writing test: a 6–8 sentence last-minute-of-a-competition scene written to six rules (one tense, 3 transitive, 2 intransitive, a double agent, was/were + -ing, no run-ons), then a self-audit of five verbs. Homework: The Final Round, a 200–250-word story with seven achievements (objects bracketed).',
+    skills: 'Transitive / intransitive verbs · direct objects · prepositional phrases vs. objects · double-agent verbs · tense consistency · run-ons · narrative writing · grade 6',
+    note: 'Archery/sports theming. Verb Jump Climb 3 previews the next lesson (lie/lay, sit/set, rise/raise) as discovery, ungraded in spirit. Tuesday-to-Thursday writing piece.',
+    height: 1500,
+    parts: [
+      { key: 'intro', label: '⭐➡️ Introduce the Concept: Carry it across' },
+      { file: 'activities/verb-jump.html', label: '⭐🦘 Guided Practice: Verb Jump', height: 1500 },
+      { key: 'mastery', label: '✏️🏁 Independent Mastery: Write the scene' },
+      { key: 'homework', label: '✏️🏅 Homework: The Final Round' }
     ]
   },
   {
@@ -1229,7 +1260,8 @@ const ENGINES = {
   'particles':     'Korean words and particles: flip, pick, build, answer',
   'poem-builder':  'Build a poem from chosen lines and devices',
   'speak':         'Listen, say it aloud, check it',
-  'swing3d':       'Swing through a 3D world by choosing the right sentence'
+  'swing3d':       'Swing through a 3D world by choosing the right sentence',
+  'jumper':        'Climb by steering: the grammar decides how high you bounce'
 };
 
 const base = location.href.replace(/index\.html$/, '').replace(/[?#].*$/, '').replace(/\/?$/, '/');
@@ -1247,7 +1279,7 @@ const embed = (it, part) => {
   return '<iframe src="' + url + '"\n' +
          '        width="100%" height="' + ((part && part.height) || it.height) + '"\n' +
          '        style="border:1px solid #e2ddd4;border-radius:8px;"\n' +
-         '        allow="clipboard-write; microphone"\n' +
+         '        allow="clipboard-write; microphone; fullscreen" allowfullscreen\n' +
          '        title="' + title + '"></iframe>';
 };
 
