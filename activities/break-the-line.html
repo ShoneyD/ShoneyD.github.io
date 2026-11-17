@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted activity shell (tier 3).
+
+  Start every hosted activity from this file. It already carries the three
+  things that are easy to leave out and expensive to retrofit:
+
+    1. STAGES — parts reveal one at a time. A student never sees the full
+       length of the activity up front, so there is no "look how much is
+       left" moment. Finished stages collapse to a green bar they can reopen.
+
+    2. EARNED PROGRESS — stars accumulate rather than filling in. An empty
+       five-slot tracker announces how far there is to go; a growing row
+       only ever reports what has been achieved. Same information, opposite
+       feeling, and the difference matters most for the students who most
+       need to keep going.
+
+    3. TURN-IN PANEL — one button collects every stage's evidence (answers
+       AND non-text work like sorts, orders, attempt counts) into a single
+       pasteable block for the Canvas submission.
+
+  TO BUILD AN ACTIVITY
+    - Add a <section class="stage"> per part. First one gets class="active".
+    - Give each a data-title — it becomes the heading in the copied evidence.
+    - Written answers: <textarea data-q="the full question text">.
+    - Non-text evidence: set LL.extra.<id> when the stage is solved, or
+      pass it as the second argument of LL.finish().
+    - Advance ONLY on an explicit button. Never on a timer.
+    - Register each stage in ORDER and give it a REWARDS entry.
+    - Author content in a tidy order, then shuffle() it at render time —
+      see RULES below.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - POSITION MUST NEVER CARRY THE ANSWER. For any sort, match, ranking or
+      multiple choice: shuffle the item order once on load, and shuffle the
+      options again inside the build loop so each item gets its own order.
+      shuffle() is at the top of the script. Two consequences: never write
+      "line 6" in prose (quote the item instead and inject its number at
+      runtime), and label turn-in evidence by content, never by position.
+    - Every drag needs a click-to-place fallback.
+    - Wrong answers get hints, never the answer, and always allow retries.
+    - Nothing animates while the student is reading.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Break the Line</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  /* earned progress — starts empty on purpose */
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  /* stages */
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  /* ONLY the heading is a block. Making every <strong> a block pushes trailing
+     punctuation onto its own line — a real bug that shipped once. */
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+</style>
+
+<style>
+  .pick{ display:flex; gap:.6rem; flex-wrap:wrap; margin:0 0 1rem }
+  .pick button{ font:inherit; font-size:.95rem; cursor:pointer; border:2px solid var(--line); background:var(--card);
+     border-radius:10px; padding:.55rem .9rem; color:var(--ink) }
+  .pick button.on{ border-color:var(--accent); background:var(--accent-soft); font-weight:700 }
+  .words{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.9rem 1rem; line-height:2.6; margin:0 0 .6rem }
+  .w{ font-size:1.05rem }
+  .gap{ font:inherit; font-size:.95rem; min-width:1.6rem; height:1.9rem; margin:0 .12rem; padding:0 .3rem; border:1px dashed #b9c4cc;
+     background:#fff; border-radius:6px; cursor:pointer; color:var(--accent); font-weight:700; vertical-align:middle }
+  .gap.sel{ border:2px solid var(--accent); background:var(--accent-soft) }
+  .gap.br{ border-style:solid; border-color:var(--warn); color:var(--warn) }
+  .tools{ display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem; font-size:.9rem }
+  .tools button{ font:inherit; font-size:1rem; min-width:2.6rem; padding:.35rem .7rem; border-radius:8px; border:1px solid var(--accent);
+     background:#fff; color:var(--accent); cursor:pointer; font-weight:700 }
+  .tools button:disabled{ opacity:.4; cursor:not-allowed }
+  .tools .hint{ color:var(--soft) }
+  .poem{ background:#fff; border-left:5px solid var(--accent); border-radius:6px; padding:.8rem 1.1rem; margin:0 0 .6rem; font-size:1.15rem; line-height:1.75; min-height:2.5rem }
+  .poem .land{ font-weight:700; border-bottom:3px solid var(--gold) }
+  .rhythm{ display:flex; flex-wrap:wrap; align-items:center; row-gap:6px; margin:0 0 .3rem; padding:.5rem .6rem; background:var(--card); border:1px solid var(--line); border-radius:8px }
+  .rhythm .b{ height:14px; border-radius:3px; background:var(--accent) }
+  .rhythm .b.land{ background:var(--gold) }
+  .rhythm .p{ height:14px }
+  .legend{ font-size:.82rem; color:var(--soft); margin:0 0 1rem }
+  .pace{ font-weight:700 }
+  .missions{ list-style:none; padding:0; margin:0 0 1rem }
+  .missions li{ border:1px solid var(--line); border-radius:10px; padding:.6rem .9rem; margin:0 0 .5rem; background:var(--card); display:flex; gap:.7rem; align-items:center; flex-wrap:wrap }
+  .missions li .ic{ font-size:1.2rem }
+  .missions li.ready{ border-color:var(--calm); background:var(--calm-soft) }
+  .missions li.saved{ border-color:var(--gold) }
+  .missions li .shape{ flex-basis:100%; font-size:.88rem; color:var(--soft); font-style:italic }
+  .missions li button{ margin-left:auto }
+  .bins{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin:0 0 1rem }
+  @media (max-width:560px){ .bins{ grid-template-columns:1fr } }
+  .bin{ border:2px dashed #b9c4cc; border-radius:10px; padding:.6rem; min-height:6.5rem; background:#fff; cursor:pointer }
+  .bin h3{ margin:0 0 .3rem; font-size:.95rem }
+  .bin .def{ font-size:.78rem; color:var(--soft); margin:0 0 .4rem; line-height:1.4 }
+  .bin.target{ border-color:var(--accent); border-style:solid }
+  .tray{ display:flex; flex-wrap:wrap; gap:.45rem; margin:0 0 1rem; min-height:2.5rem }
+  .chip{ font:inherit; font-size:.95rem; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:.3rem .8rem; cursor:pointer; margin:.15rem }
+  .chip.sel{ border:2px solid var(--accent); background:var(--accent-soft) }
+  .chip.bad{ border:2px solid var(--warn) }
+  .match{ margin:0 0 .8rem; padding:.6rem .9rem; background:var(--card); border:1px solid var(--line); border-radius:10px }
+  .match select{ font:inherit; font-size:.95rem; margin-top:.3rem; padding:.3rem .5rem; border-radius:6px; border:1px solid #b9c4cc }
+  .match.bad{ border-color:var(--warn) }
+  .checks label{ display:block; margin:.25rem 0; font-size:.95rem; cursor:pointer }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>✂️ Break the Line</h1>
+  <p class="sub">Same words, different shape. Cut the lines, add the pauses, and hear what changes.</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li><strong>Reshape</strong> a sentence (about 6 min) · <strong>Hear it</strong>: rhymes and sounds (about 4 min) · <strong>Your turn</strong>: write 2–4 lines (about 5 min).</li>
+      <li>Nothing is timed. Try as many shapes as you like. There's no wrong shape, only different effects.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ============ STAGE 1 — RESHAPE ============ -->
+  <section class="stage active" id="s1" data-title="Reshape the sentence">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1 — Reshape the sentence</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 — Reshape the sentence</h2>
+      <p>Poets control <strong>how fast you read</strong> and <strong>which words hit hardest</strong> with two tools: <strong>punctuation</strong> (a pause) and <strong>line breaks</strong> (a pause, plus the last word of a line gets extra weight).</p>
+      <p><strong>First, pick your sentence.</strong></p>
+      <div class="pick" id="pickS"></div>
+
+      <div id="lab" style="display:none">
+        <p><strong>Tap any gap</strong> between two words (the little boxes), then use the buttons to add a mark or a line break. Watch the poem and the rhythm bar change.</p>
+        <div class="words" id="words"></div>
+        <div class="tools" id="tools">
+          <span class="hint" id="gapHint">Tap a gap first →</span>
+          <button data-p="">no mark</button><button data-p=",">,</button><button data-p="—">—</button><button data-p="…">…</button><button data-p=".">.</button>
+          <button data-br="1">↵ line break</button>
+          <button class="ghost" id="clearAll" style="margin-left:auto;border-color:var(--soft);color:var(--soft)">clear all</button>
+        </div>
+        <p style="margin:0 0 .3rem;font-size:.85rem;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.05em">How it reads</p>
+        <div class="poem" id="poem"></div>
+        <div class="rhythm" id="rhythm" aria-hidden="true"></div>
+        <p class="legend">Each bar is a word; <span style="color:var(--gold);font-weight:700">gold</span> = the last word of a line (it lands hardest). Wider gap = longer pause. Pace: <span class="pace" id="pace"></span></p>
+
+        <p><strong>Three missions, three different shapes.</strong> When a mission lights up green, press <strong>Save this shape</strong>. Each save has to be a new shape, so change something between saves.</p>
+        <ul class="missions" id="missions"></ul>
+
+        <div id="s1q" style="display:none">
+          <p class="q"><strong>Q1.</strong> Look at your three saved shapes. Pick one. What did your choices do to the rhythm or the meaning?</p>
+          <div class="abox"><p class="lab">My answer</p>
+            <textarea data-q="Q1. Pick one of your saved shapes. What did your choices do to the rhythm or the meaning?" placeholder="Type here…" rows="2"></textarea></div>
+          <div class="stems"><p class="lab">Sentence starters — use them if you want</p>
+            <p>• When I put a line break after "___," the reader ___.<br>• The ___ made the sentence feel ___ because ___.</p></div>
+          <div class="row"><button class="btn go" id="s1done">Next part →</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — HEAR IT ============ -->
+  <section class="stage" id="s2" data-title="Hear it: rhymes and sound devices">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2 — Hear it</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 — Hear it</h2>
+      <p><strong>Say each pair out loud.</strong> Then tap a pair and tap the box it belongs in. (Tap a placed pair to send it back.)</p>
+      <div class="tray" id="tray"></div>
+      <div class="bins" id="bins"></div>
+      <div class="fb" id="fb2" role="status" aria-live="polite"></div>
+      <div class="row" id="sortRow"><button class="btn" id="checkSort">Check</button></div>
+
+      <div id="devs" style="display:none">
+        <p style="margin-top:1rem"><strong>Now the other sound devices.</strong> Read each line out loud and pick the device doing the work.</p>
+        <div id="matchBox"></div>
+        <div class="fb" id="fb3" role="status" aria-live="polite"></div>
+        <div class="row" id="devRow"><button class="btn" id="checkDev">Check</button></div>
+      </div>
+      <div class="row" id="s2next" style="display:none"><button class="btn go" onclick="LL.finish('s2')">Next part →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 — YOUR TURN ============ -->
+  <section class="stage" id="s3" data-title="Your turn: shape and sound">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3 — Your turn</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 3 — Your turn</h2>
+      <p>Write <strong>2 to 4 short lines</strong> about anything: the farm, a game, a car, today. Press Enter for a new line.</p>
+      <p><strong>Done looks like:</strong> 2–4 lines with ✅ one line break that makes a word land, ✅ one punctuation mark that makes a pause, ✅ one slant rhyme <em>or</em> another sound device. Then one sentence about your choice.</p>
+      <p class="q"><strong>Q2.</strong> Your lines.</p>
+      <div class="abox"><p class="lab">My lines</p>
+        <textarea id="mine" data-q="Q2. My 2–4 lines (one line break that makes a word land, one punctuation pause, one slant rhyme or other sound device)." placeholder="Type here… press Enter for a new line" rows="4"></textarea></div>
+      <p style="margin:0 0 .3rem;font-size:.85rem;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.05em">How yours reads</p>
+      <div class="poem" id="poem3"><span style="color:var(--soft)">Start typing…</span></div>
+      <div class="rhythm" id="rhythm3" aria-hidden="true"></div>
+      <p class="legend">Pace: <span class="pace" id="pace3">—</span></p>
+      <div class="checks">
+        <label><input type="checkbox" class="ck"> One line ends on a word I want to land</label>
+        <label><input type="checkbox" class="ck"> One punctuation mark makes a pause</label>
+        <label><input type="checkbox" class="ck"> One slant rhyme, or alliteration / assonance / consonance / onomatopoeia</label>
+      </div>
+      <p class="q"><strong>Q3.</strong> Which word did you make land, and how did you do it?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. Which word did you make land, and how did you do it?" placeholder="Type here…" rows="2"></textarea></div>
+      <div class="stems"><p class="lab">Sentence starter — use it if you want</p>
+        <p>• I made "___" land by ___, so the reader ___.</p></div>
+      <div class="row"><button class="btn go" onclick="LL.finish('s3')">Done with this part →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="qsummary">
+[
+ {
+  "title": "Part 1 — Reshape the sentence",
+  "questions": [
+   "Reshape a sentence with punctuation and line breaks, saving three different shapes: slow it down (4+ pauses); make the last word hit hardest; end a line on the word that makes the reader hang.",
+   "Q1. Pick one of your saved shapes. What did your choices do to the rhythm or the meaning?"
+  ]
+ },
+ {
+  "title": "Part 2 — Hear it",
+  "questions": [
+   "Sort nine word pairs into perfect rhyme, slant rhyme, or eye rhyme.",
+   "Match four lines to the sound device doing the work: alliteration, assonance, consonance, onomatopoeia."
+  ]
+ },
+ {
+  "title": "Part 3 — Your turn",
+  "questions": [
+   "Q2. My 2–4 lines (one line break that makes a word land, one punctuation pause, one slant rhyme or other sound device).",
+   "Q3. Which word did you make land, and how did you do it?"
+  ]
+ }
+]
+</script>
+
+<script>
+/* =================== CONTENT — swap these to rejigger =================== */
+const SENTENCES = [
+  { id:'colt', label:'🐴 The colt in the snow',
+    text:'the colt stood at the fence in the snow and waited for someone to come and he waited and waited and nobody came',
+    hit:'came', hang:'nobody' },
+  { id:'buzzer', label:'🏀 The last shot',
+    text:'the ball rolled around the rim and hung there for one second and the whole gym held its breath and then it dropped',
+    hit:'dropped', hang:'hung' }
+];
+const PAIRS = [   // [pair, bin]
+  ['colt / bolt','perfect'], ['stall / wall','perfect'], ['night / light','perfect'],
+  ['heart / hurt','slant'], ['field / filled','slant'], ['barn / born','slant'],
+  ['love / move','eye'], ['cough / bough','eye'], ['hood / food','eye']
+];
+const BINS = {
+  perfect:{ name:'Perfect rhyme', def:'Match exactly from the vowel to the end.' },
+  slant:  { name:'Slant rhyme',   def:'Close, not exact. Same ending sounds or same vowel, but something is off.' },
+  eye:    { name:'Eye rhyme',     def:'They LOOK like they rhyme, but say them: they don’t.' }
+};
+const HINTS = {
+  perfect:'Say it out loud. From the vowel to the end, is it an exact match?',
+  slant:'Close but not exact? That wobble is what a slant rhyme is.',
+  eye:'Ignore the spelling and only listen. Do they really sound the same?'
+};
+const DEVICES = ['alliteration','assonance','consonance','onomatopoeia'];
+const DEV_LINES = [
+  { line:'Big brown boots by the barn door',            ans:'alliteration', hint:'Look at the FIRST letter of each word.' },
+  { line:'The slow road home through cold stone',        ans:'assonance',    hint:'Listen to the VOWEL sound that keeps coming back.' },
+  { line:'The dark truck stuck back in the muck',        ans:'consonance',   hint:'A consonant repeats, but not only at the start of words.' },
+  { line:'Hooves clatter, gates bang, and the bucket clanks', ans:'onomatopoeia', hint:'Which words sound like the noise they name?' }
+];
+/* ======================================================================== */
+
+const ACTIVITY_TITLE = 'Break the Line — Syntax, Punctuation & Sound';
+const ORDER = ['s1','s2','s3'];
+const REWARDS = {
+  s1: { star:'★', msg:'Three shapes, three effects. You just did what poets do.' },
+  s2: { star:'★', msg:'Your ear is sharper than spelling now.' },
+  s3: { star:'★', msg:'Your own lines, on purpose. All done — go turn it in.' }
+};
+
+/* Fisher-Yates. Shuffle item order ONCE on load, and shuffle each item's
+   options separately inside the build loop. Authoring content in a tidy order
+   is fine; shipping it in that order lets a student score full marks by reading
+   down the list. Do not reshuffle on "start over" — rebuild from the arrays
+   that were already shuffled. */
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const LL = {
+  extra: {},      /* stageId -> non-text evidence, captured once when solved */
+  summary: {},    /* stageId -> custom done-bar text, e.g. "solved in 2 tries" */
+  done: new Set(),
+
+  /* Marks a stage complete. Deliberately does NOT snapshot the written
+     answers — those are read live at copy time, so a student who reopens a
+     part and adds to it still gets credit for what they wrote. */
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  /* Live read — never cached. */
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+/* Typing in a reopened stage updates its done-bar immediately, so the student
+   can see a blank turn into a saved answer without closing anything. */
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+function say(kind, head, body){
+  const fb = document.getElementById('fb');
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+
+/* ---------- shared rhythm renderer ---------- */
+const PW = { '':4, ',':14, ';':18, '—':22, '…':26, '.':32, '!':32, '?':32, ':':20 };
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function paceWord(total, n){ const r = total / Math.max(n,1);
+  return r < 7 ? 'fast — it rushes' : r < 13 ? 'medium' : 'slow — lots of pauses'; }
+/* lines: array of arrays of {w, p}; p = mark after word; line end = break */
+function renderShape(lines, poemEl, rhythmEl, paceEl){
+  let html = [], bars = [], total = 0, n = 0;
+  lines.forEach((ln, li) => {
+    const out = ln.map((t, i) => {
+      const last = i === ln.length - 1;
+      return (last ? '<span class="land">'+esc(t.w)+'</span>' : esc(t.w)) + esc(t.p);
+    }).join(' ');
+    html.push(out);
+    ln.forEach((t, i) => {
+      const last = i === ln.length - 1; n++;
+      bars.push('<span class="b'+(last?' land':'')+'" style="width:'+(8 + t.w.replace(/[^\w']/g,'').length*5)+'px"></span>');
+      let gap = PW[t.p] !== undefined ? PW[t.p] : 4;
+      if (last && li < lines.length - 1) gap += 18;
+      total += gap;
+      bars.push('<span class="p" style="width:'+gap+'px"></span>');
+    });
+  });
+  poemEl.innerHTML = html.length ? html.join('<br>') : '<span style="color:var(--soft)">Start typing…</span>';
+  rhythmEl.innerHTML = bars.join('');
+  paceEl.textContent = n ? paceWord(total, n) : '—';
+}
+
+/* ---------- STAGE 1 ---------- */
+let S = null, W = [], G = [], sel = -1;
+const saved = {};
+const pick = document.getElementById('pickS');
+SENTENCES.forEach(s => {
+  const b = document.createElement('button'); b.textContent = s.label;
+  b.onclick = () => {
+    if (S && S.id !== s.id && Object.keys(saved).length &&
+        !confirm('Switch sentences? Your saved shapes will be cleared.')) return;
+    [...pick.children].forEach(x => x.classList.toggle('on', x === b));
+    S = s; W = s.text.split(' '); G = W.slice(0,-1).map(() => ({p:'', br:false})); sel = -1;
+    Object.keys(saved).forEach(k => delete saved[k]);
+    document.getElementById('lab').style.display = 'block';
+    buildMissions(); draw();
+  };
+  pick.appendChild(b);
+});
+function shapeLines(){
+  const lines = [[]]; let cap = true;
+  W.forEach((w, i) => {
+    let word = cap ? w[0].toUpperCase() + w.slice(1) : w;
+    const g = G[i]; const p = i === W.length - 1 ? '.' : g.p;
+    lines[lines.length-1].push({ w:word, p });
+    cap = (p === '.');
+    if (g && g.br && i < W.length - 1) lines.push([]);
+  });
+  return lines;
+}
+function shapeText(){ return shapeLines().map(l => l.map(t => t.w + t.p).join(' ')).join(' / '); }
+function draw(){
+  const box = document.getElementById('words'); box.innerHTML = '';
+  W.forEach((w, i) => {
+    const s = document.createElement('span'); s.className = 'w'; s.textContent = w; box.appendChild(s);
+    if (i < G.length){
+      const g = document.createElement('button');
+      g.className = 'gap' + (i === sel ? ' sel' : '') + (G[i].br ? ' br' : '');
+      g.textContent = (G[i].p || (G[i].br ? '' : '·')) + (G[i].br ? '↵' : '');
+      g.setAttribute('aria-label','gap after ' + w);
+      g.onclick = () => { sel = i; draw(); };
+      box.appendChild(g);
+      if (G[i].br) box.appendChild(document.createElement('br'));
+    }
+  });
+  document.getElementById('gapHint').textContent = sel < 0 ? 'Tap a gap first →' : 'After "' + W[sel] + '":';
+  document.querySelectorAll('#tools [data-p],#tools [data-br]').forEach(b => b.disabled = sel < 0);
+  renderShape(shapeLines(), document.getElementById('poem'), document.getElementById('rhythm'), document.getElementById('pace'));
+  updateMissions();
+}
+document.querySelectorAll('#tools [data-p]').forEach(b => b.onclick = () => { if (sel<0) return; G[sel].p = b.dataset.p; draw(); });
+document.querySelector('#tools [data-br]').onclick = () => { if (sel<0) return; G[sel].br = !G[sel].br; draw(); };
+document.getElementById('clearAll').onclick = () => { G.forEach(g => { g.p=''; g.br=false; }); sel=-1; draw(); };
+
+function missionList(){
+  return [
+    { id:'slow', ic:'🐢', text:'Slow it down: give it <strong>at least 4 pauses</strong> (marks or line breaks).',
+      ok: () => G.filter(g => g.p || g.br).length >= 4 },
+    { id:'hit', ic:'💥', text:'Make "<strong>'+S.hit+'</strong>" hit hardest: put it <strong>alone on the last line</strong>, or right after a <strong>.</strong> or <strong>—</strong>',
+      ok: () => { const g = G[G.length-1]; return g.br || g.p === '.' || g.p === '—'; } },
+    { id:'hang', ic:'🪝', text:'Make the reader hang: <strong>end a line on "'+S.hang+'"</strong>, so they have to wait for what comes next.',
+      ok: () => { const i = W.indexOf(S.hang); return i >= 0 && i < G.length && G[i].br; } }
+  ];
+}
+let MISS = [];
+function buildMissions(){
+  MISS = missionList();
+  const ul = document.getElementById('missions'); ul.innerHTML = '';
+  MISS.forEach(m => {
+    const li = document.createElement('li'); li.id = 'm-' + m.id;
+    li.innerHTML = '<span class="ic">'+m.ic+'</span><span>'+m.text+'</span><button class="btn ghost" disabled>Save this shape</button><span class="shape"></span>';
+    li.querySelector('button').onclick = () => {
+      saved[m.id] = shapeText();
+      li.classList.add('saved');
+      li.querySelector('.shape').textContent = '⭐ Saved: ' + saved[m.id];
+      updateMissions();
+      if (MISS.every(x => saved[x.id])) document.getElementById('s1q').style.display = 'block';
+    };
+    ul.appendChild(li);
+  });
+  document.getElementById('s1q').style.display = 'none';
+}
+function updateMissions(){
+  MISS.forEach(m => {
+    const li = document.getElementById('m-' + m.id); if (!li) return;
+    const cur = shapeText();
+    const dup = Object.keys(saved).some(k => k !== m.id && saved[k] === cur);
+    const ok = m.ok() && !dup; li.classList.toggle('ready', ok);
+    li.querySelector('button').disabled = !ok;
+    li.querySelector('button').title = dup ? 'You already saved this exact shape. Change something first.' : '';
+  });
+}
+document.getElementById('s1done').onclick = () => {
+  const ev = ['Sentence: ' + S.label.replace(/^\S+\s/,'')];
+  MISS.forEach(m => ev.push(m.text.replace(/<[^>]+>/g,'') + '\n   → ' + saved[m.id]));
+  LL.summary.s1 = 'three shapes saved';
+  LL.finish('s1', ev.join('\n'));
+};
+
+/* ---------- STAGE 2 ---------- */
+const pairs = shuffle(PAIRS).map(([t, b]) => ({ t, b, at:null }));
+let pickPair = null, sortTries = 0, devTries = 0;
+function drawSort(){
+  const tray = document.getElementById('tray'); tray.innerHTML = '';
+  pairs.filter(p => !p.at).forEach(p => tray.appendChild(chip(p)));
+  if (!tray.children.length) tray.innerHTML = '<span style="color:var(--soft);font-size:.9rem">All placed. Press Check.</span>';
+  const bins = document.getElementById('bins'); bins.innerHTML = '';
+  Object.keys(BINS).forEach(k => {
+    const d = document.createElement('div'); d.className = 'bin' + (pickPair ? ' target' : '');
+    d.innerHTML = '<h3>'+BINS[k].name+'</h3><p class="def">'+BINS[k].def+'</p>';
+    pairs.filter(p => p.at === k).forEach(p => d.appendChild(chip(p)));
+    d.onclick = e => { if (e.target.closest('.chip')) return; if (pickPair){ pickPair.at = k; pickPair.bad = false; pickPair = null; drawSort(); } };
+    bins.appendChild(d);
+  });
+}
+function chip(p){
+  const c = document.createElement('button');
+  c.className = 'chip' + (p === pickPair ? ' sel' : '') + (p.bad ? ' bad' : ''); c.textContent = p.t;
+  c.onclick = () => { if (p.at){ p.at = null; p.bad = false; pickPair = null; } else pickPair = (pickPair === p ? null : p); drawSort(); };
+  return c;
+}
+drawSort();
+function fbx(id, kind, head, body){ const f = document.getElementById(id); f.className = 'fb show ' + kind; f.innerHTML = '<span class="fb-head">'+head+'</span>'+body; }
+document.getElementById('checkSort').onclick = () => {
+  if (pairs.some(p => !p.at)) return fbx('fb2','hint','Not yet.','Place every pair first.');
+  sortTries++;
+  const wrong = pairs.filter(p => p.at !== p.b);
+  pairs.forEach(p => p.bad = p.at !== p.b); drawSort();
+  if (wrong.length){
+    const w = wrong[0];
+    fbx('fb2','hint', wrong.length + (wrong.length>1?' pairs are':' pair is') + ' in the wrong box (outlined).',
+      'Try "'+esc(w.t)+'" again. ' + HINTS[w.b]);
+  } else {
+    fbx('fb2','good','All nine sorted.','Slant rhymes are everywhere in modern poems and songs: they keep the music without sounding sing-songy.');
+    document.getElementById('sortRow').style.display = 'none';
+    document.getElementById('devs').style.display = 'block';
+  }
+};
+const devItems = shuffle(DEV_LINES);
+const mb = document.getElementById('matchBox');
+devItems.forEach((d, i) => {
+  const div = document.createElement('div'); div.className = 'match';
+  div.innerHTML = '<div><strong>"'+esc(d.line)+'"</strong></div>';
+  const s = document.createElement('select');
+  s.innerHTML = '<option value="">— pick one —</option>' + shuffle(DEVICES).map(x => '<option>'+x+'</option>').join('');
+  div.appendChild(s); mb.appendChild(div); d.el = div; d.sel = s;
+});
+document.getElementById('checkDev').onclick = () => {
+  if (devItems.some(d => !d.sel.value)) return fbx('fb3','hint','Not yet.','Pick a device for every line.');
+  devTries++;
+  const wrong = devItems.filter(d => d.sel.value !== d.ans);
+  devItems.forEach(d => d.el.classList.toggle('bad', d.sel.value !== d.ans));
+  if (wrong.length){
+    fbx('fb3','hint', wrong.length + (wrong.length>1?' lines need':' line needs') + ' another look (outlined).', esc(wrong[0].hint));
+  } else {
+    fbx('fb3','good','All four.','Now you have more than rhyme to make lines sound good.');
+    document.getElementById('devRow').style.display = 'none';
+    document.getElementById('s2next').style.display = 'flex';
+    LL.summary.s2 = 'rhymes in ' + sortTries + (sortTries>1?' tries':' try') + ', devices in ' + devTries + (devTries>1?' tries':' try');
+    LL.extra.s2 = 'Rhyme sort (perfect / slant / eye) solved in ' + sortTries + (sortTries>1?' tries':' try') + '.\n' +
+      Object.keys(BINS).map(k => BINS[k].name + ': ' + pairs.filter(p => p.b === k).map(p => p.t).join(', ')).join('\n') +
+      '\nSound devices matched in ' + devTries + (devTries>1?' tries':' try') + '.';
+  }
+};
+
+/* ---------- STAGE 3 live preview ---------- */
+const mine = document.getElementById('mine');
+function drawMine(){
+  const lines = mine.value.split('\n').map(l => l.trim().replace(/\s+([,;:.!?…—-]+)(?=\s|$)/g, '$1')).filter(Boolean).map(l =>
+    l.split(/\s+/).map(tok => { const m = tok.match(/^(.*?)([,;:.!?…—-]*)$/); return { w:m[1] || tok, p:(m[2]||'').slice(-1).replace('-','—') }; }));
+  renderShape(lines, document.getElementById('poem3'), document.getElementById('rhythm3'), document.getElementById('pace3'));
+}
+mine.addEventListener('input', drawMine);
+setTimeout(drawMine, 600);
+
+
+/* ---------------- evidence assembly ---------------- */
+function buildPlain(){
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
+    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+
+  /* Three fallbacks. Clipboard access from a cross-origin iframe is the
+     flakiest part of this system and a student must never be stranded. */
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+</script>
+<script src="../assets/student.js"></script>
+</body>
+</html>
