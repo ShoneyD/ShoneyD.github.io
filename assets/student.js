@@ -4,7 +4,12 @@
    (the shared lesson.js, or an activity's own inline copy).
 
      1. SAVE / RESTORE — a student who closes the tab gets their answers and
-        their finished parts back, and lands on the part they were on.
+        their finished parts back AUTOMATICALLY, and lands on the part they
+        were on. (Until 18 Nov 2026 this was an offer bar; typing before
+        clicking it saved the empty page over the old work, and inside a
+        Canvas iframe the bar was usually off screen. That is how Joy's
+        Korean 1A final lost its answers.) A visible line says whether this
+        browser is saving at all.
      2. CELEBRATION    — finishing a part shows a card where the student is
         actually looking, which then flies up and docks as the star in
         #earned. The old top-bar star sat above the instructions, in the
@@ -44,6 +49,10 @@
                       try { S.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
   function drop()   { if (!S) return;
                       try { S.removeItem(KEY); } catch (e) {} }
+  /* one level of undo: the last save before a restore or a Start over */
+  var BAK = KEY + ':bak';
+  function backup(o){ if (!S || !o) return;
+                      try { S.setItem(BAK, JSON.stringify(o)); } catch (e) {} }
 
   /* ------------------------------------------------------ page identity
      Two guards, because activities SHUFFLE their content on every load, so
@@ -87,17 +96,60 @@
     }
     return false;
   }
+  /* Never drops on its own: an empty page is never written over a real save.
+     Only "Start over" clears a save, and it backs it up first. */
   var timer = null;
+  function saveNow() {
+    clearTimeout(timer); timer = null;
+    var snap = snapshot();
+    if (worthKeeping(snap)) { write(snap); stamp(snap.t); }
+  }
   function save() {
     clearTimeout(timer);
-    timer = setTimeout(function () {
-      var snap = snapshot();
-      if (worthKeeping(snap)) write(snap); else drop();
-    }, 400);
+    timer = setTimeout(saveNow, 400);
   }
-  document.addEventListener('input', function (e) {
+  function onEdit(e) {
     if (e.target && e.target.dataset && e.target.dataset.q !== undefined) save();
+  }
+  document.addEventListener('input', onEdit);
+  document.addEventListener('change', onEdit);
+  /* closing the tab inside the 400ms debounce used to lose the last words */
+  window.addEventListener('pagehide', function () { if (timer) saveNow(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden' && timer) saveNow();
   });
+
+  /* ----------------------------------------------------- save status line
+     One line at the top of every part on screen and in the turn-in panel.
+     A browser that blocks storage (private window, some school setups, some
+     browsers inside a Canvas iframe) gets a warning instead of silence. */
+  function clock(t) {
+    var d = new Date(t), h = d.getHours(), m = ('0' + d.getMinutes()).slice(-2);
+    return ((h % 12) || 12) + ':' + m + (h >= 12 ? 'pm' : 'am');
+  }
+  function stamp(t) {
+    var els = document.querySelectorAll('.ll-save');
+    for (var i = 0; i < els.length; i++) {
+      if (!S) {
+        els[i].className = 'll-save ll-save-off';
+        els[i].textContent = '⚠ This browser is not saving your work. Before you close it, press Copy and turn in what you have.';
+      } else {
+        els[i].className = 'll-save';
+        els[i].textContent = t ? '💾 Saved on this computer · ' + clock(t)
+                               : '💾 Your answers save on this computer as you type.';
+      }
+    }
+  }
+  function addStatusLines() {
+    var hosts = STAGES.map(function (id) { return document.getElementById(id); });
+    hosts.push(document.getElementById('turnin'));
+    hosts.forEach(function (h) {
+      if (!h || h.querySelector(':scope > .ll-save')) return;
+      var p = document.createElement('p');
+      p.className = 'll-save'; p.setAttribute('role', 'status');
+      h.insertBefore(p, h.firstChild);
+    });
+  }
 
   /* ----------------------------------------------------------- restoring */
   var origAward  = LL.award.bind(LL);
@@ -152,18 +204,38 @@
   }
 
   function restore(saved) {
-    var skipped = 0;
+    /* First by slot (cheap, exact); if the question in that slot changed
+       (shuffled activity, or the lesson was edited since), by question text
+       anywhere on the page. An answer is never pasted under a question it
+       was not written for. */
+    var pool = {}, skipped = 0, used = {};
+    Object.keys(saved.f || {}).forEach(function (id) {
+      (saved.f[id] || []).forEach(function (pair, i) {
+        if (!pair || !pair[0] || !String(pair[1]).trim()) return;
+        (pool[pair[0]] = pool[pair[0]] || []).push(id + '#' + i);
+      });
+    });
+    function take(q) {
+      var list = pool[q] || [];
+      for (var k = 0; k < list.length; k++) if (!used[list[k]]) { used[list[k]] = 1; return list[k]; }
+      return null;
+    }
     STAGES.forEach(function (id) {
-      var vals = saved.f[id] || [];
+      var vals = (saved.f && saved.f[id]) || [];
       fields(id).forEach(function (el, i) {
-        var pair = vals[i];
-        if (!pair) return;
-        if (pair[0] !== (el.dataset.q || '')) { skipped++; return; }   /* shuffled away */
-        el.value = pair[1];
+        var q = el.dataset.q || '', pair = vals[i];
+        if (pair && pair[0] === q && !used[id + '#' + i]) {
+          used[id + '#' + i] = 1; el.value = pair[1]; return;
+        }
+        var ref = take(q);
+        if (ref) {
+          var bits = ref.split('#');
+          el.value = saved.f[bits[0]][+bits[1]][1];
+        } else if (pair && String(pair[1]).trim()) skipped++;
       });
     });
     if (skipped) console.info('[student.js] ' + skipped +
-      ' answer(s) not restored: their question is no longer in that slot.');
+      ' answer(s) not restored: their question is no longer on the page.');
     LL.extra   = saved.x || {};
     LL.summary = saved.s || {};
     STAGES.forEach(function (id) {
@@ -171,6 +243,7 @@
     });
     celebrating = false; pendingNext = false;
     origNext();                                     /* lands them on the part they were on */
+    try { document.dispatchEvent(new CustomEvent('ll:restored')); } catch (e) {}
   }
 
   function whenWord(t) {
@@ -182,24 +255,29 @@
     return when + ' at ' + h + ':' + m + ap;
   }
 
-  function offerRestore(saved) {
+  function restoredNotice(saved) {
     var n = (saved.d || []).length;
     var bar = document.createElement('div');
     bar.className = 'll-restore';
     bar.setAttribute('role', 'status');
     bar.innerHTML =
       '<span class="ll-restore-t"></span>' +
-      '<button type="button" class="ll-btn ll-go">Pick up where I left off</button>' +
-      '<button type="button" class="ll-btn ll-fresh">Start fresh</button>';
+      '<button type="button" class="ll-btn ll-fresh">Start over</button>';
     bar.querySelector('.ll-restore-t').textContent =
-      'You have work saved from ' + whenWord(saved.t) +
+      '✓ Your work from ' + whenWord(saved.t) + ' is back' +
       (n ? ' — ' + n + (n === 1 ? ' part' : ' parts') + ' already finished.' : '.');
-    document.body.insertBefore(bar, document.body.firstChild);
-    bar.querySelector('.ll-go').addEventListener('click', function () {
-      restore(saved); bar.parentNode.removeChild(bar);
-    });
-    bar.querySelector('.ll-fresh').addEventListener('click', function () {
-      drop(); bar.parentNode.removeChild(bar);
+    var host = document.querySelector('.stage.active:not(.done)') || document.body;
+    host.insertBefore(bar, host === document.body ? host.firstChild : host.querySelector('.ll-save') ? host.querySelector('.ll-save').nextSibling : host.firstChild);
+    var fresh = bar.querySelector('.ll-fresh'), armed = false;
+    fresh.addEventListener('click', function () {
+      if (!armed) {                                  /* two taps, no browser dialog */
+        armed = true;
+        fresh.textContent = 'Yes, clear my answers';
+        bar.querySelector('.ll-restore-t').textContent =
+          'Start over? Your answers will be cleared. (A backup is kept on this computer.)';
+        return;
+      }
+      backup(read()); drop(); submitted = true; location.reload();
     });
   }
 
@@ -288,11 +366,15 @@
      fallbacks where they don't. */
   var css = document.createElement('style');
   css.textContent = [
-    '.ll-restore{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;gap:.6rem;',
+    '.ll-restore{position:relative;z-index:60;display:flex;flex-wrap:wrap;gap:.6rem;',
       'align-items:center;padding:.7rem 1rem;margin:0 0 1rem;border-radius:10px;',
       'border:1px solid var(--warn-line,#6b5124);background:var(--warn-soft,#38290f);',
       'color:var(--ink,#f3f5f8);font-size:.95rem;font-family:inherit}',
     '.ll-restore-t{flex:1 1 15rem;font-weight:600}',
+    '.ll-save{margin:0 0 .6rem;font-size:.85rem;color:var(--soft,#c5cdd8)}',
+    '.ll-save-off{font-weight:700;font-size:.95rem;padding:.55rem .8rem;border-radius:8px;',
+      'border:1px solid var(--warn-line,#6b5124);background:var(--warn-soft,#38290f);',
+      'color:var(--ink,#f3f5f8)}',
     '.ll-btn{font:inherit;font-weight:700;cursor:pointer;border-radius:8px;padding:.45rem .9rem;',
       'border:1px solid var(--accent-line,#2b5a72);background:var(--accent,#6fbde3);',
       'color:var(--on-accent,#0f1216)}',
@@ -315,8 +397,15 @@
   document.head.appendChild(css);
 
   /* ------------------------------------------------------------ on load */
+  addStatusLines();
   var saved = read();
-  if (saved && saved.v !== FP)                  drop();      /* lesson was edited */
-  else if (saved && (Date.now() - saved.t) > MAX_AGE) drop();
-  else if (saved && worthKeeping(saved))        offerRestore(saved);
+  if (saved && (Date.now() - saved.t) > MAX_AGE) { backup(saved); drop(); saved = null; }
+  if (saved && worthKeeping(saved)) {
+    /* An edited lesson (saved.v !== FP) no longer throws the save away:
+       restore() matches answers to questions by their text. */
+    backup(saved);
+    restore(saved);
+    restoredNotice(saved);
+    stamp(saved.t);
+  } else stamp(null);
 })();

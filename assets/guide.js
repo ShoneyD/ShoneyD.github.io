@@ -759,15 +759,20 @@
       if (steps) { scrollTo(steps, 'center'); setTimeout(function () { restart(steps, 'gd-flash'); }, REDUCE ? 0 : 450); }
       return;
     }
-    if (e.target.closest && e.target.closest('.ll-go')) {          /* student.js restore */
-      setTimeout(function () {
-        Object.keys(STEPS).forEach(function (id) { STEPS[id].forEach(function (s) { if (s.kind === 'lead') s.acked = false; }); });
-        Object.keys(PUZ).forEach(function (id) { syncPuzzle(document.getElementById(id), true); });
-        var a = document.querySelector('.stage.active:not(.done)');
-        if (a) open(a, 'scroll');
-      }, 900);
-    }
+    if (e.target.closest && e.target.closest('.ll-go')) resync();   /* old student.js offer bar */
   });
+
+  /* student.js restores saved work on load (since 18 Nov 2026) and says so
+     with this event: re-read which boxes are filled and start from there. */
+  function resync() {
+    setTimeout(function () {
+      Object.keys(STEPS).forEach(function (id) { STEPS[id].forEach(function (s) { if (s.kind === 'lead') s.acked = false; }); });
+      Object.keys(PUZ).forEach(function (id) { syncPuzzle(document.getElementById(id), true); });
+      var a = document.querySelector('.stage.active:not(.done)');
+      if (a) open(a, 'scroll');
+    }, 900);
+  }
+  document.addEventListener('ll:restored', resync);
 
   document.addEventListener('focusin', function (e) {
     var t = e.target;

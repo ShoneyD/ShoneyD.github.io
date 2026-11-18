@@ -166,17 +166,27 @@ document.addEventListener('input', e => {
   }
 });
 
-/* ---------------- evidence assembly ---------------- */
+/* ---------------- evidence assembly ----------------
+   A part counts if it is finished OR has any answer typed in it. Unfinished
+   work is copied too, marked "(in progress)": a student who turns in what
+   they have so far must not lose the part they were halfway through. */
+function started(id){
+  return [...document.getElementById(id).querySelectorAll('[data-q]')].some(el => el.value.trim());
+}
+function copied(){ return ORDER.filter(id => LL.done.has(id) || started(id)); }
+function partTitle(id){
+  return document.getElementById(id).dataset.title + (LL.done.has(id) ? '' : ' (in progress)');
+}
 function buildPlain(){
-  const parts = ORDER.filter(id => LL.done.has(id)).map(id =>
-    '── ' + document.getElementById(id).dataset.title.toUpperCase() + ' ──\n' +
+  const parts = copied().map(id =>
+    '── ' + partTitle(id).toUpperCase() + ' ──\n' +
     LL.collect(id).join('\n\n'));
   return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
          'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
          parts.join('\n\n') + '\n';
 }
 function buildHtml(){
-  const parts = ORDER.filter(id => LL.done.has(id)).map(id => {
+  const parts = copied().map(id => {
     const body = LL.collect(id).map(block => {
       const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
       return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
@@ -185,7 +195,7 @@ function buildHtml(){
                : '<p style="margin:0 0 1rem;">'+esc(q).replace(/\n/g,'<br>')+'</p>';
     }).join('');
     return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
-           esc(document.getElementById(id).dataset.title)+'</h4>'+body;
+           esc(partTitle(id))+'</h4>'+body;
   });
   return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
          '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
@@ -201,7 +211,7 @@ document.getElementById('copyAll').addEventListener('click', async () => {
   const plain = buildPlain();
   document.getElementById('previewText').value = plain;
   const blanks = ORDER.reduce((n,id) =>
-    n + (LL.done.has(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+    n + (copied().includes(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
 
   let ok = false;
   try{
