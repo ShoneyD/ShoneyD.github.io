@@ -1,0 +1,2542 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG12A-L10 · Snow on the Screen</title>
+<style>/* inlined: assets/lesson.css */
+/* =========================================================================
+   LESSON PAGE STYLESHEET — shared by every hosted lesson page.
+
+   Every rule in here was byte-identical on all three lesson pages before
+   it was pulled out, so linking it changes nothing about how they look.
+   A page may still carry its own <style> block after this link for rules
+   that are genuinely about that lesson; those come later and so win.
+
+   Change a rule here and every lesson page changes. That is the point.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+   THE PALETTE — dark by default. Change a value here and every hosted lesson
+   page changes with it; nothing else defines these.
+
+   Text is near-white rather than pure #fff on purpose: full white on a dark
+   ground haloes for a lot of readers, and #f3f5f8 still reads as white while
+   staying comfortable for a fifty-minute session.
+
+   A student who needs a light page can flip it with the ☀/☾ button in the
+   corner; the choice sticks in that browser. Only the values change — no rule
+   below this block knows which theme is on.
+   --------------------------------------------------------------------------- */
+:root{
+  --bg:#14161a;          /* the page                                   */
+  --card:#1d2128;        /* anything raised off the page               */
+  --field:#232830;       /* a box the student types into               */
+  --ink:#f3f5f8;         /* body text                                  */
+  --soft:#c5cdd8;        /* labels, captions, secondary text           */
+  --line:#2e343d;        /* ordinary borders                           */
+  --field-line:#414a56;  /* the dashed border round an answer box      */
+  --on-accent:#0f1216;   /* text sitting on an accent fill             */
+
+  --accent:#6fbde3;      /* links, headings, the active thing          */
+  --accent-soft:#16303d;
+  --accent-line:#2b5a72;
+
+  --calm:#5ecb92;        /* correct, finished, safe                    */
+  --calm-soft:#123123;
+  --calm-line:#2a5c44;
+
+  --warn:#e8a94e;        /* careful, read this, stems and signposts    */
+  --warn-soft:#38290f;
+  --warn-line:#6b5124;
+
+  --gold:#f2c75c;        /* earned stars                               */
+  --hl:#4a3d12;          /* highlighted words inside running text      */
+  --alert:#ff6b6b;       /* read-this-first: directions not to skip    */
+  --on-alert:#1a0d0d;
+
+  /* Type. Atkinson Hyperlegible is the dyslexia-friendly face and is loaded
+     from Google Fonts by every page; the two system Korean faces sit next in
+     line so Hangul renders offline, with Noto Sans KR as the web fallback.
+     Latin glyphs still come from Atkinson — fallback is per glyph, not per
+     stack. Change the stack here, not in a page. */
+  --font-body:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo",
+              "Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+  --font-mono:Consolas,"Courier New",monospace;
+}
+
+:root[data-theme="light"]{
+  --bg:#faf8f5; --card:#fffdfa; --field:#ffffff; --ink:#22252a; --soft:#555a63;
+  --line:#e2ddd4; --field-line:var(--field-line); --on-accent:#ffffff;
+  --accent:#2f6f8f; --accent-soft:#e8f1f6; --accent-line:var(--accent-line);
+  --calm:#2e7d5b; --calm-soft:#e6f3ec; --calm-line:var(--calm-line);
+  --warn:#a8641b; --warn-soft:#fbf0e2; --warn-line:var(--warn-line);
+  --gold:#c68a1a; --hl:#fdf1b8; --alert:#c62828; --on-alert:#ffffff;
+}
+
+*{box-sizing:border-box}
+
+body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:var(--font-body);
+        font-size:19px; line-height:1.7 }
+
+.wrap{ max-width:46rem; margin:0 auto }
+
+h1{ font-size:1.4rem; margin:0 0 .25rem }
+
+h2{ font-size:1.15rem; margin:0 0 .75rem }
+
+h3{ font-size:1rem; margin:1.25rem 0 .5rem }
+
+.sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+.earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+
+.earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+
+.earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+
+@keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+
+@keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+.steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+
+.steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+
+.steps ol{ margin:0; padding-left:1.3rem }
+
+.steps li{ margin-bottom:.2rem }
+
+.outcomes{ background:var(--card); border:1px solid var(--line);
+        border-left:4px solid var(--accent); border-radius:8px;
+        padding:.85rem 1.1rem; margin:0 0 1.5rem; font-size:.95rem }
+
+.outcomes .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin:0 0 .5rem }
+
+.outcomes ul{ margin:0; padding-left:1.1rem }
+
+.outcomes li{ margin-bottom:.3rem }
+
+.outcomes .oid{ font-family:var(--font-mono); font-size:.8rem; color:var(--soft) }
+
+.lessonid{ font-family:var(--font-mono); font-size:.8rem; color:var(--soft);
+        letter-spacing:.03em }
+
+.partsep{ margin:2.5rem 0 1.25rem; padding-top:1.25rem; border-top:2px solid var(--line);
+        font-size:1.2rem; font-weight:700 }
+
+.stage{ display:none; scroll-margin-top:12px }  /* breathing room when a part is scrolled to */
+
+.stage.active{ display:block; animation:slide .3s ease both }
+
+.stage.done{ display:block }
+
+.stage.done > .stage-body{ display:none }
+
+.stage.done.open > .stage-body{ display:block }
+
+.stage[hidden]{ display:none !important }
+
+.donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid var(--calm-line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+
+.stage.done > .donebar{ display:flex }
+
+.donebar .tick{ color:var(--calm); font-weight:700 }
+
+.donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:var(--on-accent) }
+
+button.btn:hover{ filter:brightness(1.08) }
+
+button.btn.ghost{ background:transparent; color:var(--accent) }
+
+button.btn.go{ background:var(--calm); border-color:var(--calm) }
+
+button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+
+:focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+.fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; font-size:.98rem; display:none }
+
+.fb.show{ display:block }
+
+.fb.hint{ background:var(--warn-soft); border:1px solid var(--warn-line) }
+
+.fb.good{ background:var(--calm-soft); border:1px solid var(--calm-line) }
+
+.fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+.q{ margin:1.25rem 0 .4rem; font-size:1rem }
+
+.abox{ border:2px dashed var(--field-line); border-radius:8px; background:var(--field);
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+
+.abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .35rem }
+
+.abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+
+.abox textarea::placeholder{ color:var(--soft) }
+
+.abox:focus-within{ border-color:var(--accent); border-style:solid }
+
+.stems{ background:var(--warn-soft); border:1px dashed var(--warn-line); border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+
+.stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+
+.stems p{ margin:0 }
+
+.done-look{ background:var(--calm-soft); border:1px solid var(--calm-line); border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+
+.done-look .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--calm); margin:0 0 .25rem }
+
+.done-look p{ margin:0 }
+
+details.sheet table{ width:100%; border-collapse:collapse; margin:.75rem 0 0; font-size:.92rem }
+
+.turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+
+.turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+
+.turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+
+.preview{ display:none; margin-top:1rem }
+
+.preview.show{ display:block }
+
+.preview textarea{ width:100%; min-height:12rem; font-family:var(--font-mono);
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink); resize:vertical }
+
+.preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+@media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+
+/* ---- the agenda: same order and same times as the run sheet and the Canvas
+   block. Every part shows it, with the current row marked. ---- */
+.agenda{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.85rem 1.1rem; margin:0 0 1.5rem; font-size:.95rem }
+.agenda .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+.agenda ol{ margin:0; padding-left:1.4rem }
+.agenda li{ margin-bottom:.25rem; color:var(--soft) }
+.agenda li .mins{ color:var(--soft); font-size:.88rem }
+.agenda li.here{ color:var(--ink); font-weight:700 }
+.agenda li.here .you{ color:var(--accent); font-weight:700; white-space:nowrap }
+
+/* ---- the light/dark switch. Fixed bottom-right, out of the reading path,
+   still reachable by keyboard. ---- */
+.themetog{ position:fixed; right:.9rem; bottom:.9rem; z-index:50;
+        width:2.5rem; height:2.5rem; border-radius:50%; cursor:pointer;
+        font-size:1.1rem; line-height:1; border:1px solid var(--line);
+        background:var(--card); color:var(--ink); opacity:.75 }
+.themetog:hover, .themetog:focus-visible{ opacity:1; border-color:var(--accent) }
+@media print{ .themetog{ display:none } }
+
+/* Native dropdown lists follow the page theme. Without this the open list
+   drew light-on-light in dark mode: only the highlighted option was legible. */
+:root{ color-scheme:dark }
+:root[data-theme="light"]{ color-scheme:light }
+select option{ background:var(--field); color:var(--ink) }
+
+</style>
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body><div style="font:15px/1.5 system-ui,sans-serif;background:#fff6d6;color:#3a2f00;border-bottom:2px solid #d9b84a;padding:.6rem 1rem;text-align:center"><strong>Downloadable hard copy</strong> of &ldquo;ENG12A-L10 · Snow on the Screen&rdquo; &middot; part: homework. Open it in Chrome or Edge, do the work here, then use the copy button at the end and paste into the assignment in Canvas. Audio and pictures still load from the class website when it is up.</div>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">ENG12A-L10</p>
+  <h1 id="pagetitle">English 12A · Lesson 10</h1>
+  <p class="sub" id="pagesub">Snow on the Screen.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="The three-link chain">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The three-link chain</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The three-link chain</h2>
+
+      <p>A writer can <strong>tell</strong> you how to feel. A good writer <strong>shows</strong> you with a comparison, and lets the feeling do the work. Every answer today follows the same three links:</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 640 150" role="img" aria-labelledby="chT chD" style="max-width:100%;height:auto">
+  <title id="chT">The three-link chain</title>
+  <desc id="chD">Three linked boxes from left to right. Box 1, the comparison: what is being compared to what. Box 2, the feeling: the tone it gives off. Box 3, the idea: the theme it points to. Arrows join them.</desc>
+  <g font-family="inherit" font-size="15" text-anchor="middle">
+    <rect x="10"  y="30" width="170" height="90" rx="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="95"  y="62" font-weight="bold" fill="var(--ink)">1 · Comparison</text>
+    <text x="95"  y="88" fill="var(--soft)">what is compared</text>
+    <text x="95"  y="106" fill="var(--soft)">to what?</text>
+    <rect x="235" y="30" width="170" height="90" rx="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="320" y="62" font-weight="bold" fill="var(--ink)">2 · Feeling</text>
+    <text x="320" y="88" fill="var(--soft)">the TONE it</text>
+    <text x="320" y="106" fill="var(--soft)">gives off</text>
+    <rect x="460" y="30" width="170" height="90" rx="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="545" y="62" font-weight="bold" fill="var(--ink)">3 · Idea</text>
+    <text x="545" y="88" fill="var(--soft)">the THEME it</text>
+    <text x="545" y="106" fill="var(--soft)">points to</text>
+    <path d="M182 75 H230 M222 67 L232 75 L222 83" stroke="var(--ink)" stroke-width="3" fill="none"/>
+    <path d="M407 75 H455 M447 67 L457 75 L447 83" stroke="var(--ink)" stroke-width="3" fill="none"/>
+  </g>
+</svg>
+      <figcaption>Comparison → feeling → idea. Name all three links and you've explained the impact.</figcaption>
+      </figure>
+
+      <p>Here is the same snowfall, written two ways. Nothing about the snow changes, only what it is compared to. Read both out loud if you like, then answer Q1 and Q2.</p>
+
+<table style="width:100%;border-collapse:collapse;margin:.5rem 0 1rem">
+  <tr>
+    <td style="width:50%;padding:.8rem;border:2px solid var(--line);vertical-align:top"><strong>Line A</strong><br>The snow settled over the town like a quilt, tucking every roof in for the night.</td>
+    <td style="width:50%;padding:.8rem;border:2px solid var(--line);vertical-align:top"><strong>Line B</strong><br>The snow settled over the town like a sheet pulled over a face.</td>
+  </tr>
+</table>
+
+      <p class="q"><strong>Q1.</strong> What tone does Line A give off?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. What tone does Line A give off?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="cozy and safe">cozy and safe</option>
+          <option value="tense and scared">tense and scared</option>
+          <option value="angry">angry</option>
+          <option value="bored">bored</option>
+        </select></div>
+
+      <p class="q"><strong>Q2.</strong> What tone does Line B give off?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q2. What tone does Line B give off?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="cozy and safe">cozy and safe</option>
+          <option value="cold and deathly">cold and deathly</option>
+          <option value="silly">silly</option>
+          <option value="hopeful">hopeful</option>
+        </select></div>
+
+      <p>Now the third link. If a whole story were full of Line B images, what might the story be <em>saying</em> about winter, or about being alone? One sentence is plenty.</p>
+
+      <p class="q"><strong>Q3.</strong> Swapping the comparison changed the tone. What does that do to the idea the story could be about?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Line B makes the story feel ___, so it could be about ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q3. Swapping the comparison changed the tone. What does that do to the idea the story could be about?" placeholder="One sentence. Say it out loud first if that&#x27;s easier." rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Q1 and Q2 picked, and Q3 is one sentence that says what changed when the comparison changed.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== GUIDED PRACTICE ===================== -->
+  <p class="partsep" data-partsep="guided">Guided Practice</p>
+
+  <section class="stage" data-part="guided" id="g1" data-title="Follow three images">
+    <button class="donebar" onclick="LL.toggle('g1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Follow three images</strong>
+      <span class="sum" id="sum-g1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Follow three images</h2>
+
+      <p>Open <strong>“Snowstorm”</strong> by Bruna Dantas Lobato in CommonLit (the link is in this lesson's Canvas module). We read it together first. For each question below, find the paragraph, read the comparison, then fill the three links. <strong>The paragraph number is your map.</strong></p>
+
+<table style="width:100%;border-collapse:collapse;margin:.5rem 0 1rem">
+  <tr><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">Find it</th><th style="text-align:left;padding:.5rem;border-bottom:2px solid var(--line)">What's being compared</th></tr>
+  <tr><td style="padding:.5rem">¶ 1</td><td style="padding:.5rem">her dorm building → something you'd find in a fridge</td></tr>
+  <tr><td style="padding:.5rem">¶ 12</td><td style="padding:.5rem">the icicles on her window → part of a kid's drawing</td></tr>
+  <tr><td style="padding:.5rem">¶ 17–18</td><td style="padding:.5rem">walking outside in the snow → something terrible, in Mom's question</td></tr>
+</table>
+
+      <p>For Q4 to Q6, write the three links for each image in a sentence or two. The starter is there if you want it.</p>
+
+      <p class="q"><strong>Q4.</strong> ¶1: the dorm. What is it compared to, what feeling does that give, and what does it suggest about her life at college?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The dorm is compared to ___, which feels ___, and it suggests ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q4. ¶1: the dorm. What is it compared to, what feeling does that give, and what does it suggest about her life at college?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q5.</strong> ¶12: the icicles. What are they compared to, and what feeling does that give the scene?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; The icicles are like ___, which makes the scene feel ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q5. ¶12: the icicles. What are they compared to, and what feeling does that give the scene?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p class="q"><strong>Q6.</strong> ¶17–18: Mom asks what walking outside feels like. What does she compare it to, and why does the daughter tell her it doesn't feel that way?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; Mom compares it to ___. The daughter says no because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q6. ¶17–18: Mom asks what walking outside feels like. What does she compare it to, and why does the daughter tell her it doesn&#x27;t feel that way?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p>Last link. Put the three images side by side: what is the whole story saying?</p>
+
+      <p class="q"><strong>Q7.</strong> Which theme do these images point to most?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q7. Which theme do these images point to most?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Love and care can reach across a big distance, even when it can&#x27;t fix everything">Love and care can reach across a big distance, even when it can&#x27;t fix everything</option>
+          <option value="Snow is dangerous and you should stay inside">Snow is dangerous and you should stay inside</option>
+          <option value="College is mostly about hard work and studying">College is mostly about hard work and studying</option>
+          <option value="Moving away from home means forgetting your family">Moving away from home means forgetting your family</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Q4–Q6 each answered with the comparison, the feeling, and one idea; Q7 picked.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('g1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Your call: explain one, or flip one">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Your call: explain one, or flip one</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Your call: explain one, or flip one</h2>
+
+      <p>Two doors. <strong>Both are full credit.</strong> Pick the one you'd rather do.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 640 170" role="img" aria-labelledby="drT drD" style="max-width:100%;height:auto">
+  <title id="drT">Two doors</title>
+  <desc id="drD">Two doors side by side. Door 1, labelled Explain: explain an image from the end of the story. Door 2, labelled Flip: rewrite one image so the tone flips, then explain how the meaning changes.</desc>
+  <g font-family="inherit" text-anchor="middle">
+    <rect x="60"  y="10" width="200" height="150" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="3"/>
+    <circle cx="235" cy="90" r="6" fill="var(--accent)"/>
+    <text x="160" y="60"  font-size="20" font-weight="bold" fill="var(--ink)">Door 1 · Explain</text>
+    <text x="160" y="92"  font-size="14" fill="var(--soft)">an image from</text>
+    <text x="160" y="112" font-size="14" fill="var(--soft)">the ending</text>
+    <rect x="380" y="10" width="200" height="150" rx="10" fill="var(--warn-soft)" stroke="var(--gold)" stroke-width="3"/>
+    <circle cx="555" cy="90" r="6" fill="var(--gold)"/>
+    <text x="480" y="60"  font-size="20" font-weight="bold" fill="var(--ink)">Door 2 · Flip</text>
+    <text x="480" y="92"  font-size="14" fill="var(--soft)">rewrite one image,</text>
+    <text x="480" y="112" font-size="14" fill="var(--soft)">then explain the change</text>
+  </g>
+</svg>
+      <figcaption>Same destination, two roads.</figcaption>
+      </figure>
+
+      <p><strong>Door 1 · Explain.</strong> Near the end, Mom can't read the card because the handwriting has changed (¶47–51), and she wraps herself in the shawl the daughter sent (¶53–55). Pick one. What is it compared to, what tone does it give, and what theme does it point to?</p>
+
+      <p><strong>Door 2 · Flip.</strong> Take one image from Q4–Q6 and rewrite it so the tone flips (lonely → warm, or cozy → eerie). Write your new line first, then explain how the story's meaning would change if it used your line.</p>
+
+      <p class="q"><strong>Q8.</strong> Which door are you taking?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q8. Which door are you taking?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="Door 1 · Explain an image from the ending">Door 1 · Explain an image from the ending</option>
+          <option value="Door 2 · Flip an image and explain the change">Door 2 · Flip an image and explain the change</option>
+        </select></div>
+
+      <p class="q"><strong>Q9.</strong> Your answer: 3–4 sentences. Door 2: put your new line first.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; This image compares ___ to ___. The tone it creates is ___, which shows the theme that ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q9. Your answer: 3–4 sentences. Door 2: put your new line first." placeholder="3–4 sentences. You can say it out loud first." rows="3"></textarea></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Q8 picked, and Q9 is 3–4 sentences that name the comparison, the tone, and the theme.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="The mom&#x27;s side of the call">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; The mom's side of the call</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; The mom's side of the call</h2>
+
+      <p>The whole story is told by the daughter. Now give <strong>Mom</strong> the mic. Write 4–6 lines she might say on a call, any moment you like: during the snowstorm, opening the box, falling asleep. Use <strong>at least one comparison</strong> of your own and put it in [brackets].</p>
+
+      <figure class="dia">
+<div style="border-left:4px solid var(--accent);padding:.6rem .9rem;margin:.5rem 0 1rem;font-family:monospace">
+MOM: (leaning close to the screen) Show me the window again.<br>
+MOM: Your room looks [as empty as a hotel in winter].<br>
+MOM: …
+</div>
+      <figcaption>Script format: name, then the line. Stage directions go in (round brackets). This sample is just the shape; write your own.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q10.</strong> Mom's lines: 4–6 lines, at least one comparison in [brackets].</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; MOM: ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q10. Mom&#x27;s lines: 4–6 lines, at least one comparison in [brackets]." placeholder="4–6 lines. Say them out loud first if that helps." rows="3"></textarea></div>
+
+      <p class="q"><strong>Q11.</strong> What tone does your comparison give Mom's voice?</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; My comparison makes Mom sound ___ because ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <textarea data-q="Q11. What tone does your comparison give Mom&#x27;s voice?" placeholder="Type here…" rows="3"></textarea></div>
+
+      <p><strong>Before you close this page:</strong> press <strong>📋 Copy everything</strong> at the bottom, go to the Canvas assignment, click <strong>Text Submission</strong>, paste, and press <strong>Submit</strong>, <em>even if you're not finished</em>. You can submit again later. That way your teacher can always see where you got to.</p>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Q10 is 4–6 lines of Mom talking, with at least one comparison marked in [brackets]; Q11 is one sentence naming the tone.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>Words for today &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Figurative language</td><td>Saying something that isn't literally true so the reader sees it a new way. The snow isn't really a blanket.</td></tr>
+      <tr><td class="h">Simile</td><td>A comparison using like or as: the room was quiet as a library.</td></tr>
+      <tr><td class="h">Metaphor</td><td>A comparison that says one thing IS another, no like or as: the hallway was a tunnel.</td></tr>
+      <tr><td class="h">Personification</td><td>Giving a non-human thing a human action or feeling: the wind complained all night.</td></tr>
+      <tr><td class="h">Tone</td><td>The writer's attitude, the feeling the words give off: lonely, tender, tense, playful, eerie.</td></tr>
+      <tr><td class="h">Theme</td><td>What the story is saying about life. A full sentence, not one word: 'Love can travel even when people can't.'</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;"><strong>The chain:</strong> comparison → feeling (tone) → idea (theme). A good answer touches all three links.</p>
+    <p style="font-size:.94rem;color:var(--soft);margin:.5rem 0 0;">Spelling doesn't count today. You can say an answer out loud first and type it after.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "English 12A · Lesson 10";
+const LESSON_ID = "ENG12A-L10";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "1-1": "Explain the impact figurative language has on tone and theme."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & set up your homework home", mins:5 },
+  { label:"The three-link chain", mins:10, part:"intro" },
+  { label:"Read “Snowstorm” together", mins:12 },
+  { label:"Follow three images", mins:10, part:"guided" },
+  { label:"Your call: explain one, or flip one", mins:8, part:"mastery" },
+  { label:"Start the homework together", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "A comparison makes a feeling. The feeling points to an idea.", sheet: true, outcomes: ["1-1"] },
+  guided: { title: "Guided Practice", sub: "Three images from “Snowstorm,” one link at a time.", sheet: true, outcomes: ["1-1"] },
+  mastery: { title: "Independent Mastery", sub: "Pick a door. Both get you to the same place.", sheet: true, outcomes: ["1-1"] },
+  homework: { title: "Homework", sub: "The mom's side of the call, in your own lines.", sheet: true, outcomes: ["1-1"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"Chain built. That's the whole skill; the rest is practice."},
+  g1:{star:"★",msg:"Three images, three full chains. That is the outcome, done."},
+  m1:{star:"★",msg:"You did the whole chain on your own. That's the outcome."},
+  h1:{star:"★",msg:"You gave Mom a voice. Bring it to perform next time if you want."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script>/* inlined: assets/theme.js */
+/* ===========================================================================
+   LIGHT / DARK TOGGLE — shared by every hosted page that links lesson.css.
+
+   Dark is the default. A student who reads better on a light page flips it
+   here and the choice sticks in their browser. The button builds itself, so
+   no page carries markup for it.
+
+   Split out of lesson.js on 2026-09-01 so that pages which are NOT lessons —
+   resources, reference sheets — can have the toggle without pulling in the
+   lesson engine, which requires PARTS and friends and throws without them.
+   Lesson pages load this file and then lesson.js. Do not copy it into a page.
+   =========================================================================== */
+(function(){
+  const KEY = 'll-theme', root = document.documentElement;
+  const isLight = () => root.getAttribute('data-theme') === 'light';
+  try { if (localStorage.getItem(KEY) === 'light') root.setAttribute('data-theme','light'); }
+  catch(e){}
+  const build = () => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'themetog';
+    const paint = () => {
+      b.textContent = isLight() ? '☾' : '☀';
+      b.title = b.ariaLabel = isLight() ? 'Switch to the dark page' : 'Switch to the light page';
+    };
+    b.addEventListener('click', () => {
+      const light = isLight();
+      if (light) root.removeAttribute('data-theme'); else root.setAttribute('data-theme','light');
+      try { localStorage.setItem(KEY, light ? 'dark' : 'light'); } catch(e){}
+      paint();
+    });
+    paint();
+    document.body.appendChild(b);
+  };
+  if (document.body) build();
+  else document.addEventListener('DOMContentLoaded', build);
+})();
+
+</script>
+<script>/* inlined: assets/lesson.js */
+/* ===========================================================================
+   LESSON PAGE ENGINE — shared by every hosted lesson page.
+
+   The page itself declares only its own facts, in an inline <script> that runs
+   BEFORE this file:
+
+     LESSON, LESSON_ID, OUTCOMES, PARTS, REWARDS   required
+     AGENDA                                        optional (renders if present)
+     KEYS                                          optional click-to-insert banks
+
+   Everything below is machinery and is identical on every page. Fix a bug here
+   once and every lesson gets the fix. Do not copy this file into a page.
+
+   KEYS looks like:
+     const KEYS = [
+       { host: 'keys-i1', chars: [...], field: 'input.kor[data-q]' },
+       { host: 'keys-m2', chars: [...], field: 'textarea[data-q]'  }
+     ];
+   =========================================================================== */
+
+/* ---- which part are we showing? ---- */
+const wanted = ((new URLSearchParams(location.search).get('part') || 'homework') || 'homework');
+const ACTIVE = PARTS[wanted] ? wanted : null;      /* null = show everything */
+const ALL_STAGES = [...document.querySelectorAll('.stage[data-part]')].map(s => s.id);
+const ORDER = ALL_STAGES.filter(id =>
+  !ACTIVE || document.getElementById(id).dataset.part === ACTIVE);
+
+const ACTIVITY_TITLE = ACTIVE
+  ? LESSON + ' — ' + PARTS[ACTIVE].title
+  : LESSON + ' — all parts';
+
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function applyScope(){
+  document.querySelectorAll('.stage[data-part]').forEach(s => {
+    s.hidden = !ORDER.includes(s.id);
+  });
+  document.querySelectorAll('[data-partsep]').forEach(p => {
+    /* the section heading only earns its place when several parts are shown */
+    p.hidden = !!ACTIVE;
+  });
+  if (ACTIVE){
+    document.getElementById('pagetitle').textContent = LESSON + ' — ' + PARTS[ACTIVE].title;
+    document.getElementById('pagesub').textContent = PARTS[ACTIVE].sub;
+    document.getElementById('turninLede').textContent =
+      'One button. It collects this section — ready to paste into your ' + PARTS[ACTIVE].title + ' assignment.';
+  }
+
+  /* Outcomes and the lesson ID are teacher information. Preview only. */
+  const preview = !ACTIVE;
+  const idEl  = document.getElementById('lessonid');
+  const outEl = document.getElementById('outcomes');
+  if (idEl)  idEl.hidden  = !preview;
+  if (outEl) outEl.hidden = !preview;
+  if (preview){
+    if (idEl) idEl.textContent = LESSON_ID;
+    const list = document.getElementById('outcomelist');
+    if (list) list.innerHTML = Object.keys(OUTCOMES).map(k =>
+      '<li><span class="oid">' + LESSON_ID + '.' + k + '</span> — ' + OUTCOMES[k] + '</li>').join('');
+  }
+
+  renderAgenda();
+
+  const sheet = document.getElementById('sheet');
+  if (sheet) sheet.hidden = ACTIVE ? !PARTS[ACTIVE].sheet : false;
+  /* first stage of the scoped set opens straight away */
+  if (ORDER.length) document.getElementById(ORDER[0]).classList.add('active');
+}
+
+/* The agenda renders in every part. The current row is bold AND says
+   "you're here" in words — weight alone disappears in a screen reader and
+   is easy to skim past. Silently does nothing on a page with no agenda. */
+function renderAgenda(){
+  const host = document.getElementById('agendalist');
+  if (!host || typeof AGENDA === 'undefined') return;
+  host.innerHTML = AGENDA.map(row => {
+    const here = ACTIVE && row.part === ACTIVE;
+    return '<li class="' + (here ? 'here' : '') + '">' + esc(row.label) +
+           ' <span class="mins">— ' + row.mins + ' min</span>' +
+           (here ? ' <span class="you">← you’re here</span>' : '') + '</li>';
+  }).join('');
+}
+
+/* ================= engine ================= */
+const LL = {
+  extra: {}, summary: {}, done: new Set(),
+
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    /* the last stage of the scoped set always points at the finish */
+    const msg = (ORDER[ORDER.length - 1] === id) ? 'All done — go turn it in.' : r.msg;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    LL.land(t);
+  },
+
+  /* Put the TOP of the next part at the top of the screen. This used to be
+     block:'center', which on any part taller than the screen pushed its start
+     above the fold and dropped the student partway in. scrollIntoView also
+     scrolls the Canvas page around an iframe, so it lands there too. */
+  land(el){
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const go = how => el.scrollIntoView({ behavior: how, block: 'start' });
+    /* one frame first, so the finished part has collapsed before measuring */
+    requestAnimationFrame(() => {
+      go(reduce ? 'auto' : 'smooth');
+      /* a smooth scroll can stop short if the layout shifts mid-flight
+         (fonts loading, the collapse); if it missed, snap the rest of the way */
+      setTimeout(() => {
+        const top = el.getBoundingClientRect().top;
+        if (top < -4 || top > 60) go('auto');
+      }, 800);
+    });
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+/* ---------------- evidence assembly ----------------
+   A part counts if it is finished OR has any answer typed in it. Unfinished
+   work is copied too, marked "(in progress)": a student who turns in what
+   they have so far must not lose the part they were halfway through. */
+function started(id){
+  return [...document.getElementById(id).querySelectorAll('[data-q]')].some(el => el.value.trim());
+}
+function copied(){ return ORDER.filter(id => LL.done.has(id) || started(id)); }
+function partTitle(id){
+  return document.getElementById(id).dataset.title + (LL.done.has(id) ? '' : ' (in progress)');
+}
+function buildPlain(){
+  const parts = copied().map(id =>
+    '── ' + partTitle(id).toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const parts = copied().map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q).replace(/\n/g,'<br>')+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(partTitle(id))+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = ORDER.reduce((n,id) =>
+    n + (copied().includes(id) ? LL.collect(id).filter(b => b.includes('(not answered)')).length : 0), 0);
+
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
+/* ---------- letter keys: an input method for a machine with no Korean
+   keyboard. Inserts at the caret of the last focused answer field, so it
+   behaves like typing rather than like a chart to copy from.
+
+   SINGLE JAMO ARE COMPOSED, not pasted. Clicking ㅇ then ㅔ has to produce 에,
+   not ㅇㅔ — a bank that leaves the jamo uncombined is not an input method, it
+   is a wall of characters that makes the student's answer look wrong. The
+   composer below is a minimal Hangul IME: it looks at the character before the
+   caret and rewrites it, exactly as a real keyboard does.
+
+   A bank entry longer than one character (a word or a whole phrase) is inserted
+   verbatim with a trailing space and never composed.
+
+   Backspace deletes the whole composed block rather than stepping back through
+   its jamo. That is the one place this differs from a real IME, and it is fine:
+   retyping a two-letter block is cheaper than the code to undo one.
+   Pages with no KEYS get nothing and cost nothing. ---------- */
+let lastField = null;
+document.addEventListener('focusin', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined) lastField = e.target;
+});
+function fieldInScope(f){
+  const st = f.closest('.stage');
+  return st && !st.hidden;
+}
+
+/* ---------- Hangul composition ---------- */
+const HG_I = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const HG_M = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const HG_F = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+/* two vowels that fuse into one, and two final consonants that stack */
+const HG_MM = {'ㅗㅏ':'ㅘ','ㅗㅐ':'ㅙ','ㅗㅣ':'ㅚ','ㅜㅓ':'ㅝ','ㅜㅔ':'ㅞ','ㅜㅣ':'ㅟ','ㅡㅣ':'ㅢ'};
+const HG_FF = {'ㄱㅅ':'ㄳ','ㄴㅈ':'ㄵ','ㄴㅎ':'ㄶ','ㄹㄱ':'ㄺ','ㄹㅁ':'ㄻ','ㄹㅂ':'ㄼ',
+               'ㄹㅅ':'ㄽ','ㄹㅌ':'ㄾ','ㄹㅍ':'ㄿ','ㄹㅎ':'ㅀ','ㅂㅅ':'ㅄ'};
+const HG_FSPLIT = Object.fromEntries(Object.entries(HG_FF).map(([k,v]) => [v,[k[0],k[1]]]));
+/* A bank entry is a LETTER only if it is a lone jamo. 네 is one character but it
+   is a finished syllable, so it pastes like a word rather than composing. */
+function hgIsJamo(ch){
+  return ch.length === 1 && (HG_I.includes(ch) || HG_M.includes(ch) || HG_F.includes(ch));
+}
+
+function hgSyl(ch){                                  /* 가 → {i,m,f}, else null */
+  const c = ch ? ch.charCodeAt(0) : 0;
+  if (c < 0xAC00 || c > 0xD7A3) return null;
+  const n = c - 0xAC00;
+  return { i: HG_I[Math.floor(n / 588)], m: HG_M[Math.floor((n % 588) / 28)], f: HG_F[n % 28] };
+}
+function hgMake(i, m, f){
+  return String.fromCharCode(0xAC00 + (HG_I.indexOf(i) * 21 + HG_M.indexOf(m)) * 28 + HG_F.indexOf(f || ''));
+}
+/* Returns [charsToDeleteBeforeCaret, textToInsert]. */
+function hgCompose(prev, ch){
+  const isV = HG_M.includes(ch), isC = HG_I.includes(ch) || HG_F.includes(ch);
+  if (!isV && !isC) return [0, ch];
+  const syl = hgSyl(prev);
+
+  if (isC){
+    if (syl){
+      if (!syl.f && HG_F.includes(ch))        return [1, hgMake(syl.i, syl.m, ch)];
+      if (syl.f && HG_FF[syl.f + ch])         return [1, hgMake(syl.i, syl.m, HG_FF[syl.f + ch])];
+    }
+    return [0, ch];
+  }
+
+  /* a vowel */
+  if (syl){
+    if (!syl.f){
+      const fused = HG_MM[syl.m + ch];
+      if (fused)                              return [1, hgMake(syl.i, fused, '')];
+      return [0, ch];
+    }
+    /* the final consonant slides forward and starts the next block: 각 + ㅏ → 가가 */
+    const split = HG_FSPLIT[syl.f];
+    const keep  = split ? split[0] : '';
+    const moved = split ? split[1] : syl.f;
+    if (!HG_I.includes(moved))                return [0, ch];
+    return [1, hgMake(syl.i, syl.m, keep) + hgMake(moved, ch, '')];
+  }
+  if (HG_I.includes(prev))                    return [1, hgMake(prev, ch, '')];
+  if (HG_M.includes(prev) && HG_MM[prev + ch]) return [1, HG_MM[prev + ch]];
+  return [0, ch];
+}
+
+function buildKeys(hostId, chars, fallbackSelector){
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  chars.forEach(ch => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = ch;
+    if (!hgIsJamo(ch)) b.classList.add('wide');
+    b.setAttribute('aria-label', 'Insert ' + ch);
+    b.addEventListener('click', () => {
+      const inStage = host.closest('.stage');
+      const f = (lastField && fieldInScope(lastField) && lastField.closest('.stage') === inStage)
+              ? lastField
+              : inStage.querySelector(fallbackSelector);
+      if (!f) return;
+      let a = f.selectionStart ?? f.value.length;
+      const z = f.selectionEnd ?? f.value.length;
+      let ins = ch, back = 0;
+      if (hgIsJamo(ch)){
+        [back, ins] = hgCompose(a > 0 && a === z ? f.value[a - 1] : '', ch);
+      } else {
+        ins = ch + ' ';                       /* a word or phrase, pasted whole */
+      }
+      a -= back;
+      f.value = f.value.slice(0, a) + ins + f.value.slice(z);
+      f.focus();
+      f.setSelectionRange(a + ins.length, a + ins.length);
+      f.dispatchEvent(new Event('input', { bubbles: true }));
+      lastField = f;
+    });
+    host.appendChild(b);
+  });
+}
+
+if (typeof KEYS !== 'undefined'){
+  KEYS.forEach(k => buildKeys(k.host, k.chars, k.field || 'textarea[data-q], input[data-q]'));
+}
+
+applyScope();
+
+/* ---------- light / dark ----------
+   Lives in assets/theme.js now, so that non-lesson pages can use it too.
+   Every hosted lesson page loads theme.js before this file. ---------- */
+
+
+</script>
+<script>/* inlined: assets/guide.js */
+/* ===========================================================================
+   guide.js — "read the directions first" for hosted lesson pages.
+
+   Loaded AFTER lesson.js and BEFORE student.js on pages rendered with the
+   guide on (the default; `guide: false` in a lesson source turns it off).
+   Pages that never link this file are untouched.
+
+   Per part (stage):
+     1. The stage body is split at runtime into STEPS: a run of directions
+        (prose, figures, lists) is a LEAD; a question with its stems, answer
+        box, keys and self-check is a Q. Nodes are only wrapped, never changed,
+        so student.js's save fingerprint is unaffected.
+     2. ARRIVING at directions: the red box pulses and a light sweeps round it
+        twice, then stops. Only after that do the first few words get their
+        "start reading here" highlight. A "Read this first" flag and an
+        "I read it" button stay until the button is pressed.
+     3. The CURRENT QUESTION gets a "You're here" tag above it on the left, a
+        big 👉 in the margin (bobbing gently when the question isn't centred on
+        screen), and its Q-number and bold words highlighted. It moves on when
+        a typed answer loses focus or a dropdown is picked.
+     4. SOFT NUDGE: starting a question while its directions are unread shakes
+        the flag and scrolls back once. Nothing is ever locked.
+     5. JUMP PILL: if the current step is off screen, a pill at the edge of what
+        the student can see takes them back.
+     6. PUZZLE beside each Next button: one piece per question, a piece added
+        for each answer. The last piece clicks in with a glow when the student
+        reaches the bottom with everything done; missing slots glow yellow if
+        not. Pressing Next with pieces missing asks "Are you sure?".
+     7. If the page scrolls past the general "How this works" box to reach the
+        first directions, a "How does this work? 👆" tip links back to it.
+
+   Inside a Canvas iframe the page is as tall as its content, so Canvas
+   scrolls, not the iframe, and position:fixed would pin to the iframe. The
+   visible band is measured with IntersectionObservers on 100px strips (they
+   report against the top-level viewport, cross-origin included) and floating
+   things are placed in document coordinates inside that band.
+
+   Theme colours are tokens with fallbacks, as in student.js. The puzzle
+   landscapes are artwork, so their palettes are literal colours.
+   Honours prefers-reduced-motion throughout.
+   =========================================================================== */
+(function () {
+  'use strict';
+  if (typeof LL === 'undefined' || !LL) return;
+  if (typeof GUIDE !== 'undefined' && GUIDE === false) return;
+
+  var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var MEMBER = '.stems, .abox, details.check, .keys';     /* belongs to the question above it */
+  var TAIL   = '.done-look, .row';                        /* end of the steps */
+  var ARRIVE_MS = REDUCE ? 0 : 3700;                      /* ring grows in, then two pulses / two sweeps */
+  var WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
+  function word(n) { return WORDS[n] || String(n); }
+
+  /* ------------------------------------------------------------------ CSS */
+  var A = 'var(--alert,#ff6b6b)', OA = 'var(--on-alert,#1a0d0d)', AC = 'var(--accent,#6fbde3)',
+      OAC = 'var(--on-accent,#0f1216)', W = 'var(--warn,#e8a94e)', HL = 'var(--hl,#4a3d12)',
+      G = 'var(--gold,#f2c75c)';
+  var css = [
+    /* steps: constant padding, so moving the highlight never shifts the layout */
+    '.gd-lead,.gd-q{position:relative;border-radius:14px;margin:.35rem -.8rem;scroll-margin-top:5rem;padding:1rem .8rem .55rem;transition:box-shadow .25s ease}',
+    '.gd-lead{margin-top:1.1rem}',
+    '.stage-body>.gd-lead:first-child{margin-top:2.4rem}',          /* clear of the previous part's bar */
+    '.stage{scroll-margin-top:2.8rem}',
+    '.gd-lead.gd-on{box-shadow:0 0 0 3px ' + A + '}',
+    /* the ring grows in from nothing, then pulses twice; the flag and button fade in with it */
+    '.gd-lead.gd-on.gd-arrive{animation:gd-ringin .9s ease-out both,gd-pulse 1.4s ease-in-out .9s 2}',
+    '@keyframes gd-ringin{from{box-shadow:0 0 0 0 ' + A + '}to{box-shadow:0 0 0 3px ' + A + '}}',
+    '.gd-lead.gd-on.gd-arrive>.gd-flag,.gd-lead.gd-on.gd-arrive .gd-ackrow{animation:gd-fadein .8s ease-out both}',
+    '@keyframes gd-fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}',
+    '@keyframes gd-pulse{0%,100%{box-shadow:0 0 0 3px ' + A + '}50%{box-shadow:0 0 0 7px ' + A + '}}',
+    '@property --gd-ang{syntax:"<angle>";inherits:false;initial-value:0deg}',
+    '.gd-lead::before{content:"";position:absolute;inset:-6px;border-radius:18px;padding:4px;pointer-events:none;opacity:0;' +
+      'background:conic-gradient(from var(--gd-ang),transparent 0 62%,' + A + ' 78%,' + OA + ' 86%,' + A + ' 92%,transparent 100%);filter:blur(3px);' +
+      '-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;' +
+      'mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}',
+    '.gd-lead.gd-on.gd-arrive::before{animation:gd-sweep 1.4s linear .9s 2}',
+    '@keyframes gd-sweep{0%{--gd-ang:0deg;opacity:0}10%{opacity:.9}90%{opacity:.9}100%{--gd-ang:360deg;opacity:0}}',
+    '.gd-flag{position:absolute;top:-1.05rem;right:1rem;z-index:5;display:none;align-items:center;gap:.4rem;background:' + A + ';color:' + OA +
+      ';border-radius:999px;padding:.3rem .85rem;font-weight:700;font-size:.9rem;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap}',
+    '.gd-lead.gd-on>.gd-flag{display:flex}',
+    /* the arrow bounces only while the box is arriving (same 2.8s), then rests */
+    '.gd-arrow{display:inline-block;font-size:1.05rem}',
+    '.gd-lead.gd-arrive .gd-arrow{animation:gd-bob .7s ease-in-out .9s 4}',
+    '@keyframes gd-bob{0%,100%{transform:translateY(-2px)}50%{transform:translateY(4px)}}',
+    '.gd-flag.gd-shake{animation:gd-shake .5s ease 2}',
+    '@keyframes gd-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}',
+    '.gd-ackrow{display:none;margin:.75rem 0 .2rem}',
+    '.gd-lead.gd-on .gd-ackrow{display:block}',
+    '.gd-ack{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:10px;padding:.6rem 1.1rem;background:' + A + ';color:' + OA + '}',
+    /* start reading here — only after the arrival animation has finished */
+    '.gd-start{border-radius:4px;padding:0 .15em;margin:0 -.15em;box-decoration-break:clone;-webkit-box-decoration-break:clone}',
+    '.gd-lead.gd-on.gd-read .gd-start{background:linear-gradient(' + HL + ',' + HL + ') no-repeat 0 0/100% 100%;animation:gd-wipe .7s ease-out both,gd-glint .6s ease-in-out .75s 2}',
+    '@keyframes gd-wipe{from{background-size:0 100%}to{background-size:100% 100%}}',
+    '@keyframes gd-glint{0%,100%{box-shadow:0 0 0 0 ' + W + '}50%{box-shadow:0 0 0 3px ' + W + '}}',
+    /* "How does this work?" */
+    '.gd-howto{position:absolute;top:-1.05rem;left:1rem;z-index:5;display:none;cursor:pointer;font:inherit;font-size:.85rem;font-weight:700;' +
+      'border:1px solid ' + AC + ';background:var(--card,#1d2128);color:' + AC + ';border-radius:999px;padding:.2rem .75rem}',
+    '.gd-lead.gd-showhow>.gd-howto{display:block}',
+    '.gd-flash{animation:gd-flash 1s ease-in-out 2}',
+    '@keyframes gd-flash{0%,100%{box-shadow:0 0 0 0 ' + AC + '}50%{box-shadow:0 0 0 5px ' + AC + '}}',
+    /* the current question */
+    '.gd-q.gd-cur{box-shadow:0 0 0 3px ' + AC + '}',
+    '.gd-tag{position:absolute;top:-.95rem;left:1rem;display:none;background:' + AC + ';color:' + OAC +
+      ';border-radius:999px;padding:.15rem .75rem;font-weight:700;font-size:.82rem}',
+    '.gd-q.gd-cur>.gd-tag{display:block}',
+    '.gd-hand{position:absolute;left:-3.4rem;top:.85rem;font-size:2rem;line-height:1;display:none;pointer-events:none}',
+    /* the hand bounces three times when it arrives, when she jumps back to it,
+       or when she scrolls back past it; otherwise it rests */
+    '.gd-hand-i{display:inline-block}',
+    '.gd-q.gd-wave .gd-hand-i{animation:gd-poke .8s ease-in-out 3}',
+    '@keyframes gd-poke{0%,100%{transform:none}50%{transform:translate(6px,-2px)}}',      /* starts and ends at rest: no jump */
+    '.gd-q.gd-cur>.gd-hand{display:block}',
+
+    '@media (max-width:54rem){.gd-q{padding-left:3.3rem}.gd-hand{left:.2rem;font-size:1.7rem}}',
+    '.gd-q.gd-cur p.q strong{background:' + HL + ';border-radius:4px;padding:0 .12em;animation:gd-glint .6s ease-in-out 2}',
+    /* Next row + puzzle */
+    '.row.gd-row{display:flex;align-items:center;gap:1rem 1.25rem;flex-wrap:wrap}',
+    '.row.gd-ready .btn.go{box-shadow:0 0 0 3px var(--calm,#5ecb92)}',
+    '.gd-puz{display:flex;flex-direction:column;align-items:center;gap:.25rem}',
+    '.gd-frame{width:16rem;max-width:100%;padding:5px;border-radius:10px;background:var(--card,#1d2128);' +
+      'border:3px solid var(--soft,#c5cdd8);box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 4px 14px rgba(0,0,0,.3)}',
+    '.gd-frame svg{display:block;width:100%;height:auto;border-radius:4px;overflow:visible}',
+    '.gd-slot{fill:var(--field,#232830);stroke:var(--field-line,#414a56);stroke-width:1;stroke-dasharray:3 3}',
+    '.gd-slot.gd-miss{animation:gd-miss 1.1s ease-in-out 2}',
+    '@keyframes gd-miss{0%,100%{fill:var(--field,#232830)}50%{fill:' + W + ';stroke:' + W + '}}',
+    '.gd-pc{opacity:0;transform-box:fill-box;transform-origin:center}',
+    '.gd-pc.gd-in{opacity:1}',
+    '.gd-pc.gd-pop{animation:gd-pop .8s ease-out both}',
+    '@keyframes gd-pop{from{opacity:.4;transform:scale(1.08)}to{opacity:1;transform:scale(1)}}',
+    '.gd-pc.gd-final{animation:gd-final 1.6s cubic-bezier(.4,0,.2,1) both}',
+    '@keyframes gd-final{0%{opacity:0;transform:translate(30px,-40px) rotate(6deg)}80%{opacity:1;transform:translate(0,0) rotate(0) scale(1.03)}100%{opacity:1;transform:none}}',
+    '.gd-pc.gd-click{animation:gd-click .7s ease-out both}',
+    '@keyframes gd-click{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}',
+    '.gd-edge{fill:none;stroke:rgba(255,255,255,.4);stroke-width:.8}',
+    '.gd-fly{position:absolute;z-index:70;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}',
+    '.gd-frame.gd-win{animation:gd-win 1.8s ease-in-out 1;border-color:' + G + '}',
+    '@keyframes gd-win{0%,100%{box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 0 0 0 ' + G + '}50%{box-shadow:inset 0 0 0 2px var(--line,#2e343d),0 0 22px 6px ' + G + '}}',
+    '.gd-cap{font-size:.8rem;font-weight:700;color:var(--soft,#c5cdd8)}',
+    '.gd-confirm{flex-basis:100%;display:none;border:2px solid ' + W + ';background:var(--warn-soft,#38290f);border-radius:12px;padding:.75rem 1rem}',
+    '.gd-confirm.show{display:block}',
+    '.gd-confirm p{margin:0 0 .6rem;font-weight:700}',
+    '.gd-confirm button{font:inherit;font-weight:700;cursor:pointer;border-radius:10px;padding:.5rem 1rem;margin-right:.5rem;border:2px solid ' + W + '}',
+    '.gd-keep{background:' + W + ';color:var(--on-accent,#0f1216)}',
+    '.gd-anyway{background:transparent;color:var(--ink,#f3f5f8)}',
+    /* jump pill */
+    '.gd-pill{position:absolute;left:50%;transform:translateX(-50%);z-index:60;display:none;cursor:pointer;border:0;border-radius:999px;padding:.6rem 1.15rem;' +
+      'font:inherit;font-weight:700;background:' + AC + ';color:' + OAC + ';box-shadow:0 6px 18px rgba(0,0,0,.4)}',
+    '.gd-pill.gd-alert{background:' + A + ';color:' + OA + '}',
+    '.gd-pill.show{display:block}',
+    '.gd-ack:focus-visible,.gd-pill:focus-visible,.gd-howto:focus-visible,.gd-confirm button:focus-visible{outline:3px solid var(--ink,#f3f5f8);outline-offset:2px}',
+    '.gd-sentinel{position:absolute;top:0;left:0;width:1px;pointer-events:none;visibility:hidden}',
+    '@media (prefers-reduced-motion: reduce){.gd-lead.gd-on.gd-arrive,.gd-lead.gd-on.gd-arrive::before,.gd-arrow,.gd-flag.gd-shake,.gd-lead.gd-on.gd-arrive>.gd-flag,.gd-lead.gd-on.gd-arrive .gd-ackrow,' +
+      '.gd-lead.gd-on.gd-read .gd-start,.gd-q.gd-wave .gd-hand-i,.gd-q.gd-cur p.q strong,.gd-slot.gd-miss,.gd-pc.gd-pop,.gd-pc.gd-final,.gd-pc.gd-click,' +
+      '.gd-frame.gd-win,.gd-flash{animation:none}}'
+  ].join('');
+  var tag = document.createElement('style');
+  tag.textContent = css;
+  document.head.appendChild(tag);
+
+  /* ---------------------------------------------------------- utilities */
+  function field(q)   { return q.querySelector('textarea[data-q], input[data-q], select[data-q]'); }
+  function filledEl(f){ return !!(f && String(f.value).trim()); }
+  function filled(q)  { return filledEl(field(q)); }
+  var anchor = null, glideId = 0;
+  function nativeScroll(el, block, how) {
+    try { el.scrollIntoView({ behavior: how, block: block || 'center' }); }
+    catch (e) { el.scrollIntoView(); }
+  }
+  function scrollTo(el, block) {
+    /* The glide needs to know where the middle of the screen is. That is only
+       certain when the page fills the screen (Canvas header and footer both out
+       of view); otherwise let the browser do its own smooth scroll. */
+    var docH = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    var fills = band && (window.self === window.top || (band.top > 2 && band.bottom < docH - 2));
+    if (REDUCE || !fills) { nativeScroll(el, block, REDUCE ? 'auto' : 'smooth'); return; }
+    var r = el.getBoundingClientRect();
+    var top = r.top + window.scrollY, bottom = r.bottom + window.scrollY;
+    var bh = band.bottom - band.top, from = (band.top + band.bottom) / 2;
+    var to = block === 'start' ? top - 80 + bh / 2
+           : block === 'nearest' ? (top < band.top + 60 ? top - 80 + bh / 2 : bottom > band.bottom - 60 ? bottom + 60 - bh / 2 : from)
+           : (top + bottom) / 2;
+    if (Math.abs(to - from) < 4) return;
+    if (!anchor) {
+      anchor = document.createElement('div');
+      anchor.setAttribute('aria-hidden', 'true');
+      anchor.style.cssText = 'position:absolute;left:0;width:1px;height:1px;pointer-events:none;visibility:hidden';
+      document.body.appendChild(anchor);
+    }
+    var dur = Math.min(1300, 720 + Math.abs(to - from) * .45), t0 = null, id = ++glideId;
+    var ease = function (t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+    function step(ts) {
+      if (id !== glideId) return;                        /* a newer scroll took over */
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / dur);
+      anchor.style.top = Math.round(from + (to - from) * ease(k)) + 'px';
+      anchor.scrollIntoView({ behavior: 'instant', block: 'center' });
+      if (k < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  /* The student always wins: any click, tap, wheel or key stops a glide at
+     once, so clicking another box mid-scroll lands there immediately. */
+  ['pointerdown', 'wheel', 'touchstart', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, function () { glideId++; }, { capture: true, passive: true });
+  });
+  function docRect(el) {
+    var r = el.getBoundingClientRect();
+    return { top: r.top + window.scrollY, bottom: r.bottom + window.scrollY };
+  }
+  function restart(el, cls) { el.classList.remove(cls); void el.getBoundingClientRect(); el.classList.add(cls); }
+
+  /* ------------------------------------------------- split a stage into steps */
+  var STEPS = {};                     /* stage id -> [{kind, el, acked}] */
+
+  function wrap(nodes, cls) {
+    var box = document.createElement('div');
+    box.className = cls;
+    nodes[0].parentNode.insertBefore(box, nodes[0]);
+    nodes.forEach(function (n) { box.appendChild(n); });
+    return box;
+  }
+
+  function substantial(nodes) {
+    var t = nodes.map(function (n) { return n.matches('h2,h3') ? '' : n.textContent; }).join(' ');
+    return t.replace(/\s+/g, ' ').trim().length > 30 ||
+           nodes.some(function (n) { return n.matches('figure, table, ul, ol, svg') || n.querySelector('figure, table, svg'); });
+  }
+
+  /* Wrap the first five words of the directions. Range.extractContents splits
+     any <strong>/<em> it cuts through, so the markup stays valid. */
+  function markStart(L) {
+    var p = L.querySelector('p, li');
+    if (!p) return;
+    var walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT), node, words = 0, endNode = null, endOff = 0, done = false;
+    while (!done && (node = walker.nextNode())) {
+      var re = /\S+/g, m;
+      while ((m = re.exec(node.data))) {
+        words++;
+        endNode = node; endOff = m.index + m[0].length;
+        if (words === 5) { done = true; break; }
+      }
+    }
+    if (!endNode) return;
+    try {
+      var r = document.createRange();
+      r.setStart(p, 0); r.setEnd(endNode, endOff);
+      var span = document.createElement('span');
+      span.className = 'gd-start';
+      span.appendChild(r.extractContents());
+      r.insertNode(span);
+    } catch (e) { /* leave the paragraph exactly as it was */ }
+  }
+
+  /* Arrival: two pulses and two sweeps, THEN the first words light up. */
+  function arrive(el) {
+    if (!el || !el.classList.contains('gd-lead')) return;
+    clearTimeout(el._gdT);
+    el.classList.remove('gd-read');
+    restart(el, 'gd-arrive');
+    el._gdT = setTimeout(function () {
+      el.classList.remove('gd-arrive');
+      restart(el, 'gd-read');
+    }, ARRIVE_MS);
+  }
+
+  function segment(stage) {
+    if (STEPS[stage.id]) return STEPS[stage.id];
+    var body = stage.querySelector('.stage-body');
+    var steps = [];
+    if (!body) return (STEPS[stage.id] = steps);
+
+    var kids = Array.prototype.slice.call(body.children);
+    var lead = [], q = null, groups = [];
+    for (var i = 0; i < kids.length; i++) {
+      var k = kids[i];
+      if (k.matches(TAIL)) break;
+      if (k.matches('p.q')) {
+        groups.push({ lead: lead, q: [k] }); lead = []; q = groups[groups.length - 1].q;
+      } else if (q && k.matches(MEMBER)) {
+        q.push(k);
+      } else {
+        q = null; lead.push(k);
+      }
+    }
+    var first = true;
+    groups.forEach(function (g) {
+      if (g.lead.length && substantial(g.lead)) {
+        var L = wrap(g.lead, 'gd-lead');
+        markStart(L);
+        var flag = document.createElement('div');
+        flag.className = 'gd-flag';
+        flag.setAttribute('aria-hidden', 'true');
+        flag.innerHTML = '<span>👀 ' + (first ? 'Read this first' : 'New directions — read first') +
+                         '</span><span class="gd-arrow">⬇</span>';
+        L.insertBefore(flag, L.firstChild);
+        if (first) {
+          var how = document.createElement('button');
+          how.type = 'button'; how.className = 'gd-howto';
+          how.textContent = '❓ How does this work? 👆';
+          L.insertBefore(how, L.firstChild);
+        }
+        var row = document.createElement('div');
+        row.className = 'gd-ackrow';
+        row.innerHTML = '<button type="button" class="gd-ack">✓ I read it' +
+                        (first ? ' — start the questions' : '') + '</button>';
+        L.appendChild(row);
+        steps.push({ kind: 'lead', el: L, acked: false });
+      }
+      first = false;
+      var Q = wrap(g.q, 'gd-q');
+      var t = document.createElement('span');
+      t.className = 'gd-tag'; t.setAttribute('aria-hidden', 'true');
+      t.textContent = 'You’re here';
+      var hand = document.createElement('span');
+      hand.className = 'gd-hand'; hand.setAttribute('aria-hidden', 'true');
+      hand.innerHTML = '<span class="gd-hand-i">👉</span>';
+      Q.insertBefore(hand, Q.firstChild);
+      Q.insertBefore(t, Q.firstChild);
+      steps.push({ kind: 'q', el: Q });
+    });
+
+    buildPuzzle(stage);
+    return (STEPS[stage.id] = steps);
+  }
+
+  /* ================================================================ PUZZLE
+     One landscape per part, cut into as many jigsaw pieces as the part has
+     answer boxes. Piece i belongs to answer box i. */
+  var PALETTES = [
+    { sky: ['#ff8f5a', '#ffd7a1'], sun: '#fff1c1', far: '#a172b8', near: '#6c4a92', snow: '#f6dbe8',
+      hill1: '#4d8f5f', hill2: '#2f6b4a', lake: ['#ffb27f', '#c07aa8'], tree: '#1f4a33', bird: '#4a2f5a' },
+    { sky: ['#5fb6ee', '#d6f0ff'], sun: '#fff59a', far: '#86a6d3', near: '#58799f', snow: '#ffffff',
+      hill1: '#7cc77c', hill2: '#4b9e57', lake: ['#8fd3f2', '#4e9cc8'], tree: '#2e6b3c', bird: '#2d4a66' },
+    { sky: ['#0b1d3a', '#2f4a7d'], sun: '#f3efcf', far: '#34466d', near: '#1f2c4f', snow: '#cfd9ee',
+      hill1: '#21523f', hill2: '#163a2d', lake: ['#24406c', '#0f2240'], tree: '#0d261c', bird: '#a8b8d8', night: true }
+  ];
+
+  /* A lesson can supply its own pictures (`puzzle:` in the lesson source →
+     const PUZZLE = [{src, alt}, ...]), e.g. Korean dishes for a food unit or a
+     Gothic ruin for Gothic literature. Parts take them in turn. Without it,
+     the painted landscapes below are used. */
+  var PICS = (typeof PUZZLE !== 'undefined' && PUZZLE && PUZZLE.length) ? PUZZLE.map(function (p) {
+    return typeof p === 'string' ? { src: p, alt: '' } : p;
+  }) : null;
+
+  function photo(id, pic) {
+    return '<defs><g id="' + id + '-scene"><rect width="300" height="200" fill="var(--field,#232830)"/>' +
+      '<image href="' + pic.src.replace(/"/g, '&quot;') + '" width="300" height="200" preserveAspectRatio="xMidYMid slice"/></g></defs>';
+  }
+
+  function scene(id, pal) {
+    var Wd = 300, H = 200, s = [];
+    s.push('<linearGradient id="' + id + '-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + pal.sky[0] + '"/><stop offset="1" stop-color="' + pal.sky[1] + '"/></linearGradient>');
+    s.push('<linearGradient id="' + id + '-lake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + pal.lake[0] + '"/><stop offset="1" stop-color="' + pal.lake[1] + '"/></linearGradient>');
+    s.push('<radialGradient id="' + id + '-glow"><stop offset="0" stop-color="' + pal.sun + '" stop-opacity=".9"/><stop offset="1" stop-color="' + pal.sun + '" stop-opacity="0"/></radialGradient>');
+    var g = ['<g id="' + id + '-scene">'];
+    g.push('<rect width="' + Wd + '" height="' + H + '" fill="url(#' + id + '-sky)"/>');
+    if (pal.night) {
+      [[20,18],[48,40],[80,12],[120,30],[160,16],[205,38],[240,14],[275,30],[95,52],[180,50]].forEach(function (p) {
+        g.push('<circle cx="' + p[0] + '" cy="' + p[1] + '" r="1.1" fill="#fff" opacity=".85"/>');
+      });
+      g.push('<path d="M10 70 C70 20 130 60 190 25 S280 40 300 15" fill="none" stroke="#6ff0b4" stroke-width="7" opacity=".35"/>');
+      g.push('<path d="M0 60 C60 30 140 70 200 35 S270 45 300 30" fill="none" stroke="#8be0ff" stroke-width="4" opacity=".3"/>');
+    }
+    g.push('<circle cx="222" cy="58" r="34" fill="url(#' + id + '-glow)"/>');
+    g.push('<circle cx="222" cy="58" r="16" fill="' + pal.sun + '"/>');
+    g.push('<path d="M0 120 L40 82 L70 104 L112 60 L150 98 L188 70 L230 106 L262 80 L300 104 L300 200 L0 200Z" fill="' + pal.far + '"/>');
+    g.push('<path d="M0 140 L52 96 L90 128 L132 84 L176 126 L214 100 L258 134 L300 112 L300 200 L0 200Z" fill="' + pal.near + '"/>');
+    g.push('<path d="M132 84 L121 96 L128 94 L134 99 L141 95 L146 97Z M52 96 L44 103 L50 102 L56 106 L61 101Z" fill="' + pal.snow + '"/>');
+    g.push('<path d="M0 150 C50 130 100 140 150 148 S250 132 300 142 L300 200 L0 200Z" fill="' + pal.hill1 + '"/>');
+    g.push('<rect y="160" width="' + Wd + '" height="40" fill="url(#' + id + '-lake)"/>');
+    g.push('<g stroke="' + pal.sun + '" stroke-width="1.6" opacity=".55"><path d="M206 168 H238"/><path d="M212 175 H232"/><path d="M216 182 H228"/></g>');
+    g.push('<path d="M0 172 C30 160 60 164 92 170 L92 200 L0 200Z" fill="' + pal.hill2 + '"/>');
+    g.push('<path d="M300 168 C270 158 238 162 214 172 L214 200 L300 200Z" fill="' + pal.hill2 + '"/>');
+    [[14,170],[28,166],[44,168],[60,165],[256,165],[272,163],[288,166]].forEach(function (t, i) {
+      var h = 16 + (i % 3) * 5;
+      g.push('<path d="M' + t[0] + ' ' + (t[1] - h) + ' L' + (t[0] - 6) + ' ' + t[1] + ' L' + (t[0] + 6) + ' ' + t[1] + 'Z" fill="' + pal.tree + '"/>');
+    });
+    g.push('<path d="M70 40 q5 -5 10 0 q5 -5 10 0 M100 52 q4 -4 8 0 q4 -4 8 0" fill="none" stroke="' + pal.bird + '" stroke-width="1.6"/>');
+    g.push('</g>');
+    return '<defs>' + s.join('') + g.join('') + '</defs>';
+  }
+
+  /* jigsaw geometry ---------------------------------------------------- */
+  function rowsFor(n) {
+    var r = Math.max(1, Math.round(Math.sqrt(n / 1.5)));
+    var base = Math.floor(n / r), extra = n % r, out = [];
+    for (var i = 0; i < r; i++) out.push(base + (i < extra ? 1 : 0));
+    return out;
+  }
+  function knob(c, w, h, d, fwd, horiz, fixed) {
+    /* one tab on an edge; `fixed` is the edge's constant coordinate */
+    var P = function (along, off) { return horiz ? (along + ' ' + (fixed + off)) : ((fixed + off) + ' ' + along); };
+    var a = fwd ? c - w / 2 : c + w / 2, b = fwd ? c + w / 2 : c - w / 2, s = fwd ? 1 : -1;
+    return ' L' + P(a, 0) +
+           ' C' + P(a, d * h * .2) + ' ' + P(c - s * w * .75, d * h) + ' ' + P(c, d * h) +
+           ' C' + P(c + s * w * .75, d * h) + ' ' + P(b, d * h * .2) + ' ' + P(b, 0);
+  }
+  function edge(x1, x2, fixed, tabs, horiz) {
+    var fwd = x2 > x1, lo = Math.min(x1, x2), hi = Math.max(x1, x2);
+    var t = tabs.filter(function (k) { return k.c > lo && k.c < hi; })
+                .sort(function (p, q) { return fwd ? p.c - q.c : q.c - p.c; });
+    var out = '';
+    t.forEach(function (k) { out += knob(k.c, k.w, k.h, k.d, fwd, horiz, fixed); });
+    return out + ' L' + (horiz ? (x2 + ' ' + fixed) : (fixed + ' ' + x2));
+  }
+  function pieces(n) {
+    var Wd = 300, H = 200, rows = rowsFor(n), R = rows.length, rh = H / R;
+    var cuts = rows.map(function (k) { var xs = []; for (var j = 0; j <= k; j++) xs.push(Wd * j / k); return xs; });
+    var vtabs = rows.map(function (k, r) {           /* one tab on each inner vertical cut */
+      var out = []; for (var j = 1; j < k; j++) out.push([{ c: rh * r + rh / 2, w: rh * .34, h: Math.min(Wd / k, rh) * .2, d: (j + r) % 2 ? 1 : -1 }]);
+      return out;
+    });
+    var htabs = [];                                   /* boundary below row r */
+    for (var r = 0; r < R - 1; r++) {
+      var all = cuts[r].concat(cuts[r + 1]).sort(function (a, b) { return a - b; });
+      var tabs = [];
+      for (var j = 0; j < rows[r]; j++) {
+        var u0 = cuts[r][j], u1 = cuts[r][j + 1], best = null;
+        for (var m = 0; m < all.length - 1; m++) {
+          var a = Math.max(all[m], u0), b = Math.min(all[m + 1], u1);
+          if (b - a > 0 && (!best || b - a > best[1] - best[0])) best = [a, b];
+        }
+        var w = Math.min(rh * .34, Wd / rows[r] * .3);
+        if (best && best[1] - best[0] > w * 1.9) tabs.push({ c: (best[0] + best[1]) / 2, w: w, h: rh * .2, d: j % 2 ? -1 : 1 });
+      }
+      htabs.push(tabs);
+    }
+    var out = [];
+    for (r = 0; r < R; r++) {
+      var y0 = rh * r, y1 = rh * (r + 1);
+      for (var c = 0; c < rows[r]; c++) {
+        var a2 = cuts[r][c], b2 = cuts[r][c + 1];
+        var d = 'M' + a2 + ' ' + y0;
+        d += r > 0 ? edge(a2, b2, y0, htabs[r - 1], true) : ' L' + b2 + ' ' + y0;
+        d += c < rows[r] - 1 ? edge(y0, y1, b2, vtabs[r][c], false) : ' L' + b2 + ' ' + y1;
+        d += r < R - 1 ? edge(b2, a2, y1, htabs[r], true) : ' L' + a2 + ' ' + y1;
+        d += c > 0 ? edge(y1, y0, a2, vtabs[r][c - 1], false) : ' L' + a2 + ' ' + y0;
+        out.push(d + ' Z');
+      }
+    }
+    return out;
+  }
+
+  var PUZ = {};                       /* stage id -> {el, frame, pcs, slots, fields, won, cap} */
+  var stageIndex = 0;
+
+  function buildPuzzle(stage) {
+    var body = stage.querySelector('.stage-body');
+    var row = body && body.querySelector(':scope > .row');
+    var fields = Array.prototype.slice.call(stage.querySelectorAll('[data-q]'));
+    if (!row || !fields.length || PUZ[stage.id]) return;
+    var idx = stageIndex++;
+    var id = 'gdp-' + stage.id, pal = PALETTES[idx % PALETTES.length], pic = PICS ? PICS[idx % PICS.length] : null;
+    var paths = pieces(fields.length);
+    var what = pic && pic.alt ? pic.alt.replace(/[<>"&]/g, '') : 'A landscape';
+    var svg = '<svg viewBox="-12 -12 324 224" role="img" aria-label="' + what + ', as a puzzle with ' + word(fields.length) +
+      ' pieces, one for each question in this part.">' + (pic ? photo(id, pic) : scene(id, pal)) +
+      paths.map(function (d, i) { return '<clipPath id="' + id + '-c' + i + '"><path d="' + d + '"/></clipPath>'; }).join('') +
+      paths.map(function (d) { return '<path class="gd-slot" d="' + d + '"/>'; }).join('') +
+      paths.map(function (d, i) {
+        return '<g class="gd-pc" data-i="' + i + '"><g clip-path="url(#' + id + '-c' + i + ')"><use href="#' + id + '-scene"/></g>' +
+               '<path class="gd-edge" d="' + d + '"/></g>';
+      }).join('') + '</svg>';
+    var puz = document.createElement('div');
+    puz.className = 'gd-puz';
+    puz.innerHTML = '<div class="gd-frame">' + svg + '</div><span class="gd-cap"></span>';
+    var conf = document.createElement('div');
+    conf.className = 'gd-confirm';
+    conf.setAttribute('role', 'alert');
+    conf.innerHTML = '<p></p><button type="button" class="gd-keep">Keep working</button><button type="button" class="gd-anyway">Go on anyway →</button>';
+    row.classList.add('gd-row');
+    row.appendChild(puz);
+    row.appendChild(conf);
+    var P = PUZ[stage.id] = {
+      el: puz, frame: puz.querySelector('.gd-frame'), cap: puz.querySelector('.gd-cap'), conf: conf,
+      pcs: Array.prototype.slice.call(puz.querySelectorAll('.gd-pc')),
+      slots: Array.prototype.slice.call(puz.querySelectorAll('.gd-slot')),
+      fields: fields, won: false, last: -1, seen: false
+    };
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          var was = P.seen; P.seen = e.isIntersecting && e.intersectionRatio >= .5;
+          if (P.seen && !was) reachBottom(stage);
+        });
+      }, { threshold: [0, .5, 1] }).observe(P.frame);
+    }
+    syncPuzzle(stage, true);
+  }
+
+  function missing(P) { return P.fields.filter(function (f) { return !filledEl(f); }).length; }
+
+  /* Show a piece for every answered box. The piece that completes the picture
+     is held back until the puzzle is on screen, so its click-in is seen. */
+  function syncPuzzle(stage, quiet) {
+    var P = PUZ[stage.id]; if (!P) return;
+    var miss = missing(P), total = P.fields.length, flying = false;
+    P.fields.forEach(function (f, i) {
+      var pc = P.pcs[i], on = filledEl(f);
+      if (on && !pc.classList.contains('gd-in') && !pc._gdFly) {
+        if (quiet) { pc.classList.add('gd-in'); return; }
+        flying = true;
+        if (miss === 0 && !P.won) {                      /* the last piece: held for the finale */
+          P.last = i;
+          flyPiece(stage, i, function (far) { if (P.seen || P.queued) finale(stage, !far); });
+          return;
+        }
+        flyPiece(stage, i, function () {
+          if (!filledEl(P.fields[i])) return;            /* cleared while it flew */
+          pc.classList.add('gd-in'); restart(pc, 'gd-pop');
+        });
+      }
+      if (!on) { pc.classList.remove('gd-in', 'gd-pop', 'gd-final'); }
+    });
+    if (miss > 0) { P.won = false; P.frame.classList.remove('gd-win'); }
+    if (quiet && miss === 0) P.won = true;
+    P.cap.textContent = miss === 0 ? '🧩 Picture complete!' : '🧩 ' + word(total - miss) + ' of ' + word(total) + ' pieces';
+    if (!flying && miss === 0 && !P.won && P.seen) finale(stage);
+  }
+
+  /* A finished answer sends its piece out of the answer box and down toward
+     the puzzle. If the puzzle is far below, the piece heads down and fades,
+     so the student still sees it leave. */
+  function flyPiece(stage, i, then) {
+    var P = PUZ[stage.id], pc = P.pcs[i], box = P.fields[i].closest('.abox') || P.fields[i];
+    if (REDUCE || !document.body.animate || !P.slots[i].getBBox) { then(true); return; }
+    var id = 'gdp-' + stage.id, d = P.slots[i].getAttribute('d'), bb = P.slots[i].getBBox();
+    var pad = 8, vw = bb.width + pad * 2, vh = bb.height + pad * 2, W0 = 78, H0 = Math.round(W0 * vh / vw);
+    var fly = document.createElement('div');
+    fly.className = 'gd-fly';
+    fly.innerHTML = '<svg viewBox="' + (bb.x - pad) + ' ' + (bb.y - pad) + ' ' + vw + ' ' + vh + '" width="' + W0 + '" height="' + H0 + '">' +
+      '<g clip-path="url(#' + id + '-c' + i + ')"><use href="#' + id + '-scene"/></g><path class="gd-edge" d="' + d + '"/></svg>';
+    var br = box.getBoundingClientRect();
+    var x0 = br.right + window.scrollX - W0 - 18, y0 = br.top + window.scrollY + 8;
+    fly.style.left = x0 + 'px'; fly.style.top = y0 + 'px';
+    document.body.appendChild(fly);
+    var sr = P.slots[i].getBoundingClientRect();
+    var tx = sr.left + window.scrollX + sr.width / 2 - (x0 + W0 / 2);
+    var ty = sr.top + window.scrollY + sr.height / 2 - (y0 + H0 / 2);
+    var far = Math.abs(ty) > 650;
+    var endScale = far ? .8 : Math.max(.3, (sr.width * vw / Math.max(bb.width, 1)) / W0);
+    if (far) { tx = tx * .25; ty = 280; }
+    pc._gdFly = true;
+    /* unhurried: rise gently out of the box, pause, then glide to the slot */
+    pc._gdFlyAnim = fly.animate([
+      { transform: 'translate(0,6px) scale(.7)', opacity: 0, easing: 'ease-out' },
+      { transform: 'translate(0,-26px) scale(1)', opacity: 1, offset: .22 },
+      { transform: 'translate(0,-26px) scale(1)', opacity: 1, offset: .38, easing: 'cubic-bezier(.4,0,.2,1)' },
+      { transform: 'translate(' + tx + 'px,' + ty + 'px) scale(' + endScale + ')', opacity: far ? 0 : 1 }
+    ], { duration: far ? 2000 : 2200 });
+    pc._gdFlyAnim.onfinish = function () { fly.remove(); pc._gdFly = false; then(far); };
+  }
+
+  /* The picture stays incomplete until the last piece is actually in. If it
+     flew all the way into its slot it just clicks home; if it faded on the
+     way (puzzle far below), it glides in when the puzzle comes into view. */
+  function finale(stage, landed) {
+    var P = PUZ[stage.id]; if (!P || P.won) return;
+    var i = P.last >= 0 ? P.last : P.pcs.length - 1;
+    var pc = P.pcs[i];
+    if (pc._gdFly) return;                               /* still in the air: its landing calls back */
+    P.won = true;
+    P.pcs.forEach(function (p, k) { if (k !== i) p.classList.add('gd-in'); });
+    pc.classList.add('gd-in');
+    restart(pc, landed ? 'gd-click' : 'gd-final');
+    setTimeout(function () { restart(P.frame, 'gd-win'); }, REDUCE ? 0 : (landed ? 350 : 1300));
+    /* Next was pressed while the last piece was still on its way: now that
+       the picture is whole and glowing, open the next part. */
+    if (P.queued) setTimeout(function () { goOn(stage); }, REDUCE ? 0 : (landed ? 1500 : 2400));
+  }
+
+  function goOn(stage) {
+    var P = PUZ[stage.id]; if (!P) return;
+    P.queued = false; P.bypass = true;
+    try { LL.finish(stage.id); } finally { P.bypass = false; }
+  }
+
+  function glowMissing(P) {
+    P.slots.forEach(function (s, i) { if (!filledEl(P.fields[i])) restart(s, 'gd-miss'); else s.classList.remove('gd-miss'); });
+  }
+
+  function reachBottom(stage) {
+    var P = PUZ[stage.id]; if (!P || !stage.classList.contains('active')) return;
+    if (missing(P) === 0) finale(stage); else glowMissing(P);
+  }
+
+  /* Next with pieces missing: pulse the gaps and ask. Capture phase, so the
+     button's own onclick (LL.finish) never runs unless they choose to go on. */
+  document.addEventListener('click', function (e) {
+    var go = e.target.closest && e.target.closest('.row.gd-row .btn.go');
+    if (!go) return;
+    var stage = go.closest('.stage'), P = stage && PUZ[stage.id];
+    if (!P || P.bypass) return;
+    var n = missing(P);
+    if (!n) {
+      /* Everything answered, but the last piece may still be flying (she left
+         the last box and went straight for Next). Let the picture finish first. */
+      var last = P.last >= 0 ? P.pcs[P.last] : null;
+      if (P.won && !(last && last._gdFly)) return;
+      e.stopPropagation(); e.preventDefault();
+      if (P.queued) return;
+      P.queued = true;
+      if (!(last && last._gdFly)) finale(stage, false);
+      return;
+    }
+    e.stopPropagation(); e.preventDefault();
+    glowMissing(P);
+    P.conf.querySelector('p').textContent = 'Are you sure? There ' + (n === 1 ? 'is' : 'are') + ' still ' + word(n) +
+      ' more question' + (n === 1 ? '' : 's') + ' to answer in this part.';
+    P.conf.classList.add('show');
+    P.conf.querySelector('.gd-keep').focus({ preventScroll: true });
+  }, true);
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.gd-confirm button');
+    if (!b) return;
+    var stage = b.closest('.stage'), P = PUZ[stage.id], arr = STEPS[stage.id] || [];
+    P.conf.classList.remove('show');
+    if (b.classList.contains('gd-anyway')) { P.bypass = true; LL.finish(stage.id); P.bypass = false; return; }
+    for (var i = 0; i < arr.length; i++) if (arr[i].kind === 'q' && !filled(arr[i].el)) {
+      setCurrent(stage, i, 'scroll');
+      var f = field(arr[i].el);
+      if (f) setTimeout(function () { try { f.focus({ preventScroll: true }); } catch (x) {} }, REDUCE ? 0 : 500);
+      return;
+    }
+  });
+
+  /* -------------------------------------------------------------- state */
+  var curStage = null, cur = null, nudged = typeof WeakSet !== 'undefined' ? new WeakSet() : null;
+
+  function stepOf(el) {
+    var st = el.closest('.stage'); if (!st || !STEPS[st.id]) return null;
+    var box = el.closest('.gd-q, .gd-lead');
+    var arr = STEPS[st.id];
+    for (var i = 0; i < arr.length; i++) if (arr[i].el === box) return { stage: st, i: i, s: arr[i] };
+    return null;
+  }
+
+  /* the unread lead that governs step i (nearest lead at or before it) */
+  function governingLead(arr, i) {
+    for (var j = i; j >= 0; j--) if (arr[j].kind === 'lead') return arr[j].acked ? null : arr[j];
+    return null;
+  }
+  /* A lead counts as met once any question under it has an answer. Without
+     this, directions the student plainly got past could flag up again. */
+  function ackAnswered(stage) {
+    var arr = STEPS[stage.id] || [], lead = null;
+    arr.forEach(function (s) {
+      if (s.kind === 'lead') lead = s;
+      else if (lead && !lead.acked && filled(s.el)) lead.acked = true;
+    });
+  }
+
+  function clearMarks(stage) {
+    (STEPS[stage.id] || []).forEach(function (s) { s.el.classList.remove('gd-on', 'gd-cur', 'gd-off'); });
+    var row = stage.querySelector('.stage-body > .row');
+    if (row) row.classList.remove('gd-ready');
+  }
+
+  /* Put the finger level with the middle of the question's first line, so it
+     points at "Q8." rather than at the box above it. */
+  function aimHand(q) {
+    var hand = q.querySelector('.gd-hand'), pq = q.querySelector('p.q');
+    if (!hand || !pq) return;
+    var lh = parseFloat(getComputedStyle(pq).lineHeight) || pq.getBoundingClientRect().height;
+    var top = pq.getBoundingClientRect().top - q.getBoundingClientRect().top;
+    hand.style.top = Math.round(top + (lh - hand.offsetHeight) / 2) + 'px';
+  }
+
+  function wave(q) {
+    if (!q || !q.classList.contains('gd-q')) return;
+    clearTimeout(q._gdW);
+    restart(q, 'gd-wave');
+    q._gdW = setTimeout(function () { q.classList.remove('gd-wave'); }, 2500);
+  }
+
+  function setCurrent(stage, i, how) {
+    var arr = STEPS[stage.id]; if (!arr) return;
+    var prev = cur;
+    clearMarks(stage);
+    curStage = stage;
+    if (i >= arr.length) {                               /* every step done */
+      cur = null;
+      var row = stage.querySelector('.stage-body > .row');
+      if (row) { row.classList.add('gd-ready'); cur = { kind: 'end', el: row }; if (how) scrollTo(row, 'center'); }
+      placePill();
+      return;
+    }
+    cur = arr[i];
+    cur.el.classList.add(cur.kind === 'lead' ? 'gd-on' : 'gd-cur');
+    if (cur.kind === 'q') { aimHand(cur.el); if (prev !== cur) wave(cur.el); }
+    if (cur.kind === 'lead' && prev !== cur) arrive(cur.el);
+    if (cur.kind === 'q') {
+      var g = governingLead(arr, i);                   /* unread directions above keep their flag */
+      if (g) g.el.classList.add('gd-on');
+    }
+    if (how === 'scroll') scrollTo(cur.el, cur.kind === 'lead' ? 'start' : 'center');
+    else if (how === 'nearest') scrollTo(cur.el, 'nearest');
+    placePill();
+  }
+
+  /* where should a freshly opened (or restored) stage start? */
+  function firstOpen(stage) {
+    var arr = segment(stage);
+    var i = 0;
+    for (; i < arr.length; i++) {
+      var s = arr[i];
+      if (s.kind === 'q' && !filled(s.el)) break;
+      if (s.kind === 'lead') {
+        var answeredAfter = false;   /* a lead with answered questions after it has been met */
+        for (var j = i + 1; j < arr.length && arr[j].kind === 'q'; j++) if (filled(arr[j].el)) answeredAfter = true;
+        if (!answeredAfter && !s.acked) break;
+        s.acked = true;
+      }
+    }
+    return i;
+  }
+
+  function open(stage, how) {
+    if (!stage || stage.hidden || stage.id === 'turnin') return;
+    if (!stage.classList.contains('active') || stage.classList.contains('done')) return;
+    var i = firstOpen(stage);
+    syncPuzzle(stage, true);
+    /* lesson.js has already put the top of the part on screen; only scroll
+       ourselves when the place to start is further down */
+    setCurrent(stage, i, i === 0 ? null : how);
+  }
+
+  function pending(s) { return s.kind === 'q' ? !filled(s.el) : !s.acked; }
+  function advanceFrom(stage, i) {
+    var arr = STEPS[stage.id];
+    ackAnswered(stage);
+    var n = -1, k;
+    for (k = i + 1; k < arr.length; k++) if (pending(arr[k])) { n = k; break; }
+    if (n < 0) for (k = 0; k < i; k++) if (arr[k].kind === 'q' && !filled(arr[k].el)) { n = k; break; }   /* a skipped one */
+    if (n < 0) n = arr.length;                               /* everything answered */
+    setCurrent(stage, n, 'scroll');
+  }
+
+  /* ------------------------------------------------------------- events */
+  document.addEventListener('click', function (e) {
+    var ack = e.target.closest && e.target.closest('.gd-ack');
+    if (ack) {
+      var hit = stepOf(ack); if (!hit) return;
+      hit.s.acked = true;
+      hit.s.el.classList.remove('gd-on', 'gd-showhow');
+      var arr = STEPS[hit.stage.id], n = hit.i + 1;
+      setCurrent(hit.stage, n, null);
+      var f = arr[n] && arr[n].kind === 'q' && field(arr[n].el);
+      if (arr[n]) scrollTo(arr[n].el, 'center');
+      if (f) { try { f.focus({ preventScroll: true }); } catch (x) { f.focus(); } }
+      return;
+    }
+    var how = e.target.closest && e.target.closest('.gd-howto');
+    if (how) {
+      var steps = document.querySelector('.steps');
+      how.closest('.gd-lead').classList.remove('gd-showhow');
+      if (steps) { scrollTo(steps, 'center'); setTimeout(function () { restart(steps, 'gd-flash'); }, REDUCE ? 0 : 450); }
+      return;
+    }
+    if (e.target.closest && e.target.closest('.ll-go')) resync();   /* old student.js offer bar */
+  });
+
+  /* student.js restores saved work on load (since 18 Nov 2026) and says so
+     with this event: re-read which boxes are filled and start from there. */
+  function resync() {
+    setTimeout(function () {
+      Object.keys(STEPS).forEach(function (id) { STEPS[id].forEach(function (s) { if (s.kind === 'lead') s.acked = false; }); });
+      Object.keys(PUZ).forEach(function (id) { syncPuzzle(document.getElementById(id), true); });
+      var a = document.querySelector('.stage.active:not(.done)');
+      if (a) open(a, 'scroll');
+    }, 900);
+  }
+  document.addEventListener('ll:restored', resync);
+
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t.dataset || t.dataset.q === undefined) return;
+    var hit = stepOf(t); if (!hit || hit.s.kind !== 'q') return;
+    var arr = STEPS[hit.stage.id];
+    var g = governingLead(arr, hit.i);
+    if (g && nudged && nudged.has(g.el)) { g.acked = true; g = null; }   /* nudged once already: let them go */
+    if (g && (!nudged || !nudged.has(g.el))) {
+      /* soft nudge: they jumped past the directions — say so once */
+      if (nudged) nudged.add(g.el);
+      setCurrent(hit.stage, arr.indexOf(g), null);
+      var flag = g.el.querySelector('.gd-flag');
+      if (flag) restart(flag, 'gd-shake');
+      arrive(g.el);
+      /* let go of the box: otherwise it stays focused off screen, and clicking
+         it again later is not a new focus (no ring, no "current") */
+      setTimeout(function () { if (document.activeElement === t) t.blur(); }, 0);
+      setTimeout(function () { scrollTo(g.el, 'start'); }, 10);   /* after this click's pointerdown, which would cancel it */
+      return;
+    }
+    if (cur !== hit.s) setCurrent(hit.stage, hit.i, null);
+  });
+
+  /* An answer marks its directions as met; then move on if this was the
+     current step, or if the current step was those (now met) directions. */
+  function answered(hit) {
+    ackAnswered(hit.stage);
+    if (cur === hit.s || (cur && cur.kind === 'lead' && cur.acked)) advanceFrom(hit.stage, hit.i);
+  }
+
+  /* a dropdown counts the moment something is picked */
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (!t.dataset || t.dataset.q === undefined) return;
+    var hit = stepOf(t);
+    if (hit) syncPuzzle(hit.stage);
+    if (t.tagName !== 'SELECT' || !t.value || !hit) return;
+    answered(hit);
+  });
+
+  /* typed answers count when the student leaves the box with something in it */
+  document.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (t.tagName === 'SELECT' || !t.dataset || t.dataset.q === undefined) return;
+    var hit = stepOf(t);
+    if (hit) syncPuzzle(hit.stage);
+    if (!String(t.value).trim() || !hit) return;
+    var to = e.relatedTarget;
+    if (to && hit.s.el.contains(to)) return;             /* still inside this question (keys, stems) */
+    /* let a click on another question land first; it may set its own current */
+    setTimeout(function () { answered(hit); }, 0);
+  });
+
+  /* ------------------------------------------------- the stage lifecycle */
+  var mo = new MutationObserver(function (list) {
+    list.forEach(function (m) {
+      var st = m.target;
+      if (!st.classList || !st.classList.contains('stage')) return;
+      var was = (m.oldValue || '').split(/\s+/);
+      var nowActive = st.classList.contains('active') && !st.classList.contains('done');
+      if (nowActive && was.indexOf('active') === -1) {
+        /* lesson.js lands the part first; wait for its scroll to settle */
+        setTimeout(function () { open(st, 'scroll'); }, 950);
+      }
+      if (st.classList.contains('done')) {
+        clearMarks(st);
+        if (PUZ[st.id]) PUZ[st.id].conf.classList.remove('show');
+        if (curStage === st) { cur = null; placePill(); }
+      }
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.stage[data-part]'), function (st) {
+    if (st.hidden) stageIndex++;                          /* keep each part's landscape stable across ?part= views */
+    else segment(st);
+    mo.observe(st, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+  });
+
+  /* ---------------------------------------------- what can the student see? */
+  var pill = document.createElement('button');
+  pill.type = 'button';
+  pill.className = 'gd-pill';
+  document.body.appendChild(pill);
+  /* Pressing the pill must not take focus: leaving a typed box counts as
+     finishing it, which would move "current" on before the jump happens. */
+  pill.addEventListener('mousedown', function (e) { e.preventDefault(); });
+  pill.addEventListener('click', function () {
+    if (!cur) return;
+    scrollTo(cur.el, cur.kind === 'lead' ? 'start' : 'center');
+    if (cur.kind === 'lead') setTimeout(function () { arrive(cur.el); }, REDUCE ? 0 : 450);
+    if (cur.kind === 'q') {
+      var f = field(cur.el), q = cur.el;
+      setTimeout(function () { wave(q); }, REDUCE ? 0 : 900);
+      if (f) setTimeout(function () { try { f.focus({ preventScroll: true }); } catch (x) {} }, REDUCE ? 0 : 900);
+    }
+  });
+
+  /* A single full-height sentinel is not enough: mid-page its visible FRACTION
+     stays constant while scrolling, so the observer never fires. A stack of
+     100px strips changes every few pixels. */
+  var band = null;                      /* {top, bottom}, document coords */
+  var strips = document.createElement('div');
+  strips.className = 'gd-sentinel';
+  document.body.appendChild(strips);
+  var seen = new Map(), io = null, STRIP = 100;
+  function recompute() {
+    var top = Infinity, bot = -Infinity;
+    seen.forEach(function (r) { if (r.top < top) top = r.top; if (r.bottom > bot) bot = r.bottom; });
+    band = isFinite(top) ? { top: top, bottom: bot } : null;
+    placePill();
+  }
+  function buildStrips() {
+    var H = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    var n = Math.ceil(H / STRIP);
+    if (strips.childElementCount === n) return;
+    if (io) io.disconnect();
+    seen.clear();
+    strips.innerHTML = '';
+    strips.style.height = H + 'px';
+    if (!('IntersectionObserver' in window)) return;
+    io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) seen.set(e.target, {
+          top: e.intersectionRect.top + window.scrollY, bottom: e.intersectionRect.bottom + window.scrollY });
+        else seen.delete(e.target);
+      });
+      recompute();
+    }, { threshold: [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1] });
+    for (var k = 0; k < n; k++) {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:absolute;left:0;width:1px;top:' + (k * STRIP) + 'px;height:' + STRIP + 'px';
+      strips.appendChild(d); io.observe(d);
+    }
+  }
+  buildStrips();
+  if (window.ResizeObserver) new ResizeObserver(function () { buildStrips(); }).observe(document.body);
+  window.addEventListener('scroll', function () {        /* standalone, the window scrolls: exact */
+    if (window.self === window.top) {
+      band = { top: window.scrollY, bottom: window.scrollY + window.innerHeight };
+      placePill();
+    }
+  }, { passive: true });
+
+  function placePill() {
+    if (!cur || !band || !curStage || !curStage.classList.contains('active')) { pill.classList.remove('show'); return; }
+    var r = docRect(cur.el);
+    var margin = 40;
+    var visible = r.bottom > band.top + margin && r.top < band.bottom - margin;
+    if (cur.kind === 'q') {
+      if (visible && cur._gdGone) wave(cur.el);
+      cur._gdGone = !visible;
+    }
+    if (visible) { pill.classList.remove('show'); return; }
+    var below = r.top >= band.bottom - margin;
+    var what = cur.kind === 'lead' ? 'the directions' : (cur.kind === 'end' ? 'the Next button' : 'current question');
+    pill.textContent = 'Jump to ' + what + ' ' + (below ? '👇' : '👆');
+    pill.classList.toggle('gd-alert', cur.kind === 'lead');
+    pill.style.top = (below ? band.bottom - 48 - 70 : band.top + 70) + 'px';
+    pill.classList.add('show');
+  }
+
+  /* The first part is already open when this file runs. Mark it, then make
+     sure its directions are on screen: the Canvas page around the iframe may
+     be scrolled anywhere. If that scroll skipped the general "How this works"
+     box, offer the way back to it. */
+  var start = document.querySelector('.stage.active:not(.done)');
+  if (start) setTimeout(function () {
+    open(start, null);
+    setTimeout(function () {
+      if (!cur || cur.kind === 'end') return;
+      var r = docRect(cur.el);
+      var inView = band && r.top >= band.top && r.top <= band.bottom - 160;
+      if (!inView) scrollTo(cur.el, 'start');          /* the arrival already playing carries on; restarting it would blink */
+      setTimeout(function () {
+        var steps = document.querySelector('.steps');
+        if (!steps || !band || !cur || cur.kind !== 'lead') return;
+        if (docRect(steps).bottom < band.top + 20) cur.el.classList.add('gd-showhow');
+      }, REDUCE ? 50 : 900);
+    }, 500);
+  }, 50);
+
+  window.LLGuide = { refresh: function () { var a = document.querySelector('.stage.active:not(.done)'); if (a) open(a, 'scroll'); } };
+})();
+
+</script>
+<script>/* inlined: assets/student.js */
+/* ===========================================================================
+   student.js — two behaviours layered over the LL engine. Linked by every
+   hosted lesson page AND every activity, and loaded LAST, after the engine
+   (the shared lesson.js, or an activity's own inline copy).
+
+     1. SAVE / RESTORE — a student who closes the tab gets their answers and
+        their finished parts back AUTOMATICALLY, and lands on the part they
+        were on. (Until 18 Nov 2026 this was an offer bar; typing before
+        clicking it saved the empty page over the old work, and inside a
+        Canvas iframe the bar was usually off screen. That is how Joy's
+        Korean 1A final lost its answers.) A visible line says whether this
+        browser is saving at all.
+     2. CELEBRATION    — finishing a part shows a card where the student is
+        actually looking, which then flies up and docks as the star in
+        #earned. The old top-bar star sat above the instructions, in the
+        region students never read.
+
+   It touches no page markup: it injects its own CSS and WRAPS LL.finish and
+   LL.award rather than replacing them. Every storage call is wrapped — a
+   browser that blocks storage loses the save quietly and everything else on
+   the page still works.
+   =========================================================================== */
+(function () {
+  'use strict';
+
+  if (typeof LL === 'undefined' || !LL || !LL.done) return;   /* no engine here */
+
+  var REDUCED = !!(window.matchMedia &&
+                   window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var STAGES  = (typeof ORDER !== 'undefined' && ORDER && ORDER.length) ? ORDER : [];
+  if (!STAGES.length) return;
+
+  /* ------------------------------------------------ storage, defensively */
+  var PART    = ((new URLSearchParams(location.search).get('part') || 'homework') || 'homework') || '';
+  var KEY     = 'll:' + location.pathname + ':' + PART;
+  var MAX_AGE = 45 * 24 * 60 * 60 * 1000;          /* 45 days */
+
+  var S = (function () {
+    try {
+      var s = window.localStorage;
+      s.setItem('__llprobe', '1'); s.removeItem('__llprobe');
+      return s;
+    } catch (e) { return null; }                   /* blocked: feature is simply off */
+  })();
+
+  function read()   { if (!S) return null;
+                      try { return JSON.parse(S.getItem(KEY) || 'null'); } catch (e) { return null; } }
+  function write(o) { if (!S) return;
+                      try { S.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
+  function drop()   { if (!S) return;
+                      try { S.removeItem(KEY); } catch (e) {} }
+  /* one level of undo: the last save before a restore or a Start over */
+  var BAK = KEY + ':bak';
+  function backup(o){ if (!S || !o) return;
+                      try { S.setItem(BAK, JSON.stringify(o)); } catch (e) {} }
+
+  /* ------------------------------------------------------ page identity
+     Two guards, because activities SHUFFLE their content on every load, so
+     question text is not stable there and cannot identify the page.
+
+       FP (page level)  — the stage list and how many answer boxes each stage
+                          holds. Changes when the lesson gains or loses a
+                          question, which is when a whole save is worthless.
+       per-field check  — each answer is stored next to its own question text
+                          and only restored if that question is still in that
+                          slot. A shuffled activity therefore restores the
+                          student's PROGRESS without ever pasting an answer
+                          underneath a different question. */
+  function fields(id) {
+    var st = document.getElementById(id);
+    return st ? [].slice.call(st.querySelectorAll('[data-q]')) : [];
+  }
+  var FP = (function () {
+    var s = STAGES.map(function (id) { return id + ':' + fields(id).length; }).join('|');
+    var h = 5381, i;
+    for (i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  })();
+
+  /* ------------------------------------------------------------- saving */
+  function snapshot() {
+    var f = {};
+    STAGES.forEach(function (id) {
+      f[id] = fields(id).map(function (el) { return [el.dataset.q || '', el.value]; });
+    });
+    return { v: FP, t: Date.now(), f: f,
+             d: STAGES.filter(function (id) { return LL.done.has(id); }),
+             x: LL.extra || {}, s: LL.summary || {} };
+  }
+  function worthKeeping(o) {
+    if (o.d && o.d.length) return true;
+    for (var k in o.f) {
+      for (var i = 0; i < o.f[k].length; i++) {
+        if (o.f[k][i] && String(o.f[k][i][1]).trim()) return true;
+      }
+    }
+    return false;
+  }
+  /* Never drops on its own: an empty page is never written over a real save.
+     Only "Start over" clears a save, and it backs it up first. */
+  var timer = null;
+  function saveNow() {
+    clearTimeout(timer); timer = null;
+    var snap = snapshot();
+    if (worthKeeping(snap)) { write(snap); stamp(snap.t); }
+  }
+  function save() {
+    clearTimeout(timer);
+    timer = setTimeout(saveNow, 400);
+  }
+  function onEdit(e) {
+    if (e.target && e.target.dataset && e.target.dataset.q !== undefined) save();
+  }
+  document.addEventListener('input', onEdit);
+  document.addEventListener('change', onEdit);
+  /* closing the tab inside the 400ms debounce used to lose the last words */
+  window.addEventListener('pagehide', function () { if (timer) saveNow(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden' && timer) saveNow();
+  });
+
+  /* ----------------------------------------------------- save status line
+     One line at the top of every part on screen and in the turn-in panel.
+     A browser that blocks storage (private window, some school setups, some
+     browsers inside a Canvas iframe) gets a warning instead of silence. */
+  function clock(t) {
+    var d = new Date(t), h = d.getHours(), m = ('0' + d.getMinutes()).slice(-2);
+    return ((h % 12) || 12) + ':' + m + (h >= 12 ? 'pm' : 'am');
+  }
+  function stamp(t) {
+    var els = document.querySelectorAll('.ll-save');
+    for (var i = 0; i < els.length; i++) {
+      if (!S) {
+        els[i].className = 'll-save ll-save-off';
+        els[i].textContent = '⚠ This browser is not saving your work. Before you close it, press Copy and turn in what you have.';
+      } else {
+        els[i].className = 'll-save';
+        els[i].textContent = t ? '💾 Saved on this computer · ' + clock(t)
+                               : '💾 Your answers save on this computer as you type.';
+      }
+    }
+  }
+  function addStatusLines() {
+    var hosts = STAGES.map(function (id) { return document.getElementById(id); });
+    hosts.push(document.getElementById('turnin'));
+    hosts.forEach(function (h) {
+      if (!h || h.querySelector(':scope > .ll-save')) return;
+      var p = document.createElement('p');
+      p.className = 'll-save'; p.setAttribute('role', 'status');
+      h.insertBefore(p, h.firstChild);
+    });
+  }
+
+  /* ----------------------------------------------------------- restoring */
+  var origAward  = LL.award.bind(LL);
+  var origFinish = LL.finish.bind(LL);
+  var origNext   = LL.next.bind(LL);
+
+  /* LL.finish() calls award() and then next(), and next() scrolls 120ms later
+     — which drags the viewport away from the celebration while it is still
+     animating in. Hold the advance until the card has finished, then let it
+     run. The student reads the card, THEN the page moves. */
+  var celebrating = false, pendingNext = false;
+  LL.next = function () {
+    if (celebrating) { pendingNext = true; return; }
+    origNext();
+  };
+  function releaseNext() {
+    celebrating = false;
+    if (pendingNext) { pendingNext = false; origNext(); }
+  }
+
+  /* Where was the student looking when they finished? Measured BEFORE the
+     engine collapses the part: once it collapses, everything they were reading
+     shrinks to a one-line bar far above them, and a card placed over that bar
+     lands off screen. Viewport-relative, so it survives the page shrinking. */
+  var lookAt = null;
+  function eyeLine(id) {
+    var st = document.getElementById(id);
+    var el = document.activeElement;
+    if (!el || !st || !st.contains(el) || el === document.body)
+      el = st ? [].slice.call(st.querySelectorAll('button.go')).pop() : null;
+    if (!el) return null;
+    var r = el.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if (r.bottom < 0 || r.top > vh) return null;    /* not on screen: no use */
+    return r.top + r.height / 2;
+  }
+  LL.finish = function (id, extraEvidence) {
+    lookAt = eyeLine(id);
+    origFinish(id, extraEvidence);
+    lookAt = null;
+    save();
+  };
+
+  function silentComplete(id) {
+    var st = document.getElementById(id);
+    if (!st) return;
+    LL.done.add(id);
+    st.classList.remove('active', 'open');
+    st.classList.add('done');
+    if (LL.refreshSummary) LL.refreshSummary(id);
+    origAward(id);                                  /* dock the star, no fanfare */
+  }
+
+  function restore(saved) {
+    /* First by slot (cheap, exact); if the question in that slot changed
+       (shuffled activity, or the lesson was edited since), by question text
+       anywhere on the page. An answer is never pasted under a question it
+       was not written for. */
+    var pool = {}, skipped = 0, used = {};
+    Object.keys(saved.f || {}).forEach(function (id) {
+      (saved.f[id] || []).forEach(function (pair, i) {
+        if (!pair || !pair[0] || !String(pair[1]).trim()) return;
+        (pool[pair[0]] = pool[pair[0]] || []).push(id + '#' + i);
+      });
+    });
+    function take(q) {
+      var list = pool[q] || [];
+      for (var k = 0; k < list.length; k++) if (!used[list[k]]) { used[list[k]] = 1; return list[k]; }
+      return null;
+    }
+    STAGES.forEach(function (id) {
+      var vals = (saved.f && saved.f[id]) || [];
+      fields(id).forEach(function (el, i) {
+        var q = el.dataset.q || '', pair = vals[i];
+        if (pair && pair[0] === q && !used[id + '#' + i]) {
+          used[id + '#' + i] = 1; el.value = pair[1]; return;
+        }
+        var ref = take(q);
+        if (ref) {
+          var bits = ref.split('#');
+          el.value = saved.f[bits[0]][+bits[1]][1];
+        } else if (pair && String(pair[1]).trim()) skipped++;
+      });
+    });
+    if (skipped) console.info('[student.js] ' + skipped +
+      ' answer(s) not restored: their question is no longer on the page.');
+    LL.extra   = saved.x || {};
+    LL.summary = saved.s || {};
+    STAGES.forEach(function (id) {
+      if (saved.d && saved.d.indexOf(id) !== -1) silentComplete(id);
+    });
+    celebrating = false; pendingNext = false;
+    origNext();                                     /* lands them on the part they were on */
+    try { document.dispatchEvent(new CustomEvent('ll:restored')); } catch (e) {}
+  }
+
+  function whenWord(t) {
+    var d = new Date(t), now = new Date();
+    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var h = d.getHours(), m = ('0' + d.getMinutes()).slice(-2);
+    var ap = h >= 12 ? 'pm' : 'am'; h = (h % 12) || 12;
+    var when = (d.toDateString() === now.toDateString()) ? 'earlier today' : 'on ' + days[d.getDay()];
+    return when + ' at ' + h + ':' + m + ap;
+  }
+
+  function restoredNotice(saved) {
+    var n = (saved.d || []).length;
+    var bar = document.createElement('div');
+    bar.className = 'll-restore';
+    bar.setAttribute('role', 'status');
+    bar.innerHTML =
+      '<span class="ll-restore-t"></span>' +
+      '<button type="button" class="ll-btn ll-fresh">Start over</button>';
+    bar.querySelector('.ll-restore-t').textContent =
+      '✓ Your work from ' + whenWord(saved.t) + ' is back' +
+      (n ? ' — ' + n + (n === 1 ? ' part' : ' parts') + ' already finished.' : '.');
+    var host = document.querySelector('.stage.active:not(.done)') || document.body;
+    host.insertBefore(bar, host === document.body ? host.firstChild : host.querySelector('.ll-save') ? host.querySelector('.ll-save').nextSibling : host.firstChild);
+    var fresh = bar.querySelector('.ll-fresh'), armed = false;
+    fresh.addEventListener('click', function () {
+      if (!armed) {                                  /* two taps, no browser dialog */
+        armed = true;
+        fresh.textContent = 'Yes, clear my answers';
+        bar.querySelector('.ll-restore-t').textContent =
+          'Start over? Your answers will be cleared. (A backup is kept on this computer.)';
+        return;
+      }
+      backup(read()); drop(); submitted = true; location.reload();
+    });
+  }
+
+  /* -------------------------------------- the "are you sure" on tab close */
+  var submitted = false;
+  function hasText() {
+    var els = document.querySelectorAll('[data-q]');
+    for (var i = 0; i < els.length; i++) if (els[i].value.trim()) return true;
+    return false;
+  }
+  window.addEventListener('beforeunload', function (e) {
+    if (submitted || (!hasText() && !LL.done.size)) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+  var copyBtn = document.getElementById('copyAll');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    setTimeout(function () { submitted = true; }, 0);   /* copied: stop nagging */
+  });
+
+  /* --------------------------------------------------------- celebration */
+  LL.award = function (id) {
+    var r = (typeof REWARDS !== 'undefined') ? REWARDS[id] : null;
+    if (!r) return;
+    var msg = (STAGES[STAGES.length - 1] === id) ? 'All done — go turn it in.' : r.msg;
+    celebrate(r.star, msg, id, function () { origAward(id); });
+  };
+
+  function celebrate(star, msg, stageId, dock) {
+    var card = document.createElement('div');
+    card.className = 'll-cel';
+    card.setAttribute('aria-hidden', 'true');       /* #earned is the aria-live region */
+    card.innerHTML = '<span class="ll-cel-star"></span><span class="ll-cel-msg"></span>';
+    card.querySelector('.ll-cel-star').textContent = star;
+    card.querySelector('.ll-cel-msg').textContent  = msg;
+    document.body.appendChild(card);
+
+    /* Placed over the part they just finished, in document coordinates.
+       position:fixed would centre on the IFRAME's viewport, which inside a
+       Canvas page can be scrolled off screen entirely. */
+    var st = document.getElementById(stageId);
+    var r  = st ? st.getBoundingClientRect()
+                : { left: 0, top: 0, width: document.documentElement.clientWidth, height: 240 };
+    var cw = card.offsetWidth, ch = card.offsetHeight;
+    var x  = window.scrollX + r.left + r.width / 2 - cw / 2;
+    var y;
+    if (lookAt !== null) {
+      /* just ABOVE the button they pressed — the button was on screen, so
+         the space above it is too, even when an iframe is taller than the
+         screen. Only if there's no room above does it go just below. */
+      var vy = lookAt - ch - 28;
+      if (vy < 8) vy = lookAt + 28;
+      y = window.scrollY + vy;
+    } else {
+      y = window.scrollY + r.top + Math.min(r.height / 2, 170) - ch / 2;
+    }
+    card.style.left = Math.max(8, x) + 'px';
+    card.style.top  = Math.max(8, y) + 'px';
+
+    celebrating = true;
+    requestAnimationFrame(function () { card.classList.add('in'); });
+
+    setTimeout(function () {
+      var bar = document.getElementById('earned');
+      if (REDUCED || !bar) {
+        card.classList.add('out');
+      } else {
+        var br = bar.getBoundingClientRect();
+        var dx = (window.scrollX + br.left + 14) - (parseFloat(card.style.left) + cw / 2);
+        var dy = (window.scrollY + br.top + br.height / 2) - (parseFloat(card.style.top) + ch / 2);
+        card.classList.add('fly');
+        card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.18)';
+        card.style.opacity   = '0';
+      }
+      setTimeout(function () {
+        dock();                                     /* the star appears in #earned */
+        if (card.parentNode) card.parentNode.removeChild(card);
+        releaseNext();                              /* now the page may move */
+      }, REDUCED ? 420 : 560);
+    }, REDUCED ? 1900 : 1600);
+  }
+
+  /* ---------------------------------------------------------------- CSS
+     Injected rather than added to lesson.css, because activities are
+     self-contained and carry no shared stylesheet. Tokens where they exist,
+     fallbacks where they don't. */
+  var css = document.createElement('style');
+  css.textContent = [
+    '.ll-restore{position:relative;z-index:60;display:flex;flex-wrap:wrap;gap:.6rem;',
+      'align-items:center;padding:.7rem 1rem;margin:0 0 1rem;border-radius:10px;',
+      'border:1px solid var(--warn-line,#6b5124);background:var(--warn-soft,#38290f);',
+      'color:var(--ink,#f3f5f8);font-size:.95rem;font-family:inherit}',
+    '.ll-restore-t{flex:1 1 15rem;font-weight:600}',
+    '.ll-save{margin:0 0 .6rem;font-size:.85rem;color:var(--soft,#c5cdd8)}',
+    '.ll-save-off{font-weight:700;font-size:.95rem;padding:.55rem .8rem;border-radius:8px;',
+      'border:1px solid var(--warn-line,#6b5124);background:var(--warn-soft,#38290f);',
+      'color:var(--ink,#f3f5f8)}',
+    '.ll-btn{font:inherit;font-weight:700;cursor:pointer;border-radius:8px;padding:.45rem .9rem;',
+      'border:1px solid var(--accent-line,#2b5a72);background:var(--accent,#6fbde3);',
+      'color:var(--on-accent,#0f1216)}',
+    '.ll-btn.ll-fresh{background:transparent;color:var(--soft,#c5cdd8);',
+      'border-color:var(--line,#2e343d)}',
+    '.ll-cel{position:absolute;z-index:80;pointer-events:none;display:flex;',
+      'flex-direction:column;align-items:center;gap:.45rem;padding:1.15rem 1.7rem;',
+      'border-radius:16px;background:var(--card,#1d2128);border:2px solid var(--gold,#f2c75c);',
+      'box-shadow:0 14px 38px rgba(0,0,0,.45);opacity:0;transform:scale(.4);',
+      'transition:opacity .3s ease,transform .42s cubic-bezier(.2,1.5,.4,1)}',
+    '.ll-cel.in{opacity:1;transform:scale(1)}',
+    '.ll-cel.fly{transition:opacity .5s ease,transform .55s cubic-bezier(.5,0,.75,.4)}',
+    '.ll-cel.out{opacity:0;transition:opacity .36s ease}',
+    '.ll-cel-star{font-size:2.7rem;line-height:1;color:var(--gold,#f2c75c)}',
+    '.ll-cel-msg{font-size:1.05rem;font-weight:800;line-height:1.3;text-align:center;',
+      'max-width:17rem;color:var(--gold,#f2c75c)}',
+    '@media (prefers-reduced-motion:reduce){',
+      '.ll-cel{transition:opacity .3s ease}.ll-cel.in{transform:none}}'
+  ].join('');
+  document.head.appendChild(css);
+
+  /* ------------------------------------------------------------ on load */
+  addStatusLines();
+  var saved = read();
+  if (saved && (Date.now() - saved.t) > MAX_AGE) { backup(saved); drop(); saved = null; }
+  if (saved && worthKeeping(saved)) {
+    /* An edited lesson (saved.v !== FP) no longer throws the save away:
+       restore() matches answers to questions by their text. */
+    backup(saved);
+    restore(saved);
+    restoredNotice(saved);
+    stamp(saved.t);
+  } else stamp(null);
+})();
+
+</script>
+</body>
+</html>

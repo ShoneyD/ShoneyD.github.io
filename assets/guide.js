@@ -17,9 +17,15 @@
      3. The CURRENT QUESTION gets a "You're here" tag above it on the left, a
         big 👉 in the margin (bobbing gently when the question isn't centred on
         screen), and its Q-number and bold words highlighted. It moves on when
-        a typed answer loses focus or a dropdown is picked.
+        a typed answer loses focus or a dropdown is picked. MOVING ON NEVER
+        SCROLLS (since 19 Nov 2026): the marker moves; if the next box is on
+        screen and the student clicked empty space (or picked a dropdown),
+        typing focus moves into it; if it is off screen, the jump pill shows.
+        Tab works natively.
      4. SOFT NUDGE: starting a question while its directions are unread shakes
-        the flag and scrolls back once. Nothing is ever locked.
+        the flag where it is, with no scroll. The page pulls back to unread
+        directions only if the student's OWN scrolling carries them past them,
+        and only once per set of directions. Nothing is ever locked.
      5. JUMP PILL: if the current step is off screen, a pill at the edge of what
         the student can see takes them back.
      6. PUZZLE beside each Next button: one piece per question, a piece added
@@ -162,7 +168,11 @@
   function filledEl(f){ return !!(f && String(f.value).trim()); }
   function filled(q)  { return filledEl(field(q)); }
   var anchor = null, glideId = 0;
+  /* While the page moves because WE moved it (a glide, a part landing),
+     changes in what is visible are not the student scrolling. */
+  var autoUntil = 0;
   function nativeScroll(el, block, how) {
+    autoUntil = Date.now() + 1600;
     try { el.scrollIntoView({ behavior: how, block: block || 'center' }); }
     catch (e) { el.scrollIntoView(); }
   }
@@ -180,6 +190,7 @@
            : block === 'nearest' ? (top < band.top + 60 ? top - 80 + bh / 2 : bottom > band.bottom - 60 ? bottom + 60 - bh / 2 : from)
            : (top + bottom) / 2;
     if (Math.abs(to - from) < 4) return;
+    autoUntil = Date.now() + 1700;
     if (!anchor) {
       anchor = document.createElement('div');
       anchor.setAttribute('aria-hidden', 'true');
@@ -728,14 +739,26 @@
   }
 
   function pending(s) { return s.kind === 'q' ? !filled(s.el) : !s.acked; }
-  function advanceFrom(stage, i) {
+  function onScreen(el) {
+    if (!band) return false;
+    var r = docRect(el);
+    return r.top >= band.top + 20 && r.bottom <= band.bottom - 20;
+  }
+  /* Moves the marker; never scrolls. moveFocus: the student left the box by
+     clicking nothing in particular (or picked a dropdown), so carry their
+     typing focus into the next box, but only when it is already on screen. */
+  function advanceFrom(stage, i, moveFocus) {
     var arr = STEPS[stage.id];
     ackAnswered(stage);
     var n = -1, k;
     for (k = i + 1; k < arr.length; k++) if (pending(arr[k])) { n = k; break; }
     if (n < 0) for (k = 0; k < i; k++) if (arr[k].kind === 'q' && !filled(arr[k].el)) { n = k; break; }   /* a skipped one */
     if (n < 0) n = arr.length;                               /* everything answered */
-    setCurrent(stage, n, 'scroll');
+    setCurrent(stage, n, null);
+    if (!moveFocus || !cur || cur.kind !== 'q') return;
+    var a = document.activeElement, f = field(cur.el);
+    var free = !a || a === document.body || (a.tagName === 'SELECT' && a.dataset && a.dataset.q !== undefined);
+    if (f && free && onScreen(cur.el)) { try { f.focus({ preventScroll: true }); } catch (x) {} }
   }
 
   /* ------------------------------------------------------------- events */
@@ -748,7 +771,7 @@
       var arr = STEPS[hit.stage.id], n = hit.i + 1;
       setCurrent(hit.stage, n, null);
       var f = arr[n] && arr[n].kind === 'q' && field(arr[n].el);
-      if (arr[n]) scrollTo(arr[n].el, 'center');
+      if (arr[n]) scrollTo(arr[n].el, 'nearest');          /* only if it is off screen */
       if (f) { try { f.focus({ preventScroll: true }); } catch (x) { f.focus(); } }
       return;
     }
@@ -780,28 +803,23 @@
     var hit = stepOf(t); if (!hit || hit.s.kind !== 'q') return;
     var arr = STEPS[hit.stage.id];
     var g = governingLead(arr, hit.i);
-    if (g && nudged && nudged.has(g.el)) { g.acked = true; g = null; }   /* nudged once already: let them go */
-    if (g && (!nudged || !nudged.has(g.el))) {
-      /* soft nudge: they jumped past the directions — say so once */
-      if (nudged) nudged.add(g.el);
-      setCurrent(hit.stage, arr.indexOf(g), null);
-      var flag = g.el.querySelector('.gd-flag');
-      if (flag) restart(flag, 'gd-shake');
-      arrive(g.el);
-      /* let go of the box: otherwise it stays focused off screen, and clicking
-         it again later is not a new focus (no ring, no "current") */
-      setTimeout(function () { if (document.activeElement === t) t.blur(); }, 0);
-      setTimeout(function () { scrollTo(g.el, 'start'); }, 10);   /* after this click's pointerdown, which would cancel it */
-      return;
+    if (g) {
+      if (nudged && nudged.has(g.el)) g.acked = true;           /* second time: let them go */
+      else {
+        /* soft nudge, in place: shake the flag. No scroll, no blur. */
+        if (nudged) nudged.add(g.el);
+        var flag = g.el.querySelector('.gd-flag');
+        if (flag) restart(flag, 'gd-shake');
+      }
     }
     if (cur !== hit.s) setCurrent(hit.stage, hit.i, null);
   });
 
   /* An answer marks its directions as met; then move on if this was the
      current step, or if the current step was those (now met) directions. */
-  function answered(hit) {
+  function answered(hit, moveFocus) {
     ackAnswered(hit.stage);
-    if (cur === hit.s || (cur && cur.kind === 'lead' && cur.acked)) advanceFrom(hit.stage, hit.i);
+    if (cur === hit.s || (cur && cur.kind === 'lead' && cur.acked)) advanceFrom(hit.stage, hit.i, moveFocus);
   }
 
   /* a dropdown counts the moment something is picked */
@@ -811,7 +829,7 @@
     var hit = stepOf(t);
     if (hit) syncPuzzle(hit.stage);
     if (t.tagName !== 'SELECT' || !t.value || !hit) return;
-    answered(hit);
+    answered(hit, true);
   });
 
   /* typed answers count when the student leaves the box with something in it */
@@ -824,7 +842,8 @@
     var to = e.relatedTarget;
     if (to && hit.s.el.contains(to)) return;             /* still inside this question (keys, stems) */
     /* let a click on another question land first; it may set its own current */
-    setTimeout(function () { answered(hit); }, 0);
+    var clickedNothing = !to;
+    setTimeout(function () { answered(hit, clickedNothing); }, 0);
   });
 
   /* ------------------------------------------------- the stage lifecycle */
@@ -835,6 +854,7 @@
       var was = (m.oldValue || '').split(/\s+/);
       var nowActive = st.classList.contains('active') && !st.classList.contains('done');
       if (nowActive && was.indexOf('active') === -1) {
+        autoUntil = Date.now() + 2600;                   /* lesson.js is landing the part */
         /* lesson.js lands the part first; wait for its scroll to settle */
         setTimeout(function () { open(st, 'scroll'); }, 950);
       }
@@ -860,6 +880,7 @@
      finishing it, which would move "current" on before the jump happens. */
   pill.addEventListener('mousedown', function (e) { e.preventDefault(); });
   pill.addEventListener('click', function () {
+    autoUntil = Date.now() + 1700;                      /* our jump, not their scroll */
     if (!cur) return;
     scrollTo(cur.el, cur.kind === 'lead' ? 'start' : 'center');
     if (cur.kind === 'lead') setTimeout(function () { arrive(cur.el); }, REDUCE ? 0 : 450);
@@ -916,7 +937,38 @@
     }
   }, { passive: true });
 
+  /* Only the student's own scrolling counts toward "scrolled past". */
+  var lastUser = 0, loadedAt = Date.now();
+  /* Unread directions the student scrolled down past: bring them back ONCE,
+     after they stop scrolling (a glide started mid-scroll is cancelled by
+     their next wheel tick, because the student always wins). */
+  var passT = null;
+  function passedLead() {
+    if (!cur || !band || !curStage || cur.kind === 'end') return null;
+    var arr = STEPS[curStage.id] || [];
+    var L = cur.kind === 'lead' ? cur : governingLead(arr, arr.indexOf(cur));
+    if (!L || L.acked || L._gdPassed) return null;
+    return docRect(L.el).bottom < band.top ? L : null;
+  }
+  function checkPassed() {
+    /* Inside Canvas the wheel and the scrollbar belong to the Canvas page and
+       never reach this frame, so "the student scrolled" is: the view moved,
+       and it wasn't us moving it, and the page has finished loading. */
+    var now = Date.now();
+    if (now < autoUntil || now - loadedAt < 3500 || !passedLead()) return;
+    clearTimeout(passT);
+    passT = setTimeout(function () {
+      var L = passedLead();
+      if (!L || Date.now() < autoUntil) return;
+      L._gdPassed = true;
+      scrollTo(L.el, 'start');
+      var flag = L.el.querySelector('.gd-flag');
+      if (flag) setTimeout(function () { restart(flag, 'gd-shake'); }, REDUCE ? 0 : 700);
+    }, 600);
+  }
+
   function placePill() {
+    checkPassed();
     if (!cur || !band || !curStage || !curStage.classList.contains('active')) { pill.classList.remove('show'); return; }
     var r = docRect(cur.el);
     var margin = 40;
@@ -927,7 +979,7 @@
     }
     if (visible) { pill.classList.remove('show'); return; }
     var below = r.top >= band.bottom - margin;
-    var what = cur.kind === 'lead' ? 'the directions' : (cur.kind === 'end' ? 'the Next button' : 'current question');
+    var what = cur.kind === 'lead' ? 'the directions' : (cur.kind === 'end' ? 'the Next button' : 'your next question');
     pill.textContent = 'Jump to ' + what + ' ' + (below ? '👇' : '👆');
     pill.classList.toggle('gd-alert', cur.kind === 'lead');
     pill.style.top = (below ? band.bottom - 48 - 70 : band.top + 70) + 'px';
