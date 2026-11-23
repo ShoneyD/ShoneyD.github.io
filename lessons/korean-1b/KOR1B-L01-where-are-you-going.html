@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<!--
+  LESSON LAB — hosted lesson page shell. ONE file per lesson.
+
+  WHY THIS EXISTS
+  A Canvas assignment description displays content; it cannot accept typing. So
+  anything with an answer box has to be hosted for the fields to work. Read
+  references/hosting.md before building from this — it carries the whole model.
+
+  WHY ONE FILE PER LESSON, NOT PER SECTION
+  A file per graded section means four uploads a lesson. This page holds every
+  written part and scopes itself by query string:
+
+      ?part=intro      → Introduce the Concept
+      ?part=mastery    → Independent Mastery
+      ?part=homework   → Homework
+      (no parameter)   → everything, in order — teacher preview
+
+  The student sees only her assignment's part, and the turn-in button collects
+  only that part, titled so the gradebook entry is unambiguous. An unrecognised
+  part shows everything rather than a blank page.
+
+  STUDENT-NEUTRAL, ALWAYS. This lives in a public repo. Named by course and
+  lesson — no student name, no teacher notes, no grades, no run sheet.
+
+  TO BUILD ONE
+    1. Set LESSON_ID, OUTCOMES and PARTS.
+    2. One <section class="stage"> per part-step, with data-part and data-title.
+    3. Written answers: <textarea data-q="the full question, written out">.
+       Short answers: <input data-q="...">. The data-q text is what appears in
+       the submission, so write it to read on its own two weeks later.
+    4. Register a REWARDS entry per stage.
+    5. Advance ONLY on an explicit button. Never on a timer.
+
+  RULES
+    - Everything inline. No external CSS, JS, or fonts.
+    - No localStorage here — assets/student.js does saving centrally.
+    - Reference sheet OFF in mastery; if that removes the student's only way to
+      type the notation, give click-to-insert keys instead. See hosting.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOR1B-L01 · Where Are You Going</title>
+<link rel="stylesheet" href="../../assets/lesson.css">
+<style>
+/* Rules specific to this lesson. The shared sheet is linked above. */
+
+.parthead{ background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:10px;
+        padding:.75rem 1.1rem; margin:0 0 1.25rem; font-size:.9rem }
+
+.parthead strong{ display:block; font-size:.75rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--accent); margin-bottom:.15rem }
+
+.row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+
+.minirow{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+        background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .7rem }
+
+.minirow .big{ font-size:2.4rem; font-weight:700; line-height:1; min-width:3.6rem; text-align:center }
+
+.minirow .meaning{ font-size:.85rem; color:var(--soft); min-width:9rem }
+
+.minirow label{ font-size:.9rem; color:var(--soft) }
+
+.minirow input{ font:inherit; font-size:1rem; padding:.4rem .6rem; border-radius:8px;
+        border:2px dashed var(--field-line); background:var(--field); color:var(--ink); width:9rem }
+
+.minirow input:focus{ border-style:solid; border-color:var(--accent); outline:none }
+
+details.check,details.sheet{ border:1px solid var(--line); border-radius:8px;
+        background:var(--card); padding:.85rem 1.1rem; margin:1rem 0 }
+
+details.check summary,details.sheet summary{ font-weight:700; cursor:pointer; color:var(--accent) }
+
+details.check p{ margin:.75rem 0 0; font-size:.96rem }
+
+details.check .big{ font-size:1.5rem; font-weight:700; vertical-align:-.15rem }
+
+details.sheet td{ border:1px solid var(--line); padding:.35rem .6rem }
+
+details.sheet td.g{ font-size:1.6rem; font-weight:700; text-align:center; width:3rem }
+
+.keys{ background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:.75rem 1rem; margin:0 0 1.1rem }
+
+.keys .lab{ font-size:.75rem; font-weight:700; letter-spacing:.05em;
+        text-transform:uppercase; color:var(--soft); margin:0 0 .5rem }
+
+.keyrow{ display:flex; gap:.4rem; flex-wrap:wrap }
+
+.keyrow button{ font:inherit; font-size:1.5rem; font-weight:700; cursor:pointer;
+        width:2.9rem; height:2.9rem; line-height:1; border-radius:8px;
+        border:1px solid var(--line); background:var(--field); color:var(--ink) }
+
+.keyrow button:hover{ border-color:var(--accent); background:var(--accent-soft) }
+
+/* --- added by render_lesson.py: rules the shared sheet does not carry --- */
+
+mark{ background:var(--hl); color:inherit; padding:0 .15em; border-radius:3px }
+
+a{ color:var(--accent) }
+
+.abox select,.abox input{ font:inherit; font-size:1rem; padding:.55rem .6rem; border-radius:8px;
+        border:0; background:transparent; color:var(--ink); width:100%; max-width:100% }
+
+.abox select{ border:2px dashed var(--field-line); background:var(--field) }
+
+.abox select:focus,.abox input:focus{ outline:none }
+
+figure.dia{ margin:1.5rem 0 }
+
+figure.dia svg{ display:block; width:100%; height:auto; margin:0 auto }
+
+figure.dia figcaption{ font-size:.86rem; color:var(--soft); text-align:center; margin-top:.45rem }
+
+figure.photo{ margin:1.5rem 0; text-align:center }
+
+figure.photo img{ max-width:100%; height:auto; border-radius:10px; border:1px solid var(--line) }
+
+figure.photo figcaption{ font-size:.82rem; color:var(--soft); margin-top:.4rem }
+
+.note{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:.8rem 1.05rem; margin:1.25rem 0; font-size:.96rem }
+
+.note p{ margin:0 }
+
+details.sheet td.h{ font-weight:700; color:var(--accent); white-space:nowrap }
+
+/* a bank entry longer than one character is a word or a phrase, not a letter —
+   it needs a button that grows instead of a square one it overflows */
+.keyrow button.wide{ width:auto; min-width:2.9rem; padding:0 .75rem; font-size:1.05rem;
+        font-weight:600 }
+
+.scroller{ overflow-x:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="lessonid" id="lessonid">KOR1B-L01</p>
+  <h1 id="pagetitle">Korean 1B · Lesson 1</h1>
+  <p class="sub" id="pagesub">Where Are You Going.</p>
+
+  <div class="outcomes" id="outcomes">
+    <p class="lab">What you'll be able to do</p>
+    <ul id="outcomelist"></ul>
+  </div>
+
+  <div class="agenda" id="agenda">
+    <p class="lab">Today's plan</p>
+    <ol id="agendalist"></ol>
+  </div>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>How this works</p>
+    <ol>
+      <li>Answer one part, then press the green button when you're ready for the next.</li>
+      <li>Nothing is timed. Press a finished part's green bar to reopen and change it.</li>
+      <li>At the end, one button copies everything for your Canvas submission.</li>
+    </ol>
+  </div>
+
+  <!-- ===================== INTRODUCE THE CONCEPT ===================== -->
+  <p class="partsep" data-partsep="intro">Introduce the Concept</p>
+
+  <section class="stage" data-part="intro" id="i1" data-title="Where are you going?">
+    <button class="donebar" onclick="LL.toggle('i1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Where are you going?</strong>
+      <span class="sum" id="sum-i1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Where are you going?</h2>
+
+      <p>Here's the comic from your textbook, the polite way. A student spots a friend on campus:</p>
+
+      <figure class="dia">
+<div style="max-width:560px;margin:0 auto;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:.8rem 1rem">
+  <p style="margin:.3rem 0">🧑‍🎓 <strong>지훈:</strong> 민서 씨, <strong>어디 가요?</strong> <span style="color:var(--soft)">Minseo, where are you going?</span></p>
+  <p style="margin:.3rem 0">👩‍🎓 <strong>민서:</strong> <strong>도서관에 가요.</strong> 📚 <span style="color:var(--soft)">To the library.</span></p>
+  <p style="margin:.3rem 0">🧑‍🎓 <strong>지훈:</strong> 아, 그래요? 저도요! <strong>같이 가요.</strong> <span style="color:var(--soft)">Oh really? Me too! Let's go together.</span></p>
+  <p style="margin:.3rem 0">👩‍🎓 <strong>민서:</strong> 네, 좋아요! 😊 <span style="color:var(--soft)">Sure, okay.</span></p>
+</div>
+      <figcaption>어디 = where. 도서관 = library. 에 = to.</figcaption>
+      </figure>
+
+<div style="max-width:560px;margin:.8rem auto 0;border:1px dashed var(--warn);border-radius:10px;background:var(--warn-soft);padding:.6rem .9rem;font-size:.95rem">
+  <strong>👀 What friends say (the book's version):</strong> 어디 <strong>가?</strong> · 도서관. · 나도! 같이 <strong>가자.</strong><br>
+  <span style="color:var(--soft)">Same conversation, casual. Good to recognize. You'll keep using -요.</span>
+</div>
+
+      <p>The one new piece is <strong>에</strong>. It goes straight after a place and means <em>to</em>. Unlike 은/는 or 을/를, it <strong>never changes shape</strong>. Batchim or not, it's always 에.</p>
+
+      <figure class="dia">
+<svg viewBox="0 0 600 120" role="img" aria-label="Three blocks: 도서관 (the place) plus 에 (to) plus 가요 (go, last). Below: 학교에, 집에, 노래방에, the same 에 every time.">
+  <rect x="20" y="10" width="160" height="56" rx="10" style="fill:var(--calm-soft);stroke:var(--calm);stroke-width:2"/>
+  <text x="100" y="46" text-anchor="middle" font-size="26" font-weight="700" style="fill:var(--ink)">📚 도서관</text>
+  <text x="205" y="46" text-anchor="middle" font-size="26" style="fill:var(--ink)">+</text>
+  <rect x="230" y="10" width="100" height="56" rx="10" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:2"/>
+  <text x="280" y="46" text-anchor="middle" font-size="28" font-weight="700" style="fill:var(--ink)">에</text>
+  <text x="355" y="46" text-anchor="middle" font-size="26" style="fill:var(--ink)">+</text>
+  <rect x="380" y="10" width="120" height="56" rx="10" style="fill:var(--warn-soft);stroke:var(--warn);stroke-width:2"/>
+  <text x="440" y="46" text-anchor="middle" font-size="26" font-weight="700" style="fill:var(--ink)">가요</text>
+  <text x="300" y="104" text-anchor="middle" font-size="19" style="fill:var(--soft)">학교에 · 집에 · 노래방에 · 커피숍에: same 에, every time</text>
+</svg>
+      <figcaption>Place, then 에, then the verb last. 도서관에 가요 = I'm going to the library.</figcaption>
+      </figure>
+
+      <p class="q"><strong>Q1.</strong> How do you say <strong>I'm going to school</strong>?</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q1. How do you say I&#x27;m going to school?">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="가요 학교에.">가요 학교에.</option>
+          <option value="학교에 가요.">학교에 가요.</option>
+          <option value="학교가 가요.">학교가 가요.</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One dropdown picked, and you can say 어디 가요? and an answer out loud.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i1')">Next part &rarr;</button></div>
+    </div>
+  </section>
+
+  <section class="stage" data-part="intro" id="i2" data-title="Coming or going? Ask where the speaker is">
+    <button class="donebar" onclick="LL.toggle('i2')">
+      <span class="tick">&#10003;</span> <strong>Part 2 &mdash; Coming or going? Ask where the speaker is</strong>
+      <span class="sum" id="sum-i2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 2 &mdash; Coming or going? Ask where the speaker is</h2>
+
+      <p>English and Korean mostly agree on <em>come</em> and <em>go</em>, but Korean is strict about one thing: <strong>it depends on where the person talking is standing</strong> 📍.</p>
+
+      <figure class="dia">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;max-width:600px;margin:0 auto">
+  <div style="border:1px solid var(--line);border-top:6px solid var(--calm);border-radius:12px;background:var(--card);padding:.7rem;text-align:center">
+    <div style="font-size:1.8rem">🚶➡️📍</div>
+    <div style="font-size:1.3rem">오다 → <strong style="font-size:1.6rem">와요</strong></div>
+    <div>moving <strong>toward</strong> the speaker</div>
+    <div style="color:var(--soft);font-size:.85rem">past: 왔어요 · 오 + 아요 squish, like 보 + 아요 → 봐요</div>
+  </div>
+  <div style="border:1px solid var(--line);border-top:6px solid var(--warn);border-radius:12px;background:var(--card);padding:.7rem;text-align:center">
+    <div style="font-size:1.8rem">📍 🚶➡️</div>
+    <div style="font-size:1.3rem">가다 → <strong style="font-size:1.6rem">가요</strong></div>
+    <div>moving <strong>away from</strong> the speaker</div>
+    <div style="color:var(--soft);font-size:.85rem">past: 갔어요</div>
+  </div>
+</div>
+      <figcaption>📍 = the person talking. Ask "toward them, or away?" and the verb picks itself.</figcaption>
+      </figure>
+
+      <p>You're at home 🏠. Your friend is walking over to your house. You tell your mom:</p>
+
+      <p class="q"><strong>Q2.</strong> Finish the sentence: 친구가 우리 집에 ___. <em>(My friend is ___ to our house.)</em> Type the whole sentence.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 친구가 우리 집에 ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q2. Finish the sentence: 친구가 우리 집에 ___. (My friend is ___ to our house.) Type the whole sentence." placeholder="Type here…"></div>
+
+      <p><strong>Now the trap.</strong> You're in your room. Mom calls from the kitchen: <em>"밥 먹어요!"</em> (Food's ready!) English shouts back <em>"I'm coming!"</em> But think about where <strong>you</strong> are standing, and which way you're moving.</p>
+
+      <p class="q"><strong>Q3.</strong> What do you shout back? 네, ___!</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <select data-q="Q3. What do you shout back? 네, ___!">
+          <option value="">&mdash; pick one &mdash;</option>
+          <option value="와요">와요</option>
+          <option value="가요">가요</option>
+        </select></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>One sentence typed and one dropdown picked, and you've said 가요 or 와요 out loud while your teacher moved around.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('i2')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDEPENDENT MASTERY ===================== -->
+  <p class="partsep" data-partsep="mastery">Independent Mastery</p>
+
+  <section class="stage" data-part="mastery" id="m1" data-title="Text a friend">
+    <button class="donebar" onclick="LL.toggle('m1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Text a friend</strong>
+      <span class="sum" id="sum-m1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Text a friend</h2>
+
+      <p>It's Saturday. You're walking out of your house with your bag 🎒. Your friend <strong>수아</strong> texts you. Answer every message in Korean, one reply per box. The emoji tell you the place, and the Korean word is up to you.</p>
+
+<details style="max-width:520px;margin:.4rem auto 0;border:1px dashed var(--line);border-radius:10px;padding:.5rem .9rem">
+  <summary style="cursor:pointer;font-weight:700">Stuck on a place word? Open the word bank 👀</summary>
+  <p style="margin:.5rem 0 0;font-size:1.1rem">📚 도서관 · 🏦 은행 · 🏪 편의점 · 🎤 노래방 · 🏠 집 · 🌳 공원 · ☕ 커피숍 · 🏫 학교</p>
+</details>
+
+<div style="max-width:520px;margin:0 auto;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:.7rem .9rem">
+  <p style="margin:0 0 .4rem;font-size:.8rem;color:var(--soft);text-align:center">💬 수아</p>
+  <p style="margin:.3rem 0"><span style="display:inline-block;background:var(--accent-soft);border-radius:14px;padding:.3rem .8rem">어디 가요? 👀</span></p>
+  <p style="margin:.3rem 0;font-size:.9rem;color:var(--soft)">↳ You're going to 📚.</p>
+</div>
+
+      <p class="q"><strong>Q4.</strong> Reply to 수아.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q4. Reply to 수아." placeholder="Type here…"></div>
+
+<div style="max-width:520px;margin:0 auto;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:.7rem .9rem">
+  <p style="margin:.3rem 0"><span style="display:inline-block;background:var(--accent-soft);border-radius:14px;padding:.3rem .8rem">아, 그래요? 편의점에 가요? 🏪</span></p>
+  <p style="margin:.3rem 0;font-size:.9rem;color:var(--soft)">↳ No. First you have to stop by 🏦. Start with 아니요.</p>
+</div>
+
+      <p class="q"><strong>Q5.</strong> Reply to 수아.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q5. Reply to 수아." placeholder="Type here…"></div>
+
+<div style="max-width:520px;margin:0 auto;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:.7rem .9rem">
+  <p style="margin:.3rem 0"><span style="display:inline-block;background:var(--accent-soft);border-radius:14px;padding:.3rem .8rem">저는 지금 노래방이에요 🎤 노래방에 와요?</span></p>
+  <p style="margin:.3rem 0;font-size:.9rem;color:var(--soft)">↳ 수아 is AT the karaoke room. Yes, you're coming! Start with 네. Careful.</p>
+</div>
+
+      <p class="q"><strong>Q6.</strong> Reply to 수아.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q6. Reply to 수아." placeholder="Type here…"></div>
+
+<div style="max-width:520px;margin:0 auto;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:.7rem .9rem">
+  <p style="margin:.3rem 0"><span style="display:inline-block;background:var(--accent-soft);border-radius:14px;padding:.3rem .8rem">민호 씨도 와요?</span></p>
+  <p style="margin:.3rem 0;font-size:.9rem;color:var(--soft)">↳ No. Minho already went 🏠 home. Start with 아니요, and he already did it.</p>
+</div>
+
+      <p class="q"><strong>Q7.</strong> Reply to 수아.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q7. Reply to 수아." placeholder="Type here…"></div>
+
+<div style="max-width:520px;margin:0 auto;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:.7rem .9rem">
+  <p style="margin:.3rem 0"><span style="display:inline-block;background:var(--accent-soft);border-radius:14px;padding:.3rem .8rem">어제 어디에 갔어요? 😄</span></p>
+  <p style="margin:.3rem 0;font-size:.9rem;color:var(--soft)">↳ Yesterday you went to 🌳.</p>
+</div>
+
+      <p class="q"><strong>Q8.</strong> Reply to 수아.</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q8. Reply to 수아." placeholder="Type here…"></div>
+
+      <p>Last one is your choice. Do <strong>one</strong>: <strong>A.</strong> Ask 수아 where <em>she</em> went yesterday. <strong>B.</strong> Tell her one real place you're going this week.</p>
+
+      <p class="q"><strong>Q9.</strong> My pick (write A or B, then the Korean).</p>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q9. My pick (write A or B, then the Korean)." placeholder="A or B, then your Korean…"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Six replies typed in Korean, each with -요. Every place has 에 after it, and every 가/와 is checked against where the speaker is.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('m1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <p class="partsep" data-partsep="homework">Homework</p>
+
+  <section class="stage" data-part="homework" id="h1" data-title="Journal Week: Places">
+    <button class="donebar" onclick="LL.toggle('h1')">
+      <span class="tick">&#10003;</span> <strong>Part 1 &mdash; Journal Week: Places</strong>
+      <span class="sum" id="sum-h1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>Part 1 &mdash; Journal Week: Places</h2>
+
+      <p>Same four moves as always, with this week's words picked for you: copy, read aloud, write from sound, one line of your own. Today we do Day 1 together.</p>
+
+      <p class="q"><strong>Q10.</strong> Your Day 1 line: two places you really go.</p>
+      <div class="stems"><p class="lab">Sentence starters &mdash; use them if you want</p>
+        <p>&bull; 저는 ____.</p>
+        <p style="color:var(--soft);font-size:.88rem;margin-top:.5rem;">You don't have to use these.</p></div>
+      <div class="abox"><p class="lab">My answer</p>
+        <input type="text" autocomplete="off" spellcheck="false" data-q="Q10. Your Day 1 line: two places you really go." placeholder="Type here…"></div>
+
+      <div class="done-look"><p class="lab">Done looks like</p>
+        <p>Day 1's line written in your notebook, and typed here once.</p></div>
+
+      <div class="row"><button class="btn go" onclick="LL.finish('h1')">Done with this part &rarr;</button></div>
+    </div>
+  </section>
+
+  <!-- =================== REFERENCE SHEET =================== -->
+  <details class="sheet" id="sheet">
+    <summary>에, 가요 and 와요 on one card &mdash; open this any time</summary>
+    <table>
+      <tr><td class="h">Place + 에</td><td>"to" a place. Always 에, batchim or not: 학교에, 집에, 노래방에.</td></tr>
+      <tr><td class="h">가다 → 가요 · 갔어요</td><td>Moving AWAY from where the speaker is standing.</td></tr>
+      <tr><td class="h">오다 → 와요 · 왔어요</td><td>Moving TOWARD where the speaker is standing. 오 + 아요 squish into 와요, like 봐요.</td></tr>
+      <tr><td class="h">The trap</td><td>"I'm coming!" to Mom = 가요! You're leaving the spot you're in.</td></tr>
+      <tr><td class="h">Asking</td><td>어디 가요? (where are you going?) · 어디에 갔어요? (where did you go?)</td></tr>
+    </table>
+    <p style="font-size:.94rem;margin:.85rem 0 0;">In speech, 에 often drops off: 어디 가요? 도서관 가요. Both are fine. Write it in for now.</p>
+  </details>
+
+  <!-- =================== TURN IN =================== -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede" id="turninLede">One button. It collects every part — ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const LESSON = "Korean 1B · Lesson 1";
+const LESSON_ID = "KOR1B-L01";
+
+/* Outcomes carry stable IDs so they can be matched one-to-one against the
+   Canvas outcomes on the assignment. NEVER renumber. */
+const OUTCOMES = {
+  "K4-1": "Name 12 common places in Korean from a picture.",
+  "K4-2": "Say where someone is going with place + 에 + 가요 or 갔어요.",
+  "K4-3": "Choose 가다 or 오다 from where the speaker is standing, including \"I'm coming!\" = 가요.",
+  "K4-4": "Ask and answer 어디 가요? in a short written conversation."
+};
+
+/* One source of truth for the times — same order and same numbers as the
+   teacher's run sheet and Section 1's Canvas block. */
+const AGENDA = [
+  { label:"Catch up & get set", mins:5 },
+  { label:"Where are you going? 에, 가요 and 와요", mins:12, part:"intro" },
+  { label:"The Stakeout", mins:13 },
+  { label:"Text a friend", mins:15, part:"mastery" },
+  { label:"Start Journal Week: Places", mins:5, part:"homework" }
+];
+
+/* One entry per Canvas assignment. */
+const PARTS = {
+  intro: { title: "Introduce the Concept", sub: "Where are you going? One tiny particle, and the two verbs English mixes up.", sheet: true, outcomes: ["K4-2", "K4-3"] },
+  mastery: { title: "Independent Mastery", sub: "A real-feeling chat with a friend. No map, no hints, just you and the keyboard.", sheet: false, outcomes: ["K4-1", "K4-2", "K4-3", "K4-4"] },
+  homework: { title: "Homework", sub: "Journal Week: Places. Five days, ten minutes each, on paper.", sheet: true, outcomes: ["K4-1", "K4-2", "K4-3"] }
+};
+
+const REWARDS = {
+  i1:{star:"★",msg:"에 unlocked. Every place you know is now somewhere you can go."},
+  i2:{star:"★",msg:"You just learned the thing English speakers get wrong for years."},
+  m1:{star:"★",msg:"A whole conversation, in Korean, about where people go. That's real Korean."},
+  h1:{star:"★",msg:"Journal week started. One line down, the rest is ten minutes a day."}
+};
+/* The last stage of whichever part is showing always says "go turn it in",
+   so these never have to know which one comes last. */
+
+/* Puzzle pictures for guide.js, one per part in turn. */
+const PUZZLE = [{"src": "../../assets/puzzles/seoul-street.svg", "alt": "A storybook Seoul street at golden hour, with a tower on a green hill, colourful shops and a blue bus"}];
+
+/* No KEYS on this lesson — nothing here needs a character the
+   student's keyboard cannot type. */
+</script>
+<script src="../../assets/theme.js"></script>
+<script src="../../assets/lesson.js"></script>
+<script src="../../assets/guide.js"></script>
+<script src="../../assets/student.js"></script>
+</body>
+</html>

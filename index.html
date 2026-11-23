@@ -1152,6 +1152,60 @@ const ITEMS = [
   },
   {
     type: 'lesson',
+    id:   'KOR1B-L01',
+    course: 'Korean 1B',
+    file: 'lessons/korean-1b/KOR1B-L01-where-are-you-going.html',
+    updated: '2026-11-23',
+    title: '🗺️ Where Are You Going? (어디 가요?)',
+    tag: 'lesson',
+    desc: 'Unit 4 opener. Intro: the textbook comic (어디 가?) shown the polite way, with the casual version for recognition only; place + 에 (“to”, one shape for every word); then 가다 vs 오다 decided by where the speaker stands, with the “I’m coming!” = 가요! trap. Guided Practice: The Stakeout. Independent Mastery: a cold text chat with a friend (six replies from emoji clues, including the trap and 갔어요). Homework: Journal Week: Places, Day 1 done together.',
+    skills: 'Korean place words · 에 for destination · 가다/오다 by speaker perspective · 가요 와요 갔어요 왔어요 · 어디 가요? · polite -요 only',
+    note: 'Place vocabulary is assumed to be in the student’s Anki deck already. Time-에 is deliberately left for its own lesson. 술집, 클럽/나이트 and 소개팅 kept out of every activity. Second representation for 가/오 is physical (teacher walks toward/away on camera), in the run sheet. Puzzle art: assets/puzzles/seoul-street.svg (hand-drawn SVG).',
+    height: 1700,
+    parts: [
+      { key: 'intro', label: '⭐🗺️ Introduce the Concept: Where are you going? 에, 가요 and 와요' },
+      { file: 'activities/stakeout.html', label: '⭐🕵️ Guided Practice: The Stakeout', height: 2600 },
+      { key: 'mastery', label: '✏️💬 Independent Mastery: Text a friend' },
+      { key: 'homework', label: '✏️📓 Homework: Start Journal Week: Places' },
+      { file: 'resources/korean-journal-places.html', label: '✏️🗺️ Homework: Journal Week: Places', height: 2050 }
+    ]
+  },
+
+  {
+    type: 'activity',
+    course: 'Korean 1B',
+    file: 'activities/stakeout.html',
+    engine: 'particles', variant: 'places-come-go', version: 4, updated: '2026-11-23',
+    title: '🕵️ The Stakeout',
+    tag: 'map, tail, radio',
+    desc: 'Places, 에 and 가요/와요 on an animated town map, with Detective Park from The Interrogation. Part 1: tap the 12-place map to hear each word, then a 12-picture place check. Part 2: tail the suspect around town (solid trail = now, dashed with 어제 = yesterday) and answer 범인이 어디에 가요? with place + 에 + 가요/갔어요, against 이/가, verb-first and wrong-tense traps. Part 3: radio calls between you (at the coffee shop) and Park (at the karaoke room), each with the speaker’s pin on the map: fill 가요 / 와요 / 갔어요 / 왔어요 from where the speaker stands, ending on two traps (“I’m coming” = 가요).',
+    skills: 'Korean place words · 에 (to a place) · 가다 vs 오다 from the speaker’s position · present and past 가요 와요 갔어요 왔어요 · listening',
+    note: 'Rejigger of The Interrogation (particles engine): LL stages, audio player and turn-in reused unchanged; version 4 because the shared SVG town map (12-cell grid, animated mover, past/now trails, speaker pin) is a new mechanic used by all three parts. Content-swappable: JSON block id="content" (places, extra, tail, radio). No key is stored: Part 2 builds the answer and its three traps from dest/past (이 vs 가 chosen by batchim); Part 3 computes 가/오 from whether dest is the speaker’s own spot. Audio: ElevenLabs, scripts/voice/stakeout.json (34 clips, narrator / Park / you), checked by transcription; browser voice as fallback. Reuses assets/interrogation/img/detective.webp. About 13 minutes. Paired homework: resources/korean-journal-places.html.',
+    height: 2600
+  },
+
+  {
+    type: 'resource',
+    course: 'Korean 1B',
+    file: 'resources/korean-journal-places.html',
+    updated: '2026-11-23',
+    title: '🗺️ Journal Week: Places',
+    tag: 'paper homework',
+    desc: 'Five days of the paper Korean Journal aimed at Unit 4. Each day: five place words to copy and read aloud (with audio), three recorded dictation lines written from sound with a hidden self-check, and a line of her own. Day 1 places she goes (에 가요), Day 2 went vs going (갔어요 / 가요), Day 3 a tiny 어디 가요? conversation, Day 4 coming and going with the “I’m coming” trap, Day 5 her own weekend page.',
+    skills: 'Korean place words · 에 · 가요 갔어요 와요 왔어요 · 어디 가요? · handwriting · dictation · spaced review',
+    note: 'Rejigger of Journal Week: How Often; only the days JSON, the reference card and titles changed. Paper on purpose. Content-swappable: the JSON block id="days". Audio in the shared assets/korean-journal/voice (scripts/voice/korean-journal.json, 40 new clips). Embeds: the whole week, or one day per Canvas item with ?part=day1 … day5.',
+    height: 2050,
+    parts: [
+      { key:'day1', label:'✏️🏫 Homework: Day 1, places you go', height: 1780 },
+      { key:'day2', label:'✏️🏦 Homework: Day 2, went and going', height: 1780 },
+      { key:'day3', label:'✏️🎤 Homework: Day 3, where are you going?', height: 1780 },
+      { key:'day4', label:'✏️🚶 Homework: Day 4, coming and going', height: 1800 },
+      { key:'day5', label:'✏️📓 Homework: Day 5, your own page', height: 1700 }
+    ]
+  },
+
+  {
+    type: 'lesson',
     id:   'KOR1A-FINAL',
     course: 'Korean 1A',
     file: 'lessons/korean-1a/KOR1A-FINAL-then-and-now-korean-1a-reflection.html',
