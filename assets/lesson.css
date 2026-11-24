@@ -186,6 +186,13 @@ button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
 
 .abox:focus-within{ border-color:var(--accent); border-style:solid }
 
+/* "None of these — I'll write my own": the write-in box only shows once that
+   option is picked. CSS only, so a restored save shows it with no script. */
+.abox .writein{ display:none; margin-top:.5rem; border:2px dashed var(--field-line);
+        background:var(--field) }
+.abox:has(option[data-other]:checked) .writein{ display:block }
+@supports not selector(:has(a)){ .abox .writein{ display:block } }
+
 .stems{ background:var(--warn-soft); border:1px dashed var(--warn-line); border-radius:8px;
         padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
 

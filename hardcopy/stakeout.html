@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<!--
+  THE STAKEOUT - Korean 1B, Unit 4 (어디 가?). Places + 에 ("to"), 가다/오다 decided by
+  where the SPEAKER stands, 가요/와요 and 갔어요/왔어요. Detective Park from The Interrogation
+  is back; the student is his partner on a stakeout.
+  Rejiggered from activities/the-interrogation.html (particles engine): the LL stage
+  engine, audio player and turn-in are reused unchanged. New: a shared SVG town map
+  (12 places, animated mover, trail, speaker pin) used by all three parts.
+  Content lives in the JSON block id="content" at the bottom. No answer key is stored:
+  Part 2 builds its key and traps from dest/past; Part 3 computes 가/오 from the
+  speaker's spot. Audio: assets/stakeout/voice/<role>-<fnv1a(text)>.mp3, recorded with
+  scripts/korean_voice.mjs (manifest scripts/voice/stakeout.json).
+  Student-neutral, public repo.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Stakeout</title>
+<style>
+  :root{ --bg:#faf8f5; --card:#fffdfa; --ink:#22252a; --soft:#555a63;
+         --line:#e2ddd4; --accent:#2f6f8f; --accent-soft:#e8f1f6;
+         --calm:#2e7d5b; --calm-soft:#e6f3ec; --warn:#a8641b; --warn-soft:#fbf0e2;
+         --gold:#c68a1a; }
+  *{box-sizing:border-box}
+  body{ margin:0; padding:1.25rem 1rem 4rem; background:var(--bg); color:var(--ink);
+        font-family:"Atkinson Hyperlegible","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Verdana,Tahoma,-apple-system,"Segoe UI",system-ui,sans-serif;
+        font-size:19px; line-height:1.7 }
+  .wrap{ max-width:46rem; margin:0 auto }
+  h1{ font-size:1.5rem; margin:0 0 .25rem }
+  h2{ font-size:1.15rem; margin:0 0 .75rem }
+  .sub{ color:var(--soft); font-size:.95rem; margin:0 0 1.25rem }
+
+  /* earned progress — starts empty on purpose */
+  .earned{ display:flex; align-items:center; gap:.5rem; min-height:2.4rem;
+        margin:0 0 1.25rem; flex-wrap:wrap }
+  .earned .star{ font-size:1.5rem; line-height:1; color:var(--gold);
+        animation:pop .45s cubic-bezier(.2,1.5,.4,1) both }
+  .earned .msg{ font-size:.9rem; font-weight:700; color:var(--gold); animation:slide .45s ease both }
+  @keyframes pop{ from{ transform:scale(0) rotate(-40deg); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes slide{ from{ transform:translateX(-6px); opacity:0 } to{ transform:none; opacity:1 } }
+
+  .steps{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:.9rem 1.2rem; margin:0 0 1.5rem; font-size:.95rem }
+  .steps p{ margin:0 0 .4rem; font-weight:700; font-size:.78rem; letter-spacing:.06em;
+            text-transform:uppercase; color:var(--soft) }
+  .steps ol{ margin:0; padding-left:1.3rem } .steps li{ margin-bottom:.2rem }
+
+  /* stages */
+  .stage{ display:none }
+  .stage.active{ display:block; animation:slide .3s ease both }
+  .stage.done{ display:block }
+  .stage.done > .stage-body{ display:none }
+  .stage.done.open > .stage-body{ display:block }
+  .donebar{ display:none; align-items:center; gap:.6rem; width:100%; text-align:left;
+        background:var(--calm-soft); border:1px solid #c4e0d2; border-radius:10px;
+        padding:.7rem 1rem; margin:0 0 .9rem; font:inherit; font-size:.92rem;
+        color:var(--ink); cursor:pointer }
+  .stage.done > .donebar{ display:flex }
+  .donebar .tick{ color:var(--calm); font-weight:700 }
+  .donebar .sum{ color:var(--soft); margin-left:auto; font-size:.85rem }
+
+  .row{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin:0 0 1rem }
+  button.btn{ font:inherit; font-size:.95rem; font-weight:700; cursor:pointer;
+        border-radius:8px; padding:.6rem 1.15rem; border:1px solid var(--accent);
+        background:var(--accent); color:#fff }
+  button.btn:hover{ filter:brightness(1.08) }
+  button.btn.ghost{ background:transparent; color:var(--accent) }
+  button.btn.go{ background:var(--calm); border-color:var(--calm) }
+  button.btn.big{ font-size:1.05rem; padding:.75rem 1.5rem }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+
+  .fb{ border-radius:8px; padding:.9rem 1.15rem; margin:0 0 1rem; display:none; font-size:.98rem }
+  .fb.show{ display:block }
+  .fb.hint{ background:var(--warn-soft); border:1px solid #ddbf94 }
+  .fb.good{ background:var(--calm-soft); border:1px solid #c4e0d2 }
+  /* ONLY the heading is a block. Making every <strong> a block pushes trailing
+     punctuation onto its own line — a real bug that shipped once. */
+  .fb .fb-head{ display:block; font-weight:700; margin-bottom:.3rem }
+
+  .q{ margin:1.25rem 0 .4rem; font-size:1rem }
+  .abox{ border:2px dashed #b9c4cc; border-radius:8px; background:#fff;
+         padding:.85rem 1rem; margin:0 0 1.1rem }
+  .abox .lab{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:#5a6672; margin:0 0 .35rem }
+  .abox textarea{ width:100%; border:0; outline:0; resize:vertical; min-height:3.2rem;
+        font:inherit; font-size:1rem; color:var(--ink); background:transparent; line-height:1.6 }
+  .abox textarea::placeholder{ color:#9aa5ae }
+  .abox:focus-within{ border-color:var(--accent); border-style:solid }
+  .stems{ background:var(--warn-soft); border:1px dashed #ddbf94; border-radius:8px;
+        padding:.85rem 1.1rem; margin:1rem 0; font-size:.95rem }
+  .stems .lab{ font-size:.75rem; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--warn); margin:0 0 .4rem }
+  .stems p{ margin:0 }
+
+  .turnin{ background:var(--card); border:2px solid var(--accent); border-radius:12px;
+        padding:1.25rem 1.5rem; margin:2rem 0 0 }
+  .turnin h2{ margin:0 0 .3rem; font-size:1.2rem }
+  .turnin .lede{ margin:0 0 1rem; color:var(--soft); font-size:.92rem }
+  .preview{ display:none; margin-top:1rem } .preview.show{ display:block }
+  .preview textarea{ width:100%; min-height:12rem; font-family:Consolas,monospace;
+        font-size:.82rem; line-height:1.6; padding:.9rem 1.1rem; border-radius:8px;
+        border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical }
+  .preview .tip{ font-size:.85rem; color:var(--soft); margin:.5rem 0 0 }
+
+
+  /* ---- Order Up! additions. Role colours are tokens and always travel with a label. ---- */
+  :root{ --topic:#2f6f8f; --topic-soft:#e8f1f6; --subj:#7a4fa0; --subj-soft:#f1eaf7;
+         --obj:#2e7d5b; --obj-soft:#e6f3ec; --verb:#a8641b; --verb-soft:#fbf0e2;
+         --tile:#ffffff; --tile-line:#c9d2d9; }
+  .soft{ color:var(--soft); font-size:.88rem }
+  .done-looks{ background:var(--accent-soft); border-radius:8px; padding:.5rem .9rem; font-size:.92rem; margin:0 0 1rem }
+  .cap{ color:var(--soft); font-size:.88rem; margin:.2rem 0 1.2rem; text-align:center }
+  .opt{ display:inline-block; font-weight:700; width:1.6rem }
+
+  /* stage 1: shelves of flip cards */
+  .shelf{ margin:0 0 1rem }
+  .shelf h3{ font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--soft); margin:0 0 .45rem }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(8.6rem,1fr)); gap:.6rem }
+  .fcard{ position:relative; border:1px solid var(--line); border-radius:12px; background:var(--card);
+          min-height:8.4rem; padding:.6rem .5rem; text-align:center; cursor:pointer; font:inherit; color:var(--ink) }
+  .fcard:hover{ border-color:var(--accent) }
+  .fcard.seen{ border-color:#c4e0d2 }
+  .fcard .em{ font-size:2.2rem; line-height:1.2; display:block }
+  .fcard .ko{ font-size:1.45rem; font-weight:700; display:block }
+  .fcard .en{ font-size:1rem; font-weight:700; color:var(--accent); display:block }
+  .fcard .hook{ font-size:.78rem; color:var(--soft); display:block; line-height:1.35; margin-top:.25rem }
+  .fcard .back{ display:none } .fcard.flipped .front{ display:none } .fcard.flipped .back{ display:block }
+  .say{ font:inherit; font-size:.95rem; border:1px solid var(--line); background:var(--bg); border-radius:999px;
+        padding:.1rem .55rem; cursor:pointer; margin-top:.3rem }
+  .matchcard{ border:1px solid var(--line); border-radius:12px; background:var(--card); padding:1rem; text-align:center; margin:0 0 1rem }
+  .matchcard .em{ font-size:3rem; line-height:1.1 }
+  .matchcard .prompt{ font-size:1.15rem; font-weight:700; margin:.2rem 0 .8rem }
+  .opts{ display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap }
+  .opts button{ font:inherit; font-size:1.35rem; min-width:7rem; padding:.45rem 1rem; border-radius:10px;
+        border:2px solid var(--tile-line); background:var(--tile); cursor:pointer; color:var(--ink) }
+  .opts button:hover{ border-color:var(--accent) }
+  .opts button.no{ opacity:.45; text-decoration:line-through }
+  .counter{ color:var(--soft); font-size:.85rem; margin:0 0 .3rem }
+
+  /* stage 2: chart + sentence card */
+  .chart{ border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:0 0 1rem; background:var(--card) }
+  .ch-row{ display:grid; grid-template-columns:1.35fr 1fr 1fr; border-top:1px solid var(--line) }
+  .ch-row:first-child{ border-top:0 }
+  .ch-row > span{ padding:.55rem .75rem; font-size:.95rem }
+  .ch-head > span{ font-weight:700; font-size:.82rem; color:var(--soft); background:var(--bg) }
+  .ch-row small{ font-size:.78rem; color:var(--soft); font-weight:400 }
+  .pt{ font-size:1.35rem!important; text-align:center; align-self:center }
+  .pt b{ padding:0 .15rem; border-radius:4px }
+  .job.topic{ border-left:5px solid var(--topic) } .pt.topic b{ background:var(--topic-soft); color:var(--topic) }
+  .job.subj{ border-left:5px solid var(--subj) } .pt.subj b{ background:var(--subj-soft); color:var(--subj) }
+  .job.obj{ border-left:5px solid var(--obj) } .pt.obj b{ background:var(--obj-soft); color:var(--obj) }
+  .sov{ width:100%; max-width:640px; height:auto; display:block; margin:.5rem auto 0 }
+  .sov .b-topic{ fill:var(--topic-soft); stroke:var(--topic); stroke-width:2 }
+  .sov .b-obj{ fill:var(--obj-soft); stroke:var(--obj); stroke-width:2 }
+  .sov .b-verb{ fill:var(--verb-soft); stroke:var(--verb); stroke-width:2 }
+  .sov .t-big{ font-size:26px; font-weight:700; fill:var(--ink) }
+  .sov .t-lab{ font-size:15px; fill:var(--soft) }
+  .sov .arr{ stroke:var(--soft); stroke-width:2.5; fill:none }
+  .pcard, .bcard{ border:1px solid var(--line); border-radius:12px; background:var(--card); padding:1rem 1.1rem; margin:0 0 1rem }
+  .pq{ color:var(--soft); font-size:1rem; margin:0 0 .3rem }
+  .psent{ font-size:1.6rem; line-height:1.6; margin:.2rem 0 .3rem }
+  .psent .gap{ display:inline-block; min-width:2.2rem; border-bottom:3px solid var(--accent); text-align:center; color:var(--accent); font-weight:700 }
+  .pen{ color:var(--soft); font-size:.95rem; margin:0 0 .8rem }
+  .star-tag{ display:inline-block; font-size:.78rem; font-weight:700; color:var(--gold); border:1px solid var(--gold); border-radius:999px; padding:0 .5rem; margin-left:.4rem; vertical-align:middle }
+  .pbtns{ display:grid; grid-template-columns:repeat(6,1fr); gap:.45rem }
+  .pbtns button{ font:inherit; font-size:1.4rem; padding:.4rem 0; border-radius:10px; border:2px solid var(--tile-line); background:var(--tile); cursor:pointer; color:var(--ink) }
+  .pbtns button:hover{ border-color:var(--accent) }
+  .pbtns button:disabled{ cursor:default }
+  .pbtns button.no{ opacity:.45; text-decoration:line-through }
+  .psent .gap.filled{ min-width:0; border-bottom-width:3px }
+
+  /* stage 3: tiles */
+  .slots{ display:flex; gap:.5rem; flex-wrap:wrap; min-height:3.4rem; padding:.5rem; border:2px dashed var(--tile-line); border-radius:10px; margin:.4rem 0 .8rem; background:var(--bg) }
+  .slots .slot{ min-width:4.5rem; height:2.6rem; border-radius:8px; border:1px dashed var(--tile-line) }
+  .tiles{ display:flex; gap:.5rem; flex-wrap:wrap; margin:0 0 .9rem }
+  .tile{ font:inherit; font-size:1.3rem; padding:.3rem .85rem; border-radius:8px; border:2px solid var(--tile-line);
+         background:var(--tile); cursor:pointer; color:var(--ink) }
+  .tile:hover{ border-color:var(--accent) }
+  .tile.used{ visibility:hidden }
+  .slots .tile{ border-color:var(--accent) }
+
+  /* ---- Yesterday Mode additions ---- */
+  .lanes{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin:0 0 1rem }
+  .lane{ border:1px solid var(--line); border-radius:10px; background:var(--card); padding:.6rem .5rem; text-align:center; font-size:.92rem }
+  .lane.l-a{ border-top:6px solid var(--topic) } .lane.l-h{ border-top:6px solid var(--verb) } .lane.l-e{ border-top:6px solid var(--obj) }
+  .lane .if{ font-weight:700; display:block; margin-bottom:.2rem }
+  .lane .end{ font-size:1.7rem; font-weight:700; display:block; line-height:1.3 }
+  .lane .ex{ display:block; color:var(--soft); font-size:.95rem }
+  .vbig{ font-size:2.5rem; font-weight:700; letter-spacing:.03em; margin:.1rem 0 .2rem }
+  .vbig .cut{ color:var(--soft); text-decoration:line-through; opacity:.6 }
+  .vbig .hl{ background:var(--verb-soft); color:var(--verb); border-radius:6px; padding:0 .15rem }
+  .stepline{ font-size:.82rem; letter-spacing:.06em; text-transform:uppercase; color:var(--soft); font-weight:700; margin:.9rem 0 .5rem }
+  .vnote{ color:var(--soft); font-size:.95rem; margin:.2rem 0 .3rem }
+  .squish .b-a{ fill:var(--topic-soft); stroke:var(--topic); stroke-width:2 }
+  .squish .b-v{ fill:var(--verb-soft); stroke:var(--verb); stroke-width:2 }
+  .ynq{ font-size:1.45rem; margin:.2rem 0 .5rem }
+  .ynbtns{ display:flex; gap:.5rem; margin:0 0 .5rem }
+  .ynbtns button{ font:inherit; font-size:1.2rem; padding:.3rem 1rem; border-radius:10px; border:2px solid var(--tile-line); background:var(--tile); cursor:pointer; color:var(--ink) }
+  .ynbtns button:hover, .ynbtns button.on{ border-color:var(--accent) }
+  .ynbtns button.on{ background:var(--accent-soft) }
+
+  @media (max-width:560px){
+    .lanes{ grid-template-columns:1fr }
+    .ch-row{ grid-template-columns:1.2fr .9fr .9fr } .ch-row > span{ padding:.45rem .5rem; font-size:.85rem }
+    .pbtns{ grid-template-columns:repeat(3,1fr) }
+  }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important } }
+
+  /* ---- The Interrogation additions. Colours are tokens; meaning always travels with a label. ---- */
+  :root{ --no:#b0413e; --no-soft:#fbeceb; --yes:#2e7d5b; --yes-soft:#e6f3ec; }
+  .vcards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr)); gap:.7rem; margin:0 0 1rem }
+  .vcard{ border:1px solid var(--line); border-radius:12px; background:var(--card); overflow:hidden; cursor:pointer;
+          text-align:center; font:inherit; color:var(--ink); padding:0; display:flex; flex-direction:column }
+  .vcard:hover{ border-color:var(--accent) }
+  .vcard.seen{ border-color:#c4e0d2 }
+  .vcard img{ width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:var(--bg) }
+  .vcard .vb{ padding:.45rem .5rem .6rem }
+  .vcard .ko{ font-size:1.5rem; font-weight:700; display:block; line-height:1.3 }
+  .vcard .en{ font-size:1rem; font-weight:700; color:var(--accent); display:block }
+  .vcard .hook{ font-size:.8rem; color:var(--soft); display:block; line-height:1.35; margin:.2rem 0 }
+  .vcard .ex{ font-size:1rem; display:block; margin-top:.3rem }
+  .vcard .exen{ font-size:.8rem; color:var(--soft); display:block }
+  .vcard .back{ display:none } .vcard.flipped .front-hint{ display:none } .vcard.flipped .back{ display:block }
+  .vcard .front-hint{ font-size:.8rem; color:var(--soft) }
+  .qimg{ width:min(16rem,80%); aspect-ratio:1/1; object-fit:cover; border-radius:12px; display:block; margin:0 auto .8rem }
+
+  .sov .b-no{ fill:var(--no-soft); stroke:var(--no); stroke-width:2 }
+  .sov .t-cut{ fill:var(--soft); text-decoration:line-through; opacity:.55 }
+  .rules{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin:0 0 1rem }
+  .rule{ border:1px solid var(--line); border-top:5px solid var(--no); border-radius:10px; background:var(--card); padding:.6rem .7rem; text-align:center }
+  .rule .rk{ display:block; font-size:.75rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--soft) }
+  .rule .rv{ display:block; font-size:1.3rem; line-height:1.4; margin:.2rem 0 }
+  .rule .rv b{ color:var(--no) }
+  .rule .rs{ display:block; font-size:.8rem; color:var(--soft); line-height:1.35 }
+  .mstep{ border-left:4px solid var(--line); padding:.1rem 0 .1rem .8rem; margin:.6rem 0 }
+  .mstep.now{ border-left-color:var(--accent) }
+  .mstep.ok{ border-left-color:var(--calm) }
+  .mstep .stepline{ margin:.2rem 0 .45rem }
+  .mstep .got{ font-size:1.5rem; font-weight:700; color:var(--calm) }
+  .opts.left{ justify-content:flex-start }
+  .opts.left button{ font-size:1.2rem }
+
+  .scene{ display:flex; gap:1rem; align-items:flex-end; margin:0 0 1rem }
+  .scene .det{ width:7.5rem; height:auto; flex:none }
+  .bubble{ position:relative; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:.8rem 1rem; flex:1; margin-bottom:2rem }
+  .bubble::before{ content:""; position:absolute; left:-9px; bottom:1.2rem; width:16px; height:16px; background:var(--card);
+                   border-left:1px solid var(--line); border-bottom:1px solid var(--line); transform:rotate(45deg) }
+  .bubble .who{ margin:0; font-size:.78rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--soft) }
+  .bubble .ko{ margin:.15rem 0; font-size:1.35rem; line-height:1.5 }
+  .bubble .soft{ margin:0 }
+  .trap{ border:1px solid var(--line); border-radius:12px; background:var(--card); padding:.9rem 1rem; margin:0 0 1rem }
+  .trap .tq{ font-size:1.3rem; margin:0 0 .6rem }
+  .tcols{ display:grid; grid-template-columns:1fr 1fr; gap:.6rem }
+  .tcol{ border-radius:10px; padding:.6rem .75rem; border:1px solid var(--line) }
+  .tcol.t-yes{ background:var(--yes-soft); border-color:#c4e0d2 } .tcol.t-no{ background:var(--no-soft); border-color:#e9c4c2 }
+  .tcol span{ display:block }
+  .tcol .tl{ font-size:.75rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--soft) }
+  .tcol .tk{ font-size:1.35rem; font-weight:700; margin:.15rem 0 }
+  .tcol .ts{ font-size:.92rem } .tcol .ten{ font-size:.82rem; color:var(--soft) }
+  .tfoot{ margin:.7rem 0 0; font-size:.92rem }
+  details.file{ border:1px dashed var(--warn); background:var(--warn-soft); border-radius:10px; padding:.6rem 1rem; margin:0 0 1rem }
+  details.file summary{ cursor:pointer; font-weight:700; font-size:.95rem }
+  .facts{ list-style:none; margin:.6rem 0 0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:.35rem .9rem }
+  .facts li{ font-size:.9rem; display:flex; gap:.45rem; align-items:flex-start; line-height:1.4 }
+  .facts li.on{ outline:2px solid var(--accent); outline-offset:3px; border-radius:6px }
+  .facts .mark{ font-weight:700; flex:none; width:3.6rem; font-size:.75rem; border-radius:6px; text-align:center; padding:.05rem 0; margin-top:.1rem }
+  .facts .mark.y{ background:var(--yes-soft); color:var(--yes) } .facts .mark.n{ background:var(--no-soft); color:var(--no) }
+  .ans4{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem }
+  .ans4 button{ font:inherit; font-size:1.2rem; padding:.55rem .6rem; border-radius:10px; border:2px solid var(--tile-line); background:var(--tile); cursor:pointer; color:var(--ink) }
+  .ans4 button:hover{ border-color:var(--accent) }
+  .ans4 button.no{ opacity:.45; text-decoration:line-through }
+  .ans4 button.yes{ border-color:var(--calm); background:var(--calm-soft) }
+  .clue{ background:var(--warn-soft); border:1px dashed var(--warn); border-radius:8px; padding:.6rem .9rem; margin:.4rem 0 .8rem }
+  .closed{ text-align:center; font-size:2rem; font-weight:700; color:var(--no); letter-spacing:.04em; margin:.4rem 0 0; transform:rotate(-3deg) }
+
+  @media (max-width:560px){
+    .rules, .tcols, .facts, .ans4{ grid-template-columns:1fr }
+    .scene .det{ width:5.5rem }
+  }
+  /* ---- The Stakeout additions. Meaning always travels with a label or an icon, never colour alone. ---- */
+  :root{ --road:#d9d3c7; --park:#e3efd9; --pin:#b0413e; --trail:#2f6f8f; }
+  .mapbox{ margin:0 0 1rem }
+  .town{ width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:12px; background:var(--card) }
+  .town .road{ stroke:var(--road); stroke-width:14; stroke-linecap:round }
+  .town .lane{ stroke:var(--card); stroke-width:2; stroke-dasharray:8 8 }
+  .town .pl rect{ fill:var(--card); stroke:var(--tile-line); stroke-width:2 }
+  .town .pl.tap{ cursor:pointer }
+  .town .pl.tap:hover rect{ stroke:var(--accent) }
+  .town .pl.here rect{ stroke:var(--pin); stroke-width:3.5 }
+  .town .pl .em{ font-size:30px }
+  .town .pl .nm{ font-size:17px; font-weight:700; fill:var(--ink) }
+  .town .trail{ fill:none; stroke:var(--trail); stroke-width:4; stroke-linecap:round; opacity:.85 }
+  .town .trail.past{ stroke-dasharray:3 9 }
+  .town .trail.draw{ stroke-dasharray:900; stroke-dashoffset:900; animation:drawT 1.2s ease forwards }
+  @keyframes drawT{ to{ stroke-dashoffset:0 } }
+  .town .mover{ transition:transform 1.2s ease-in-out }
+  .town .mover circle{ fill:var(--ink); stroke:var(--card); stroke-width:3 }
+  .town .mover.me circle{ fill:var(--accent) }
+  .town .mover .face{ font-size:24px }
+  .town .mover .who{ font-size:13px; font-weight:700; fill:var(--ink); paint-order:stroke; stroke:var(--card); stroke-width:4 }
+  .town .tag{ font-size:15px; font-weight:700; fill:var(--trail); paint-order:stroke; stroke:var(--card); stroke-width:5 }
+  .town .pin text{ font-size:15px; font-weight:700; fill:var(--pin); paint-order:stroke; stroke:var(--card); stroke-width:5 }
+  .town .pin .pi{ font-size:26px }
+  .come-go{ display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin:0 0 1rem }
+  .cg{ border:1px solid var(--line); border-radius:12px; background:var(--card); padding:.7rem .8rem; text-align:center }
+  .cg span{ display:block }
+  .cg.cg-come{ border-top:6px solid var(--obj) } .cg.cg-go{ border-top:6px solid var(--verb) }
+  .cg .cg-pic{ font-size:1.6rem; letter-spacing:.05em }
+  .cg .cg-k{ font-size:1.35rem; margin:.2rem 0 } .cg .cg-k b{ font-size:1.6rem }
+  .cg .cg-s{ font-size:.95rem } .cg .cg-x{ font-size:.8rem; color:var(--soft); margin-top:.2rem }
+  .radio{ font-size:.85rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--soft); margin:0 0 .2rem }
+  .pre{ font-size:1.2rem; margin:0 0 .3rem }
+  @media (max-width:560px){ .come-go{ grid-template-columns:1fr } }
+</style>
+</head>
+<body><div style="font:15px/1.5 system-ui,sans-serif;background:#fff6d6;color:#3a2f00;border-bottom:2px solid #d9b84a;padding:.6rem 1rem;text-align:center"><strong>Downloadable hard copy</strong> of &ldquo;The Stakeout&rdquo;. Open it in Chrome or Edge, do the work here, then use the copy button at the end and paste into the assignment in Canvas. Audio and pictures still load from the class website when it is up.</div>
+<div class="wrap">
+  <h1>The Stakeout 🕵️</h1>
+  <p class="sub">Detective Park is back, and this time you're his partner. Follow a suspect around town, say where they're going with <strong>에</strong>, then work out the hard part: <strong>가요</strong> or <strong>와요</strong>?</p>
+
+  <div class="earned" id="earned" role="status" aria-live="polite"></div>
+
+  <div class="steps">
+    <p>Today's plan</p>
+    <ol>
+      <li>🗺️ <strong>Know the neighborhood</strong>: about 3 min</li>
+      <li>👣 <strong>Tail the suspect</strong>: about 5 min</li>
+      <li>📻 <strong>On the radio</strong>: about 5 min</li>
+    </ol>
+    <p style="margin-top:.6rem;text-transform:none;letter-spacing:0;font-weight:400;font-size:.9rem">Nothing is timed and you can retry anything. Every 🔊 plays a real Korean voice. At the end, one button copies everything for Canvas.</p>
+  </div>
+
+  <!-- ============ STAGE 1 — the places ============ -->
+  <section class="stage active" id="s1" data-title="Part 1 - Know the neighborhood">
+    <button class="donebar" onclick="LL.toggle('s1')">
+      <span class="tick">✓</span> <strong>Part 1: Know the neighborhood</strong>
+      <span class="sum" id="sum-s1"></span>
+    </button>
+    <div class="stage-body">
+      <h2>🗺️ Part 1: Know the neighborhood</h2>
+      <p>Before a stakeout, a detective learns the streets. Here is the town you'll be working in. Tap any place to hear its name.</p>
+      <div class="mapbox" id="map1"></div>
+      <p class="cap">Twelve places from your deck. The suspect will visit most of them today.</p>
+      <p class="done-looks"><strong>Done looks like:</strong> 12 pictures matched to their place word.</p>
+      <div class="row" id="s1check"><button class="btn" type="button" id="startCheck">Start the check →</button></div>
+      <div class="matchcard" id="qCard" style="display:none"></div>
+      <div class="fb" id="fb1" role="status" aria-live="polite"></div>
+      <div class="row" id="s1next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s1')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 — tail the suspect ============ -->
+  <section class="stage" id="s2" data-title="Part 2 - Tail the suspect">
+    <button class="donebar" onclick="LL.toggle('s2')">
+      <span class="tick">✓</span> <strong>Part 2: Tail the suspect</strong>
+      <span class="sum" id="sum-s2"></span>
+    </button>
+    <div class="stage-body">
+      <h2>👣 Part 2: Tail the suspect</h2>
+      <p>To say where someone is going, put <strong>에</strong> straight after the place. It means <em>to</em>, and it never changes shape. Then the verb goes last, as always.</p>
+
+      <svg class="sov" viewBox="0 0 640 150" role="img" aria-labelledby="eT eD">
+        <title id="eT">Place, then 에, then the verb</title>
+        <desc id="eD">Three blocks in a row: 은행 (bank), plus 에 (to), plus 가요 (go). Together: 은행에 가요, I go to the bank.</desc>
+        <rect x="10" y="20" width="150" height="62" rx="10" class="b-obj"/>
+        <text x="85" y="52" text-anchor="middle" class="t-big">🏦 은행</text>
+        <text x="85" y="74" text-anchor="middle" class="t-lab">the place</text>
+        <text x="185" y="60" text-anchor="middle" class="t-big">+</text>
+        <rect x="210" y="20" width="110" height="62" rx="10" class="b-topic"/>
+        <text x="265" y="52" text-anchor="middle" class="t-big">에</text>
+        <text x="265" y="74" text-anchor="middle" class="t-lab">"to"</text>
+        <text x="345" y="60" text-anchor="middle" class="t-big">+</text>
+        <rect x="370" y="20" width="130" height="62" rx="10" class="b-verb"/>
+        <text x="435" y="52" text-anchor="middle" class="t-big">가요</text>
+        <text x="435" y="74" text-anchor="middle" class="t-lab">go, LAST</text>
+        <text x="320" y="125" text-anchor="middle" class="t-big">= 은행에 가요.</text>
+      </svg>
+      <p class="cap">학교<strong>에</strong>, 집<strong>에</strong>, 노래방<strong>에</strong>. Batchim or no batchim, it's always 에. For "went," just put 가다 in the past: <strong>갔어요</strong>.</p>
+
+      <p>Watch the map. When Detective Park asks where the suspect is going, pick the sentence that answers him. A <strong>dashed trail with 어제</strong> on it means it happened yesterday.</p>
+      <p class="done-looks"><strong>Done looks like:</strong> 8 answers picked, each one the place + 에 + 가요 or 갔어요.</p>
+      <div class="mapbox" id="map2"></div>
+      <div class="pcard" id="tCard"></div>
+      <div class="fb" id="fb2" role="status" aria-live="polite"></div>
+      <div class="row" id="s2next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s2')">Next part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 — 가요 or 와요 ============ -->
+  <section class="stage" id="s3" data-title="Part 3 - On the radio">
+    <button class="donebar" onclick="LL.toggle('s3')">
+      <span class="tick">✓</span> <strong>Part 3: On the radio</strong>
+      <span class="sum" id="sum-s3"></span>
+    </button>
+    <div class="stage-body">
+      <h2>📻 Part 3: On the radio</h2>
+      <div class="scene">
+        <img class="det" src="https://shoneyd.github.io/assets/interrogation/img/detective.webp" alt="Detective Park, a rumpled detective in a tan trench coat, holding a notepad and raising one eyebrow.">
+        <div class="bubble">
+          <p class="who">박 형사 · Detective Park</p>
+          <p class="ko" id="parkIntro"></p>
+          <p class="soft" id="parkIntroEn"></p>
+        </div>
+      </div>
+
+      <p>Now you two are in different places, talking on the radio. In Korean, <strong>가다</strong> and <strong>오다</strong> depend on one thing: <strong>where the person talking is standing</strong> 📍.</p>
+      <div class="come-go" role="img" aria-label="Two panels. Left: an arrow pointing toward the speaker's pin is 와요, come. Right: an arrow pointing away from the speaker's pin is 가요, go.">
+        <div class="cg cg-come"><span class="cg-pic">🚶➡️📍</span><span class="cg-k">오다 → <b>와요</b></span><span class="cg-s">moving <strong>toward</strong> 📍 the speaker</span><span class="cg-x">오 + 아요 squish into 와요, like 보 + 아요 → 봐요</span></div>
+        <div class="cg cg-go"><span class="cg-pic">📍 🚶➡️</span><span class="cg-k">가다 → <b>가요</b></span><span class="cg-s">moving <strong>away from</strong> 📍 the speaker</span><span class="cg-x">past: 갔어요 · 왔어요</span></div>
+      </div>
+      <div class="trap">
+        <p class="tq">⚠️ The trap: Mom calls from the kitchen, "밥 먹어요!" <button class="say" type="button" data-say="밥 먹어요!" data-role="n" aria-label="Hear it">🔊</button></p>
+        <p style="margin:0">English shouts back <em>"I'm <strong>coming</strong>!"</em> But you're in your room, and you're leaving it. Away from where <strong>you</strong> are = <strong>가요!</strong> <button class="say" type="button" data-say="가요!" data-role="s" aria-label="Hear it">🔊</button></p>
+      </div>
+
+      <p>Each radio call shows the speaker's 📍 on the map. Watch who moves, then fill the gap. The last two are ★ traps.</p>
+      <p class="done-looks"><strong>Done looks like:</strong> 8 radio calls finished with 가요, 와요, 갔어요 or 왔어요, then one radio call of your own.</p>
+      <div class="mapbox" id="map3"></div>
+      <div class="pcard" id="rCard"></div>
+      <div class="fb" id="fb3" role="status" aria-live="polite"></div>
+      <div id="ownCall" style="display:none">
+        <p class="q"><strong>Your call.</strong> You're at ☕ 커피숍. Radio Park one line of your own: where the suspect is going (가요), or that he's coming your way (와요). Past is fine too.</p>
+        <div class="abox"><p class="lab">My radio call</p>
+          <textarea data-q="Your own radio call (you are at the coffee shop): where the suspect is going, or that he is coming to you." placeholder="범인이 ___에 ___!" rows="1"></textarea></div>
+      </div>
+      <div class="row" id="s3next" style="display:none">
+        <button class="btn go" onclick="LL.finish('s3')">Done with this part →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TURN IN ============ -->
+  <section class="stage" id="turnin">
+    <div class="stage-body">
+      <div class="turnin">
+        <h2>Turn this in</h2>
+        <p class="lede">One button. It collects every part, ready to paste into Canvas.</p>
+        <div class="row" style="margin-bottom:0">
+          <button class="btn big" id="copyAll">📋 Copy everything</button>
+          <button class="btn ghost" id="showPrev">Show me what gets copied</button>
+        </div>
+        <div class="fb" id="copyFb" role="status" aria-live="polite"></div>
+        <div class="preview" id="preview">
+          <textarea id="previewText" readonly aria-label="What will be copied"></textarea>
+          <p class="tip">If the button didn't work, click in this box, select everything (Ctrl+A), and copy (Ctrl+C).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="content">
+{
+ "places": [
+  {
+   "ko": "공항",
+   "en": "airport",
+   "em": "✈️",
+   "c": 0,
+   "r": 0
+  },
+  {
+   "ko": "학교",
+   "en": "school",
+   "em": "🏫",
+   "c": 1,
+   "r": 0
+  },
+  {
+   "ko": "도서관",
+   "en": "library",
+   "em": "📚",
+   "c": 2,
+   "r": 0
+  },
+  {
+   "ko": "공원",
+   "en": "park",
+   "em": "🌳",
+   "c": 3,
+   "r": 0
+  },
+  {
+   "ko": "은행",
+   "en": "bank",
+   "em": "🏦",
+   "c": 0,
+   "r": 1
+  },
+  {
+   "ko": "커피숍",
+   "en": "coffee shop",
+   "em": "☕",
+   "c": 1,
+   "r": 1
+  },
+  {
+   "ko": "약국",
+   "en": "pharmacy",
+   "em": "💊",
+   "c": 2,
+   "r": 1
+  },
+  {
+   "ko": "노래방",
+   "en": "karaoke room",
+   "em": "🎤",
+   "c": 3,
+   "r": 1
+  },
+  {
+   "ko": "집",
+   "en": "home",
+   "em": "🏠",
+   "c": 0,
+   "r": 2
+  },
+  {
+   "ko": "편의점",
+   "en": "convenience store",
+   "em": "🏪",
+   "c": 1,
+   "r": 2
+  },
+  {
+   "ko": "식당",
+   "en": "restaurant",
+   "em": "🍜",
+   "c": 2,
+   "r": 2
+  },
+  {
+   "ko": "병원",
+   "en": "hospital",
+   "em": "🏥",
+   "c": 3,
+   "r": 2
+  }
+ ],
+ "extra": [
+  {
+   "ko": "회사",
+   "en": "office; company",
+   "em": "🏢"
+  },
+  {
+   "ko": "영화관",
+   "en": "movie theater",
+   "em": "🎬"
+  },
+  {
+   "ko": "우체국",
+   "en": "post office",
+   "em": "📮"
+  },
+  {
+   "ko": "시장",
+   "en": "market",
+   "em": "🛒"
+  }
+ ],
+ "tail": [
+  {
+   "dest": "은행"
+  },
+  {
+   "dest": "도서관"
+  },
+  {
+   "dest": "공항",
+   "past": true
+  },
+  {
+   "dest": "약국"
+  },
+  {
+   "dest": "학교",
+   "past": true
+  },
+  {
+   "dest": "노래방"
+  },
+  {
+   "dest": "편의점",
+   "past": true
+  },
+  {
+   "dest": "식당"
+  }
+ ],
+ "radio": {
+  "you": "커피숍",
+  "park": "노래방",
+  "intro": "우리 오늘 잠복해요! 저는 노래방에 있어요. 커피숍 부탁해요!",
+  "introEn": "We're on a stakeout today! I'm at the karaoke room. You take the coffee shop! (잠복 = stakeout)",
+  "calls": [
+   {
+    "sp": "you",
+    "from": "약국",
+    "dest": "커피숍",
+    "line": "범인이 지금 커피숍에 ___!",
+    "en": "The suspect → ☕ the coffee shop, right now."
+   },
+   {
+    "sp": "park",
+    "from": "공원",
+    "dest": "노래방",
+    "line": "범인이 노래방에 ___!",
+    "en": "The suspect → 🎤 the karaoke room, right now."
+   },
+   {
+    "sp": "you",
+    "from": "커피숍",
+    "dest": "공원",
+    "line": "범인이 공원에 ___.",
+    "en": "The suspect → 🌳 the park, right now."
+   },
+   {
+    "sp": "park",
+    "from": "노래방",
+    "dest": "은행",
+    "line": "범인이 은행에 ___.",
+    "en": "The suspect → 🏦 the bank, right now."
+   },
+   {
+    "sp": "you",
+    "from": "공원",
+    "dest": "커피숍",
+    "past": true,
+    "line": "어제 범인이 여기 ___.",
+    "en": "Yesterday the suspect → ☕ here. (여기 = here)"
+   },
+   {
+    "sp": "park",
+    "from": "학교",
+    "dest": "공항",
+    "past": true,
+    "line": "어제 범인이 공항에 ___.",
+    "en": "Yesterday the suspect → ✈️ the airport."
+   },
+   {
+    "sp": "you",
+    "mover": "you",
+    "from": "커피숍",
+    "dest": "노래방",
+    "pre": "노래방에 와요?",
+    "preEn": "Detective Park: \"Are you coming to the karaoke room?\"",
+    "line": "네, 지금 ___!",
+    "en": "You answer him: \"Yes, I'm on my way right now!\"",
+    "star": true
+   },
+   {
+    "sp": "park",
+    "mover": "park",
+    "from": "노래방",
+    "dest": "커피숍",
+    "line": "지금 커피숍에 ___!",
+    "en": "Detective Park, about himself: he's heading over to you, right now.",
+    "star": true
+   }
+  ]
+ }
+}
+</script>
+<script>
+const ACTIVITY_TITLE = 'The Stakeout - places, 에, and 가요 / 와요';
+const ORDER = ['s1','s2','s3'];
+const REWARDS = {
+  s1: { star:'🗺️', msg:'You know the neighborhood.' },
+  s2: { star:'👣', msg:'Tailed him with 에.' },
+  s3: { star:'📻', msg:'Stakeout over. All done, go turn it in.' }
+};
+
+/* Fisher-Yates. Shuffle item order ONCE on load, and shuffle each item's
+   options separately inside the build loop. Authoring content in a tidy order
+   is fine; shipping it in that order lets a student score full marks by reading
+   down the list. Do not reshuffle on "start over" — rebuild from the arrays
+   that were already shuffled. */
+function shuffle(a){
+  const out = a.slice();
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const LL = {
+  extra: {},      /* stageId -> non-text evidence, captured once when solved */
+  summary: {},    /* stageId -> custom done-bar text, e.g. "solved in 2 tries" */
+  done: new Set(),
+
+  /* Marks a stage complete. Deliberately does NOT snapshot the written
+     answers — those are read live at copy time, so a student who reopens a
+     part and adds to it still gets credit for what they wrote. */
+  finish(id, extraEvidence){
+    const stage = document.getElementById(id);
+    if (extraEvidence) LL.extra[id] = extraEvidence;
+    const firstTime = !LL.done.has(id);
+    LL.done.add(id);
+    stage.classList.remove('active', 'open');
+    stage.classList.add('done');
+    LL.refreshSummary(id);
+    if (firstTime){ LL.award(id); LL.next(); }
+  },
+
+  /* Live read — never cached. */
+  collect(id){
+    const stage = document.getElementById(id);
+    const lines = [];
+    if (LL.extra[id]) lines.push(LL.extra[id]);
+    stage.querySelectorAll('[data-q]').forEach(el => {
+      const a = el.value.trim();
+      lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
+    });
+    return lines;
+  },
+
+  refreshSummary(id){
+    const sum = document.getElementById('sum-' + id);
+    if (!sum) return;
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const blanks = fields.filter(el => !el.value.trim()).length;
+    if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
+    else if (LL.summary[id]) sum.textContent = LL.summary[id];
+    else if (fields.length) sum.textContent = fields.length + (fields.length === 1 ? ' answer saved' : ' answers saved');
+    else sum.textContent = 'tap to see it again';
+  },
+
+  award(id){
+    const r = REWARDS[id]; if (!r) return;
+    const bar = document.getElementById('earned');
+    [...bar.querySelectorAll('.msg')].forEach(m => m.remove());
+    const s = document.createElement('span');
+    s.className = 'star'; s.textContent = r.star; s.title = r.msg; bar.appendChild(s);
+    const m = document.createElement('span');
+    m.className = 'msg'; m.textContent = r.msg; bar.appendChild(m);
+  },
+
+  next(){
+    const nextId = ORDER.find(x => !LL.done.has(x));
+    const t = document.getElementById(nextId || 'turnin');
+    t.classList.add('active');
+    setTimeout(() => t.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+  },
+
+  toggle(id){ document.getElementById(id).classList.toggle('open'); }
+};
+
+/* Typing in a reopened stage updates its done-bar immediately, so the student
+   can see a blank turn into a saved answer without closing anything. */
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.q !== undefined){
+    const st = e.target.closest('.stage');
+    if (st && LL.done.has(st.id)) LL.refreshSummary(st.id);
+  }
+});
+
+function say(kind, head, body){
+  const fb = document.getElementById('fb');
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+/* ---------------- evidence assembly ---------------- */
+/* A part counts for Copy when it is finished OR has anything in it yet: work in an
+   unfinished part is copied too, marked (in progress), so nothing typed is ever left out. */
+function started(id){
+  if (LL.extra[id]) return true;
+  return [...document.getElementById(id).querySelectorAll('[data-q]')].some(el => el.value.trim());
+}
+function copyIds(){ return ORDER.filter(id => LL.done.has(id) || started(id)); }
+function titleOf(id){ return document.getElementById(id).dataset.title + (LL.done.has(id) ? '' : ' (in progress)'); }
+function buildPlain(){
+  const parts = copyIds().map(id =>
+    '── ' + titleOf(id).toUpperCase() + ' ──\n' +
+    LL.collect(id).join('\n\n'));
+  return ACTIVITY_TITLE + '\n' + '='.repeat(ACTIVITY_TITLE.length) + '\n' +
+         'Completed ' + LL.done.size + ' of ' + ORDER.length + ' parts.\n\n' +
+         parts.join('\n\n') + '\n';
+}
+function buildHtml(){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts = copyIds().map(id => {
+    const body = LL.collect(id).map(block => {
+      const [q, ...rest] = block.split('\n'); const a = rest.join('\n');
+      return a ? '<p style="margin:0 0 0.25rem;"><strong>'+esc(q)+'</strong></p>' +
+                 '<p style="margin:0 0 1rem;padding-left:1rem;border-left:3px solid #b9c4cc;">'+
+                 esc(a).replace(/\n/g,'<br>')+'</p>'
+               : '<p style="margin:0 0 1rem;">'+esc(q)+'</p>';
+    }).join('');
+    return '<h4 style="margin:1rem 0 0.5rem;color:#2f6f8f;">'+
+           esc(titleOf(id))+'</h4>'+body;
+  });
+  return '<h3 style="margin:0 0 0.25rem;">'+esc(ACTIVITY_TITLE)+'</h3>'+
+         '<p style="margin:0 0 1rem;color:#555a63;font-size:0.95rem;">Completed '+
+         LL.done.size+' of '+ORDER.length+' parts.</p>'+parts.join('');
+}
+function copyFeedback(kind, head, body){
+  const box = document.getElementById('copyFb');
+  box.className = 'fb show ' + kind;
+  box.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+
+document.getElementById('copyAll').addEventListener('click', async () => {
+  const plain = buildPlain();
+  document.getElementById('previewText').value = plain;
+  const blanks = copyIds().reduce((n,id) =>
+    n + LL.collect(id).filter(b => b.includes('(not answered)')).length, 0);
+
+  /* Three fallbacks. Clipboard access from a cross-origin iframe is the
+     flakiest part of this system and a student must never be stranded. */
+  let ok = false;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([buildHtml()],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})
+      })]); ok = true;
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain); ok = true;
+    }
+  }catch(e){ ok = false; }
+  if(!ok){
+    try{
+      const ta = document.getElementById('previewText');
+      document.getElementById('preview').classList.add('show');
+      ta.focus(); ta.select(); ok = document.execCommand('copy');
+    }catch(e){ ok = false; }
+  }
+
+  if(ok){
+    copyFeedback('good','✓ Copied.',
+      'Go to your Canvas assignment and click <strong>Text Submission</strong>, then click in the box and paste (Ctrl+V). Then Submit.' +
+      (blanks ? '<br><br><strong>Heads up:</strong> '+blanks+' question'+(blanks>1?'s were':' was')+' left blank.' : ''));
+  } else {
+    document.getElementById('preview').classList.add('show');
+    copyFeedback('hint','Copy it by hand — takes two seconds.',
+      'Your work is in the box below. Click in it, press <strong>Ctrl+A</strong> to select all, then <strong>Ctrl+C</strong> to copy.');
+  }
+});
+document.getElementById('showPrev').addEventListener('click', () => {
+  document.getElementById('previewText').value = buildPlain();
+  document.getElementById('preview').classList.toggle('show');
+});
+
+function sayIn(id, kind, head, body){
+  const fb = document.getElementById(id);
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML = '<span class="fb-head">' + head + '</span>' + body;
+}
+function clearFb(id){ const fb = document.getElementById(id); fb.className = 'fb'; fb.innerHTML = ''; }
+
+
+/* =====================================================================
+   THE STAKEOUT — CONTENT lives in the JSON block id="content" below the
+   scripts; swap it to rejigger. Every Korean line has a recorded clip.
+     places[]   the 12 map places: ko, en, em (emoji picture), c/r (grid cell)
+     extra[]    4 more place words, used only as wrong options in Part 1
+     tail[]     Part 2: the suspect's stops in order (dest, past). The question,
+                the right answer and every wrong option are BUILT from dest and
+                past — 에 + 가요/갔어요, a 이/가 version (picked by batchim), a
+                verb-first version and a wrong-tense version — so no key is stored.
+     radio      Part 3: you / park (where each detective stands), intro, calls[]
+                (sp = who is talking, mover, from, dest, past, line with ___).
+                The key is computed: moving TO the speaker's own spot = 오다,
+                anywhere else = 가다; past adds ㅆ. It cannot be authored wrong.
+   ===================================================================== */
+const C = JSON.parse(document.getElementById('content').textContent);
+const VOICE = '../assets/stakeout/voice/';
+
+/* Recorded clips: <role>-<fnv1a(text)>.mp3 (n = narrator, d = Detective Park, s = you).
+   scripts/korean_voice.mjs records them; a missing clip falls back to the browser voice. */
+function fnv(s){ let h = 0x811c9dc5; for (const ch of s){ h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }
+function tts(text){
+  try{
+    if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; u.rate = 0.85;
+    const v = speechSynthesis.getVoices().find(x => /^ko/i.test(x.lang)); if (v) u.voice = v;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
+try{ if ('speechSynthesis' in window) speechSynthesis.getVoices(); }catch(e){}
+let current = null;
+function speak(text, role){
+  try{
+    if (current){ current.pause(); current = null; }
+    const a = new Audio(VOICE + (role || 'n') + '-' + fnv(text) + '.mp3');
+    current = a;
+    a.play().catch(() => tts(text));
+  }catch(e){ tts(text); }
+}
+function hearBtn(text, role){ return ' <button class="say" type="button" data-say="' + esc(text) + '" data-role="' + (role || 'n') + '" aria-label="Hear it">🔊</button>'; }
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-say]');
+  if (b){ e.stopPropagation(); speak(b.dataset.say, b.dataset.role); }
+});
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function nextBtn(id, label){ return '<div class="row" style="margin:.8rem 0 0"><button class="btn" type="button" id="' + id + '">' + label + '</button></div>'; }
+
+/* =============== THE TOWN MAP (shared by all three parts) =============== */
+const P = {}; C.places.forEach(p => { P[p.ko] = p; });
+const XY = ko => ({ x: 90 + 153 * P[ko].c, y: 72 + 130 * P[ko].r });
+const SVGNS = 'http://www.w3.org/2000/svg';
+const WHO = { sus: ['🕶️', '범인 (suspect)'], me: ['🙋', '나 (you)'], park: ['🕵️', '박 형사'] };
+
+function drawTown(hostId, tappable){
+  const host = document.getElementById(hostId);
+  const roads = [135, 265].map(y => '<line class="road" x1="14" y1="' + y + '" x2="626" y2="' + y + '"/><line class="lane" x1="14" y1="' + y + '" x2="626" y2="' + y + '"/>').join('') +
+                [166, 320, 473].map(x => '<line class="road" x1="' + x + '" y1="10" x2="' + x + '" y2="390"/>').join('');
+  const places = C.places.map(p => {
+    const { x, y } = XY(p.ko);
+    return '<g class="pl' + (tappable ? ' tap' : '') + '" data-p="' + esc(p.ko) + '"' + (tappable ? ' role="button" tabindex="0" aria-label="' + esc(p.ko) + ', ' + esc(p.en) + '. Hear it."' : '') + '>' +
+      '<rect x="' + (x - 62) + '" y="' + (y - 42) + '" width="124" height="84" rx="12"/>' +
+      '<text class="em" x="' + x + '" y="' + (y + 4) + '" text-anchor="middle">' + p.em + '</text>' +
+      '<text class="nm" x="' + x + '" y="' + (y + 32) + '" text-anchor="middle">' + esc(p.ko) + '</text></g>';
+  }).join('');
+  host.innerHTML = '<svg class="town" viewBox="0 0 640 400" role="img" aria-label="A town map with twelve places in a 4 by 3 grid. Top row: airport, school, library, park. Middle row: bank, coffee shop, pharmacy, karaoke room. Bottom row: home, convenience store, restaurant, hospital.">' +
+    '<g>' + roads + '</g><g class="trails"></g><g>' + places + '</g><g class="pins"></g><g class="movers"></g></svg>';
+  if (tappable){
+    const go = g => { if (g) speak(g.dataset.p); };
+    host.addEventListener('click', e => go(e.target.closest('.pl')));
+    host.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ const g = e.target.closest('.pl'); if (g){ e.preventDefault(); go(g); } } });
+  }
+  return host.querySelector('svg');
+}
+function el(tag, attrs, text){ const n = document.createElementNS(SVGNS, tag); Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, v)); if (text) n.textContent = text; return n; }
+
+/* scene: { from, to, past, kind, pin:{ at, label } } — draws the trail, the pin, and slides the mover */
+function scene(svg, s){
+  const trails = svg.querySelector('.trails'), pins = svg.querySelector('.pins'), movers = svg.querySelector('.movers');
+  trails.innerHTML = ''; pins.innerHTML = ''; movers.innerHTML = '';
+  svg.querySelectorAll('.pl.here').forEach(g => g.classList.remove('here'));
+  if (s.pin){
+    const p = XY(s.pin.at), g = el('g', { class: 'pin' });
+    g.appendChild(el('text', { class: 'pi', x: p.x - 50, y: p.y - 26, 'text-anchor': 'middle' }, '📍'));
+    g.appendChild(el('text', { x: p.x - 50, y: p.y - 54, 'text-anchor': 'middle' }, s.pin.label));
+    pins.appendChild(g);
+    svg.querySelector('.pl[data-p="' + s.pin.at + '"]').classList.add('here');
+  }
+  if (!s.to) return;
+  const a = XY(s.from), b = XY(s.to);
+  const line = el('path', { class: 'trail draw' + (s.past ? ' past' : ''), d: 'M' + a.x + ' ' + a.y + ' L' + b.x + ' ' + b.y });
+  trails.appendChild(line);
+  if (s.past) setTimeout(() => line.classList.remove('draw'), 1300);
+  if (s.past) trails.appendChild(el('text', { class: 'tag', x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 - 8, 'text-anchor': 'middle' }, '어제'));
+  const [face, label] = WHO[s.kind || 'sus'];
+  const m = el('g', { class: 'mover' + (s.kind === 'me' ? ' me' : '') });
+  m.appendChild(el('circle', { cx: 0, cy: 0, r: 20 }));
+  m.appendChild(el('text', { class: 'face', x: 0, y: 8, 'text-anchor': 'middle' }, face));
+  m.appendChild(el('text', { class: 'who', x: 0, y: 36, 'text-anchor': 'middle' }, label));
+  const at = q => 'translate(' + (q.x + 52) + 'px,' + (q.y - 44) + 'px)';
+  m.style.transform = at(a);
+  movers.appendChild(m);
+  requestAnimationFrame(() => requestAnimationFrame(() => { m.style.transform = at(b); }));
+}
+
+/* =============== PART 1 — know the neighborhood =============== */
+(function(){
+  drawTown('map1', true);
+  const pool = C.places.concat(C.extra);
+  const items = shuffle(C.places);
+  const log = []; let i = 0, tries = [];
+  const card = document.getElementById('qCard');
+  function draw(){
+    const w = items[i];
+    const opts = shuffle([w].concat(shuffle(pool.filter(x => x !== w)).slice(0, 3)));
+    card.innerHTML = '<p class="counter">' + (i + 1) + ' of ' + items.length + '</p>' +
+      '<div class="em" role="img" aria-label="Picture ' + (i + 1) + ' of the check">' + w.em + '</div>' +
+      '<p class="prompt">Which place is this?</p><div class="opts">' +
+      opts.map(o => '<button type="button" data-w="' + esc(o.ko) + '">' + esc(o.ko) + '</button>').join('') + '</div>';
+  }
+  document.getElementById('startCheck').addEventListener('click', () => {
+    document.getElementById('s1check').style.display = 'none';
+    card.style.display = ''; draw();
+  });
+  card.addEventListener('click', e => {
+    const b = e.target.closest('[data-w]'); if (!b || b.disabled) return;
+    const w = items[i];
+    if (b.dataset.w !== w.ko){
+      tries.push(b.dataset.w); b.disabled = true; b.classList.add('no');
+      const picked = pool.find(x => x.ko === b.dataset.w);
+      return sayIn('fb1', 'hint', esc(picked.ko) + ' is ' + picked.em + ' ' + esc(picked.en) + '.', 'Not this one. Look at the picture again. You can tap the map above to hear any place.');
+    }
+    speak(w.ko);
+    log.push(w.em + ' ' + w.ko + ' (' + w.en + ')' + (tries.length ? '  (tried ' + tries.join(', ') + ' first)' : '  (first try)'));
+    tries = []; i++;
+    if (i < items.length){ sayIn('fb1', 'good', '✓ ' + esc(w.ko) + ': ' + esc(w.en), ''); draw(); return; }
+    clearFb('fb1');
+    const first = log.filter(l => l.includes('(first try)')).length;
+    card.innerHTML = '<p class="prompt">🎉 All ' + items.length + ' places matched.</p><p class="pen">' + first + ' of ' + items.length + ' on the first try.</p>';
+    LL.extra.s1 = 'Place check: ' + first + ' of ' + items.length + ' on the first try.\n' + log.join('\n');
+    LL.summary.s1 = first + ' of ' + items.length + ' first try';
+    document.getElementById('s1next').style.display = '';
+  });
+})();
+
+/* =============== PART 2 — tail the suspect (place + 에 + 가요 / 갔어요) =============== */
+const batchim = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return c >= 0 && c < 11172 && c % 28 !== 0; };
+const TAIL_HINTS = {
+  marker: ['이/가 marks <em>who</em> does something.', 'A place you go <strong>to</strong> takes 에, straight after it.'],
+  order:  ['Check the order.', 'In Korean the verb always comes <strong>last</strong>.'],
+  past:   ['Look at the trail.', 'It\'s dashed and says <strong>어제</strong>: it already happened. Which one has the past ㅆ?'],
+  now:    ['Look at the trail.', 'It\'s solid, with no 어제: it\'s happening <strong>now</strong>. No past ㅆ.']
+};
+(function(){
+  const svg = drawTown('map2', false);
+  const card = document.getElementById('tCard');
+  const items = C.tail.map((t, k) => Object.assign({ from: k ? C.tail[k - 1].dest : '집' }, t));
+  const log = []; let i = 0, tries = [], opts = [];
+  const qOf = it => it.past ? '어제 범인이 어디에 갔어요?' : '범인이 어디에 가요?';
+  const keyOf = it => it.dest + '에 ' + (it.past ? '갔어요' : '가요');
+  function build(it){
+    const V = it.past ? '갔어요' : '가요', W = it.past ? '가요' : '갔어요';
+    return shuffle([
+      { t: keyOf(it) },
+      { t: it.dest + (batchim(it.dest) ? '이' : '가') + ' ' + V, k: 'marker' },
+      { t: V + ' ' + it.dest + '에', k: 'order' },
+      { t: it.dest + '에 ' + W, k: it.past ? 'past' : 'now' }]);
+  }
+  function draw(done){
+    const it = items[i];
+    card.innerHTML = '<p class="counter">' + (i + 1) + ' of ' + items.length + '</p>' +
+      '<p class="pq">🕵️ 박 형사 asks:</p><p class="psent">' + esc(qOf(it)) + hearBtn(qOf(it), 'd') + '</p>' +
+      '<p class="pen">' + (it.past ? 'Where did the suspect go yesterday?' : 'Where is the suspect going?') + '</p>' +
+      '<div class="ans4">' + opts.map(o => '<button type="button" data-a="' + esc(o.t) + '"' +
+        (tries.includes(o.t) ? ' class="no" disabled' : (done && o.t === keyOf(it) ? ' class="yes" disabled' : (done ? ' disabled' : ''))) + '>' + esc(o.t) + '</button>').join('') + '</div>';
+  }
+  function next(){
+    const it = items[i]; opts = build(it); tries = [];
+    scene(svg, { from: it.from, to: it.dest, past: it.past, kind: 'sus' });
+    draw(); setTimeout(() => speak(qOf(it), 'd'), 300);
+  }
+  card.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
+    const it = items[i], key = keyOf(it), pick = b.dataset.a;
+    if (pick !== key){
+      tries.push(pick); draw();
+      const o = opts.find(x => x.t === pick); const [h, t] = TAIL_HINTS[o.k];
+      return sayIn('fb2', 'hint', h, t);
+    }
+    speak(key, 's'); draw(true);
+    log.push(qOf(it) + ' → ' + key + (tries.length ? '  (tried: ' + tries.join(' | ') + ')' : '  (first try)'));
+    const lastOne = i === items.length - 1;
+    sayIn('fb2', 'good', '✓ ' + esc(key) + hearBtn(key, 's'), esc(it.dest) + ' + <strong>에</strong> (to) + ' + (it.past ? '<strong>갔어요</strong> (went).' : '<strong>가요</strong> (goes).') + nextBtn('t2go', lastOne ? 'Finish this part' : 'Follow him →'));
+    document.getElementById('t2go').addEventListener('click', () => {
+      i++; clearFb('fb2');
+      if (i < items.length) return next();
+      scene(svg, {});
+      const first = log.filter(l => l.includes('(first try)')).length;
+      card.innerHTML = '<p class="prompt">🎉 Tailed him all over town.</p><p class="pen">' + first + ' of ' + items.length + ' on the first try.</p>';
+      LL.extra.s2 = first + ' of ' + items.length + ' on the first try.\n' + log.join('\n');
+      LL.summary.s2 = first + ' of ' + items.length + ' first try';
+      document.getElementById('s2next').style.display = '';
+    });
+  });
+  next();
+})();
+
+/* =============== PART 3 — on the radio (가요 / 와요, from the speaker's spot) =============== */
+(function(){
+  const R = C.radio;
+  document.getElementById('parkIntro').innerHTML = esc(R.intro) + hearBtn(R.intro, 'd');
+  document.getElementById('parkIntroEn').textContent = R.introEn;
+  const svg = drawTown('map3', false);
+  const card = document.getElementById('rCard');
+  const atOf = sp => sp === 'you' ? R.you : R.park;
+  const nameOf = sp => sp === 'you' ? '나 (you)' : '박 형사';
+  const roleOf = sp => sp === 'you' ? 's' : 'd';
+  const kindOf = c => c.mover === 'you' ? 'me' : (c.mover === 'park' ? 'park' : 'sus');
+  const toward = c => c.dest === atOf(c.sp);
+  const keyOf = c => c.past ? (toward(c) ? '왔어요' : '갔어요') : (toward(c) ? '와요' : '가요');
+  const fullOf = c => c.line.replace('___', keyOf(c));
+  const items = shuffle(R.calls.filter(c => !c.star)).concat(R.calls.filter(c => c.star));
+  const log = []; let i = 0, tries = [], opts = [];
+  function draw(done){
+    const c = items[i], at = atOf(c.sp);
+    card.innerHTML = '<p class="counter">Call ' + (i + 1) + ' of ' + items.length + (c.star ? '<span class="star-tag">★ trap</span>' : '') + '</p>' +
+      (c.pre ? '<p class="radio">📻 박 형사, from 🎤 노래방</p><p class="pre">' + esc(c.pre) + hearBtn(c.pre, 'd') + '</p><p class="pen">' + esc(c.preEn) + '</p>' : '') +
+      '<p class="radio">📻 ' + esc(nameOf(c.sp)) + ' talking, from 📍 ' + P[at].em + ' ' + esc(at) + '</p>' +
+      '<p class="psent">' + esc(c.line).replace('___', '<span class="gap' + (done ? ' filled' : '') + '">' + (done ? esc(keyOf(c)) : '&nbsp;') + '</span>') + (done ? hearBtn(fullOf(c), roleOf(c.sp)) : '') + '</p>' +
+      '<p class="pen">' + esc(c.en) + '</p>' +
+      '<div class="ans4">' + opts.map(o => '<button type="button" data-a="' + o + '"' +
+        (tries.includes(o) ? ' class="no" disabled' : (done && o === keyOf(c) ? ' class="yes" disabled' : (done ? ' disabled' : ''))) + '>' + o + '</button>').join('') + '</div>';
+  }
+  function next(){
+    const c = items[i]; opts = shuffle(['가요', '와요', '갔어요', '왔어요']); tries = [];
+    scene(svg, { from: c.from, to: c.dest, past: c.past, kind: kindOf(c), pin: { at: atOf(c.sp), label: nameOf(c.sp).split(' (')[0] + ' 📻' } });
+    draw();
+    if (c.pre) setTimeout(() => speak(c.pre, 'd'), 300);
+  }
+  card.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
+    const c = items[i], key = keyOf(c), pick = b.dataset.a, at = atOf(c.sp);
+    if (pick !== key){
+      tries.push(pick); draw();
+      const pickToward = pick[0] === '와' || pick[0] === '왔', pickPast = pick.length === 3;
+      const where = P[at].em + ' ' + esc(at);
+      if (pickToward !== toward(c)){
+        if (toward(c)) return sayIn('fb3', 'hint', 'Toward the 📍.', 'The speaker is at ' + where + ', and that\'s exactly where it\'s heading. Moving <strong>toward</strong> the speaker = 오다.');
+        if (c.mover && c.mover !== 'sus') return sayIn('fb3', 'hint', 'That\'s the English "coming."', 'The speaker is <strong>leaving</strong> ' + where + '. Moving away from your own 📍 = 가다, even when English says "I\'m coming."');
+        return sayIn('fb3', 'hint', 'Away from the 📍.', 'The speaker is at ' + where + '. The suspect is heading somewhere else, away from that spot. That\'s 가다.');
+      }
+      if (pickPast !== !!c.past) return sayIn('fb3', 'hint', 'Right verb, check the time.', c.past ? '<strong>어제</strong> = yesterday. It already happened, so it needs the past ㅆ.' : 'It\'s happening <strong>now</strong>, so no past ㅆ.');
+    }
+    speak(fullOf(c), roleOf(c.sp)); draw(true);
+    log.push((c.pre ? c.pre + ' / ' : '') + fullOf(c) + '  [speaker at ' + at + ']' + (tries.length ? '  (tried: ' + tries.join(', ') + ')' : '  (first try)') + (c.star ? '  ★' : ''));
+    const lastOne = i === items.length - 1;
+    const why = toward(c) ? 'It\'s moving <strong>to</strong> the speaker\'s 📍, so 오다.' :
+      (c.mover && c.mover !== 'sus' ? 'The speaker is leaving their own 📍, so 가다, whatever English says.' : 'It\'s moving <strong>away</strong> from the speaker\'s 📍, so 가다.');
+    sayIn('fb3', 'good', '✓ ' + esc(fullOf(c)) + hearBtn(fullOf(c), roleOf(c.sp)), why + nextBtn('r3go', lastOne ? 'Finish this part' : 'Next call →'));
+    document.getElementById('r3go').addEventListener('click', () => {
+      i++; clearFb('fb3');
+      if (i < items.length) return next();
+      scene(svg, {});
+      const first = log.filter(l => l.includes('(first try)')).length;
+      const traps = log.filter(l => l.endsWith('★') && l.includes('(first try)')).length;
+      card.innerHTML = '<p class="prompt">🎉 Stakeout over. Good work, partner.</p><p class="pen">' + first + ' of ' + items.length + ' on the first try, ' + traps + ' of 2 traps.</p>';
+      LL.extra.s3 = first + ' of ' + items.length + ' on the first try (★ traps first try: ' + traps + ' of 2).\n' + log.join('\n');
+      LL.summary.s3 = first + ' of ' + items.length + ' first try';
+      document.getElementById('ownCall').style.display = '';
+      document.getElementById('s3next').style.display = '';
+    });
+  });
+  next();
+})();
+</script>
+<script type="application/json" id="qsummary">
+[
+ {
+  "title": "Part 1 - Know the neighborhood",
+  "questions": [
+   "Tap the town map to hear 12 places: 공항, 학교, 도서관, 공원, 은행, 커피숍, 약국, 노래방, 집, 편의점, 식당, 병원.",
+   "Place check: match each of the 12 emoji pictures to its Korean place word (4 choices; 회사, 영화관, 우체국, 시장 also appear as distractors)."
+  ]
+ },
+ {
+  "title": "Part 2 - Tail the suspect",
+  "questions": [
+   "Detective Park asks 범인이 어디에 가요? / 어제 범인이 어디에 갔어요? while the suspect moves on the map (dashed trail with 어제 = yesterday). Pick the answer: place + 에 + 가요/갔어요, e.g. 은행에 가요, 공항에 갔어요. Traps: 이/가 instead of 에, verb first, wrong tense. 8 stops."
+  ]
+ },
+ {
+  "title": "Part 3 - On the radio",
+  "questions": [
+   "Radio calls between you (at the coffee shop) and Detective Park (at the karaoke room). Fill the gap with 가요 / 와요 / 갔어요 / 왔어요 from where the speaker stands: 범인이 커피숍에 와요! (you, at the coffee shop) · 범인이 공원에 가요. · 어제 범인이 여기 왔어요. · 어제 범인이 공항에 갔어요.",
+   "★ Trap: 노래방에 와요? → 네, 지금 가요! (you are leaving your spot).",
+   "★ Trap: Detective Park heading to you: 지금 커피숍에 가요!"
+  ]
+ }
+]
+</script>
+<script>/* inlined: assets/student.js */
+/* ===========================================================================
+   student.js — two behaviours layered over the LL engine. Linked by every
+   hosted lesson page AND every activity, and loaded LAST, after the engine
+   (the shared lesson.js, or an activity's own inline copy).
+
+     1. SAVE / RESTORE — a student who closes the tab gets their answers and
+        their finished parts back AUTOMATICALLY, and lands on the part they
+        were on. (Until 18 Nov 2026 this was an offer bar; typing before
+        clicking it saved the empty page over the old work, and inside a
+        Canvas iframe the bar was usually off screen. That is how Joy's
+        Korean 1A final lost its answers.) A visible line says whether this
+        browser is saving at all.
+     2. CELEBRATION    — finishing a part shows a card where the student is
+        actually looking, which then flies up and docks as the star in
+        #earned. The old top-bar star sat above the instructions, in the
+        region students never read.
+
+   It touches no page markup: it injects its own CSS and WRAPS LL.finish and
+   LL.award rather than replacing them. Every storage call is wrapped — a
+   browser that blocks storage loses the save quietly and everything else on
+   the page still works.
+   =========================================================================== */
+(function () {
+  'use strict';
+
+  if (typeof LL === 'undefined' || !LL || !LL.done) return;   /* no engine here */
+
+  var REDUCED = !!(window.matchMedia &&
+                   window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var STAGES  = (typeof ORDER !== 'undefined' && ORDER && ORDER.length) ? ORDER : [];
+  if (!STAGES.length) return;
+
+  /* ------------------------------------------------ storage, defensively */
+  var PART    = new URLSearchParams(location.search).get('part') || '';
+  var KEY     = 'll:' + location.pathname + ':' + PART;
+  var MAX_AGE = 45 * 24 * 60 * 60 * 1000;          /* 45 days */
+
+  var S = (function () {
+    try {
+      var s = window.localStorage;
+      s.setItem('__llprobe', '1'); s.removeItem('__llprobe');
+      return s;
+    } catch (e) { return null; }                   /* blocked: feature is simply off */
+  })();
+
+  function read()   { if (!S) return null;
+                      try { return JSON.parse(S.getItem(KEY) || 'null'); } catch (e) { return null; } }
+  function write(o) { if (!S) return;
+                      try { S.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
+  function drop()   { if (!S) return;
+                      try { S.removeItem(KEY); } catch (e) {} }
+  /* one level of undo: the last save before a restore or a Start over */
+  var BAK = KEY + ':bak';
+  function backup(o){ if (!S || !o) return;
+                      try { S.setItem(BAK, JSON.stringify(o)); } catch (e) {} }
+
+  /* ------------------------------------------------------ page identity
+     Two guards, because activities SHUFFLE their content on every load, so
+     question text is not stable there and cannot identify the page.
+
+       FP (page level)  — the stage list and how many answer boxes each stage
+                          holds. Changes when the lesson gains or loses a
+                          question, which is when a whole save is worthless.
+       per-field check  — each answer is stored next to its own question text
+                          and only restored if that question is still in that
+                          slot. A shuffled activity therefore restores the
+                          student's PROGRESS without ever pasting an answer
+                          underneath a different question. */
+  function fields(id) {
+    var st = document.getElementById(id);
+    return st ? [].slice.call(st.querySelectorAll('[data-q]')) : [];
+  }
+  var FP = (function () {
+    var s = STAGES.map(function (id) { return id + ':' + fields(id).length; }).join('|');
+    var h = 5381, i;
+    for (i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  })();
+
+  /* ------------------------------------------------------------- saving */
+  function snapshot() {
+    var f = {};
+    STAGES.forEach(function (id) {
+      f[id] = fields(id).map(function (el) { return [el.dataset.q || '', el.value]; });
+    });
+    return { v: FP, t: Date.now(), f: f,
+             d: STAGES.filter(function (id) { return LL.done.has(id); }),
+             x: LL.extra || {}, s: LL.summary || {} };
+  }
+  function worthKeeping(o) {
+    if (o.d && o.d.length) return true;
+    for (var k in o.f) {
+      for (var i = 0; i < o.f[k].length; i++) {
+        if (o.f[k][i] && String(o.f[k][i][1]).trim()) return true;
+      }
+    }
+    return false;
+  }
+  /* Never drops on its own: an empty page is never written over a real save.
+     Only "Start over" clears a save, and it backs it up first. */
+  var timer = null;
+  function saveNow() {
+    clearTimeout(timer); timer = null;
+    var snap = snapshot();
+    if (worthKeeping(snap)) { write(snap); stamp(snap.t); }
+  }
+  function save() {
+    clearTimeout(timer);
+    timer = setTimeout(saveNow, 400);
+  }
+  function onEdit(e) {
+    if (e.target && e.target.dataset && e.target.dataset.q !== undefined) save();
+  }
+  document.addEventListener('input', onEdit);
+  document.addEventListener('change', onEdit);
+  /* closing the tab inside the 400ms debounce used to lose the last words */
+  window.addEventListener('pagehide', function () { if (timer) saveNow(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden' && timer) saveNow();
+  });
+
+  /* ----------------------------------------------------- save status line
+     One line at the top of every part on screen and in the turn-in panel.
+     A browser that blocks storage (private window, some school setups, some
+     browsers inside a Canvas iframe) gets a warning instead of silence. */
+  function clock(t) {
+    var d = new Date(t), h = d.getHours(), m = ('0' + d.getMinutes()).slice(-2);
+    return ((h % 12) || 12) + ':' + m + (h >= 12 ? 'pm' : 'am');
+  }
+  function stamp(t) {
+    var els = document.querySelectorAll('.ll-save');
+    for (var i = 0; i < els.length; i++) {
+      if (!S) {
+        els[i].className = 'll-save ll-save-off';
+        els[i].textContent = '⚠ This browser is not saving your work. Before you close it, press Copy and turn in what you have.';
+      } else {
+        els[i].className = 'll-save';
+        els[i].textContent = t ? '💾 Saved on this computer · ' + clock(t)
+                               : '💾 Your answers save on this computer as you type.';
+      }
+    }
+  }
+  function addStatusLines() {
+    var hosts = STAGES.map(function (id) { return document.getElementById(id); });
+    hosts.push(document.getElementById('turnin'));
+    hosts.forEach(function (h) {
+      if (!h || h.querySelector(':scope > .ll-save')) return;
+      var p = document.createElement('p');
+      p.className = 'll-save'; p.setAttribute('role', 'status');
+      h.insertBefore(p, h.firstChild);
+    });
+  }
+
+  /* ----------------------------------------------------------- restoring */
+  var origAward  = LL.award.bind(LL);
+  var origFinish = LL.finish.bind(LL);
+  var origNext   = LL.next.bind(LL);
+
+  /* LL.finish() calls award() and then next(), and next() scrolls 120ms later
+     — which drags the viewport away from the celebration while it is still
+     animating in. Hold the advance until the card has finished, then let it
+     run. The student reads the card, THEN the page moves. */
+  var celebrating = false, pendingNext = false;
+  LL.next = function () {
+    if (celebrating) { pendingNext = true; return; }
+    origNext();
+  };
+  function releaseNext() {
+    celebrating = false;
+    if (pendingNext) { pendingNext = false; origNext(); }
+  }
+
+  /* Where was the student looking when they finished? Measured BEFORE the
+     engine collapses the part: once it collapses, everything they were reading
+     shrinks to a one-line bar far above them, and a card placed over that bar
+     lands off screen. Viewport-relative, so it survives the page shrinking. */
+  var lookAt = null;
+  function eyeLine(id) {
+    var st = document.getElementById(id);
+    var el = document.activeElement;
+    if (!el || !st || !st.contains(el) || el === document.body)
+      el = st ? [].slice.call(st.querySelectorAll('button.go')).pop() : null;
+    if (!el) return null;
+    var r = el.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if (r.bottom < 0 || r.top > vh) return null;    /* not on screen: no use */
+    return r.top + r.height / 2;
+  }
+  LL.finish = function (id, extraEvidence) {
+    lookAt = eyeLine(id);
+    origFinish(id, extraEvidence);
+    lookAt = null;
+    save();
+  };
+
+  function silentComplete(id) {
+    var st = document.getElementById(id);
+    if (!st) return;
+    LL.done.add(id);
+    st.classList.remove('active', 'open');
+    st.classList.add('done');
+    if (LL.refreshSummary) LL.refreshSummary(id);
+    origAward(id);                                  /* dock the star, no fanfare */
+  }
+
+  function restore(saved) {
+    /* First by slot (cheap, exact); if the question in that slot changed
+       (shuffled activity, or the lesson was edited since), by question text
+       anywhere on the page. An answer is never pasted under a question it
+       was not written for. */
+    var pool = {}, skipped = 0, used = {};
+    Object.keys(saved.f || {}).forEach(function (id) {
+      (saved.f[id] || []).forEach(function (pair, i) {
+        if (!pair || !pair[0] || !String(pair[1]).trim()) return;
+        (pool[pair[0]] = pool[pair[0]] || []).push(id + '#' + i);
+      });
+    });
+    function take(q) {
+      var list = pool[q] || [];
+      for (var k = 0; k < list.length; k++) if (!used[list[k]]) { used[list[k]] = 1; return list[k]; }
+      return null;
+    }
+    STAGES.forEach(function (id) {
+      var vals = (saved.f && saved.f[id]) || [];
+      fields(id).forEach(function (el, i) {
+        var q = el.dataset.q || '', pair = vals[i];
+        if (pair && pair[0] === q && !used[id + '#' + i]) {
+          used[id + '#' + i] = 1; el.value = pair[1]; return;
+        }
+        var ref = take(q);
+        if (ref) {
+          var bits = ref.split('#');
+          el.value = saved.f[bits[0]][+bits[1]][1];
+        } else if (pair && String(pair[1]).trim()) skipped++;
+      });
+    });
+    if (skipped) console.info('[student.js] ' + skipped +
+      ' answer(s) not restored: their question is no longer on the page.');
+    LL.extra   = saved.x || {};
+    LL.summary = saved.s || {};
+    STAGES.forEach(function (id) {
+      if (saved.d && saved.d.indexOf(id) !== -1) silentComplete(id);
+    });
+    celebrating = false; pendingNext = false;
+    origNext();                                     /* lands them on the part they were on */
+    try { document.dispatchEvent(new CustomEvent('ll:restored')); } catch (e) {}
+  }
+
+  function whenWord(t) {
+    var d = new Date(t), now = new Date();
+    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var h = d.getHours(), m = ('0' + d.getMinutes()).slice(-2);
+    var ap = h >= 12 ? 'pm' : 'am'; h = (h % 12) || 12;
+    var when = (d.toDateString() === now.toDateString()) ? 'earlier today' : 'on ' + days[d.getDay()];
+    return when + ' at ' + h + ':' + m + ap;
+  }
+
+  function restoredNotice(saved) {
+    var n = (saved.d || []).length;
+    var bar = document.createElement('div');
+    bar.className = 'll-restore';
+    bar.setAttribute('role', 'status');
+    bar.innerHTML =
+      '<span class="ll-restore-t"></span>' +
+      '<button type="button" class="ll-btn ll-fresh">Start over</button>';
+    bar.querySelector('.ll-restore-t').textContent =
+      '✓ Your work from ' + whenWord(saved.t) + ' is back' +
+      (n ? ' — ' + n + (n === 1 ? ' part' : ' parts') + ' already finished.' : '.');
+    var host = document.querySelector('.stage.active:not(.done)') || document.body;
+    host.insertBefore(bar, host === document.body ? host.firstChild : host.querySelector('.ll-save') ? host.querySelector('.ll-save').nextSibling : host.firstChild);
+    var fresh = bar.querySelector('.ll-fresh'), armed = false;
+    fresh.addEventListener('click', function () {
+      if (!armed) {                                  /* two taps, no browser dialog */
+        armed = true;
+        fresh.textContent = 'Yes, clear my answers';
+        bar.querySelector('.ll-restore-t').textContent =
+          'Start over? Your answers will be cleared. (A backup is kept on this computer.)';
+        return;
+      }
+      backup(read()); drop(); submitted = true; location.reload();
+    });
+  }
+
+  /* -------------------------------------- the "are you sure" on tab close */
+  var submitted = false;
+  function hasText() {
+    var els = document.querySelectorAll('[data-q]');
+    for (var i = 0; i < els.length; i++) if (els[i].value.trim()) return true;
+    return false;
+  }
+  window.addEventListener('beforeunload', function (e) {
+    if (submitted || (!hasText() && !LL.done.size)) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+  var copyBtn = document.getElementById('copyAll');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    setTimeout(function () { submitted = true; }, 0);   /* copied: stop nagging */
+  });
+
+  /* --------------------------------------------------------- celebration */
+  LL.award = function (id) {
+    var r = (typeof REWARDS !== 'undefined') ? REWARDS[id] : null;
+    if (!r) return;
+    var msg = (STAGES[STAGES.length - 1] === id) ? 'All done — go turn it in.' : r.msg;
+    celebrate(r.star, msg, id, function () { origAward(id); });
+  };
+
+  function celebrate(star, msg, stageId, dock) {
+    var card = document.createElement('div');
+    card.className = 'll-cel';
+    card.setAttribute('aria-hidden', 'true');       /* #earned is the aria-live region */
+    card.innerHTML = '<span class="ll-cel-star"></span><span class="ll-cel-msg"></span>';
+    card.querySelector('.ll-cel-star').textContent = star;
+    card.querySelector('.ll-cel-msg').textContent  = msg;
+    document.body.appendChild(card);
+
+    /* Placed over the part they just finished, in document coordinates.
+       position:fixed would centre on the IFRAME's viewport, which inside a
+       Canvas page can be scrolled off screen entirely. */
+    var st = document.getElementById(stageId);
+    var r  = st ? st.getBoundingClientRect()
+                : { left: 0, top: 0, width: document.documentElement.clientWidth, height: 240 };
+    var cw = card.offsetWidth, ch = card.offsetHeight;
+    var x  = window.scrollX + r.left + r.width / 2 - cw / 2;
+    var y;
+    if (lookAt !== null) {
+      /* just ABOVE the button they pressed — the button was on screen, so
+         the space above it is too, even when an iframe is taller than the
+         screen. Only if there's no room above does it go just below. */
+      var vy = lookAt - ch - 28;
+      if (vy < 8) vy = lookAt + 28;
+      y = window.scrollY + vy;
+    } else {
+      y = window.scrollY + r.top + Math.min(r.height / 2, 170) - ch / 2;
+    }
+    card.style.left = Math.max(8, x) + 'px';
+    card.style.top  = Math.max(8, y) + 'px';
+
+    celebrating = true;
+    requestAnimationFrame(function () { card.classList.add('in'); });
+
+    setTimeout(function () {
+      var bar = document.getElementById('earned');
+      if (REDUCED || !bar) {
+        card.classList.add('out');
+      } else {
+        var br = bar.getBoundingClientRect();
+        var dx = (window.scrollX + br.left + 14) - (parseFloat(card.style.left) + cw / 2);
+        var dy = (window.scrollY + br.top + br.height / 2) - (parseFloat(card.style.top) + ch / 2);
+        card.classList.add('fly');
+        card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.18)';
+        card.style.opacity   = '0';
+      }
+      setTimeout(function () {
+        dock();                                     /* the star appears in #earned */
+        if (card.parentNode) card.parentNode.removeChild(card);
+        releaseNext();                              /* now the page may move */
+      }, REDUCED ? 420 : 560);
+    }, REDUCED ? 1900 : 1600);
+  }
+
+  /* ---------------------------------------------------------------- CSS
+     Injected rather than added to lesson.css, because activities are
+     self-contained and carry no shared stylesheet. Tokens where they exist,
+     fallbacks where they don't. */
+  var css = document.createElement('style');
+  css.textContent = [
+    '.ll-restore{position:relative;z-index:60;display:flex;flex-wrap:wrap;gap:.6rem;',
+      'align-items:center;padding:.7rem 1rem;margin:0 0 1rem;border-radius:10px;',
+      'border:1px solid var(--warn-line,#6b5124);background:var(--warn-soft,#38290f);',
+      'color:var(--ink,#f3f5f8);font-size:.95rem;font-family:inherit}',
+    '.ll-restore-t{flex:1 1 15rem;font-weight:600}',
+    '.ll-save{margin:0 0 .6rem;font-size:.85rem;color:var(--soft,#c5cdd8)}',
+    '.ll-save-off{font-weight:700;font-size:.95rem;padding:.55rem .8rem;border-radius:8px;',
+      'border:1px solid var(--warn-line,#6b5124);background:var(--warn-soft,#38290f);',
+      'color:var(--ink,#f3f5f8)}',
+    '.ll-btn{font:inherit;font-weight:700;cursor:pointer;border-radius:8px;padding:.45rem .9rem;',
+      'border:1px solid var(--accent-line,#2b5a72);background:var(--accent,#6fbde3);',
+      'color:var(--on-accent,#0f1216)}',
+    '.ll-btn.ll-fresh{background:transparent;color:var(--soft,#c5cdd8);',
+      'border-color:var(--line,#2e343d)}',
+    '.ll-cel{position:absolute;z-index:80;pointer-events:none;display:flex;',
+      'flex-direction:column;align-items:center;gap:.45rem;padding:1.15rem 1.7rem;',
+      'border-radius:16px;background:var(--card,#1d2128);border:2px solid var(--gold,#f2c75c);',
+      'box-shadow:0 14px 38px rgba(0,0,0,.45);opacity:0;transform:scale(.4);',
+      'transition:opacity .3s ease,transform .42s cubic-bezier(.2,1.5,.4,1)}',
+    '.ll-cel.in{opacity:1;transform:scale(1)}',
+    '.ll-cel.fly{transition:opacity .5s ease,transform .55s cubic-bezier(.5,0,.75,.4)}',
+    '.ll-cel.out{opacity:0;transition:opacity .36s ease}',
+    '.ll-cel-star{font-size:2.7rem;line-height:1;color:var(--gold,#f2c75c)}',
+    '.ll-cel-msg{font-size:1.05rem;font-weight:800;line-height:1.3;text-align:center;',
+      'max-width:17rem;color:var(--gold,#f2c75c)}',
+    '@media (prefers-reduced-motion:reduce){',
+      '.ll-cel{transition:opacity .3s ease}.ll-cel.in{transform:none}}'
+  ].join('');
+  document.head.appendChild(css);
+
+  /* ------------------------------------------------------------ on load */
+  addStatusLines();
+  var saved = read();
+  if (saved && (Date.now() - saved.t) > MAX_AGE) { backup(saved); drop(); saved = null; }
+  if (saved && worthKeeping(saved)) {
+    /* An edited lesson (saved.v !== FP) no longer throws the save away:
+       restore() matches answers to questions by their text. */
+    backup(saved);
+    restore(saved);
+    restoredNotice(saved);
+    stamp(saved.t);
+  } else stamp(null);
+})();
+
+</script>
+</body>
+</html>

@@ -102,6 +102,7 @@ const LL = {
     if (LL.extra[id]) lines.push(LL.extra[id]);
     stage.querySelectorAll('[data-q]').forEach(el => {
       const a = el.value.trim();
+      if (el.hasAttribute('data-writein') && !a) return;   // only sent when used
       lines.push(el.dataset.q + '\n' + (a || '(not answered)'));
     });
     return lines;
@@ -110,7 +111,7 @@ const LL = {
   refreshSummary(id){
     const sum = document.getElementById('sum-' + id);
     if (!sum) return;
-    const fields = [...document.getElementById(id).querySelectorAll('[data-q]')];
+    const fields = [...document.getElementById(id).querySelectorAll('[data-q]:not([data-writein])')];
     const blanks = fields.filter(el => !el.value.trim()).length;
     if (blanks) sum.textContent = blanks + ' left blank — tap to finish';
     else if (LL.summary[id]) sum.textContent = LL.summary[id];

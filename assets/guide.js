@@ -165,7 +165,16 @@
 
   /* ---------------------------------------------------------- utilities */
   function field(q)   { return q.querySelector('textarea[data-q], input[data-q], select[data-q]'); }
-  function filledEl(f){ return !!(f && String(f.value).trim()); }
+  /* a dropdown on "None of these" counts only once the write-in has words */
+  function writeinOf(f) { var b = f.closest && f.closest('.abox'); return b && b.querySelector('[data-writein]'); }
+  function filledEl(f){
+    if (!f) return false;
+    if (f.tagName === 'SELECT') {
+      var o = f.options[f.selectedIndex];
+      if (o && o.hasAttribute('data-other')) { var w = writeinOf(f); return !!(w && w.value.trim()); }
+    }
+    return !!String(f.value).trim();
+  }
   function filled(q)  { return filledEl(field(q)); }
   var anchor = null, glideId = 0;
   /* While the page moves because WE moved it (a glide, a part landing),
@@ -459,7 +468,7 @@
   function buildPuzzle(stage) {
     var body = stage.querySelector('.stage-body');
     var row = body && body.querySelector(':scope > .row');
-    var fields = Array.prototype.slice.call(stage.querySelectorAll('[data-q]'));
+    var fields = Array.prototype.slice.call(stage.querySelectorAll('[data-q]:not([data-writein])'));  /* write-in rides on its dropdown's piece */
     if (!row || !fields.length || PUZ[stage.id]) return;
     var idx = stageIndex++;
     var id = 'gdp-' + stage.id, pal = PALETTES[idx % PALETTES.length], pic = PICS ? PICS[idx % PICS.length] : null;
@@ -829,6 +838,12 @@
     var hit = stepOf(t);
     if (hit) syncPuzzle(hit.stage);
     if (t.tagName !== 'SELECT' || !t.value || !hit) return;
+    var o = t.options[t.selectedIndex];
+    if (o && o.hasAttribute('data-other')) {           /* stay here: they have writing to do */
+      var w = writeinOf(t);
+      if (w) setTimeout(function () { try { w.focus({ preventScroll: true }); } catch (x) { w.focus(); } }, 0);
+      return;
+    }
     answered(hit, true);
   });
 
